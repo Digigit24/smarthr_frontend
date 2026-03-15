@@ -18,7 +18,7 @@ const REC_COLORS: Record<string, string> = {
 
 function ScoreGauge({ score }: { score: string }) {
   const val = parseFloat(score)
-  const color = val >= 7 ? 'text-emerald-500' : val >= 4 ? 'text-amber-500' : 'text-red-500'
+  const color = val >= 70 ? 'text-emerald-500' : val >= 40 ? 'text-amber-500' : 'text-red-500'
   return <span className={cn('text-lg font-bold', color)}>{val.toFixed(1)}</span>
 }
 
@@ -72,7 +72,7 @@ export default function ScorecardsPage() {
                   <div>
                     <p className="text-xs text-muted-foreground">Overall Score</p>
                     <ScoreGauge score={sc.overall_score} />
-                    <span className="text-muted-foreground text-sm"> / 10</span>
+                    <span className="text-muted-foreground text-sm"> / 100</span>
                   </div>
                   <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', REC_COLORS[sc.recommendation])}>
                     {sc.recommendation.replace(/_/g, ' ')}
@@ -106,7 +106,7 @@ export default function ScorecardsPage() {
             <div className="text-center py-4 rounded-lg bg-muted/40">
               <p className="text-xs text-muted-foreground mb-1">Overall Score</p>
               <ScoreGauge score={viewCard.overall_score} />
-              <span className="text-muted-foreground"> / 10</span>
+              <span className="text-muted-foreground"> / 100</span>
               <div className="mt-2">
                 <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-medium', REC_COLORS[viewCard.recommendation])}>
                   {viewCard.recommendation.replace(/_/g, ' ')}

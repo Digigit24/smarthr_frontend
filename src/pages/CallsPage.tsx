@@ -69,12 +69,15 @@ export default function CallsPage() {
       </div>
 
       <div className="flex items-center gap-3">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select
+          value={statusFilter || 'ALL'}
+          onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
+        >
           <SelectTrigger className="w-48">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All statuses</SelectItem>
+            <SelectItem value="ALL">All statuses</SelectItem>
             {['QUEUED', 'INITIATED', 'RINGING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'NO_ANSWER', 'BUSY'].map((s) => (
               <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
             ))}
@@ -233,7 +236,7 @@ export default function CallsPage() {
                   ))}
                 </div>
                 <div className="border-t pt-2">
-                  <p className="text-lg font-bold">{parseFloat(viewCall.scorecard.overall_score).toFixed(1)} / 10</p>
+                  <p className="text-lg font-bold">{parseFloat(viewCall.scorecard.overall_score).toFixed(1)} / 100</p>
                   <Badge variant="outline">{viewCall.scorecard.recommendation}</Badge>
                 </div>
               </div>

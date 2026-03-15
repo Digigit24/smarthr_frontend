@@ -150,12 +150,15 @@ export default function InterviewsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select
+          value={statusFilter || 'ALL'}
+          onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
+        >
           <SelectTrigger className="w-44">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All statuses</SelectItem>
+            <SelectItem value="ALL">All statuses</SelectItem>
             {['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].map((s) => (
               <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}

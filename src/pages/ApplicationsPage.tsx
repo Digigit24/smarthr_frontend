@@ -38,14 +38,14 @@ const ALL_STATUSES: ApplicationStatus[] = [
 
 function ScoreBar({ score }: { score: string | null }) {
   if (!score) return <span className="text-muted-foreground text-[13px]">—</span>
-  const val = parseFloat(score)
-  const color = val >= 7 ? 'bg-emerald-500' : val >= 4 ? 'bg-amber-500' : 'bg-red-500'
+  const val = parseFloat(score) // 0–100 scale
+  const color = val >= 70 ? 'bg-emerald-500' : val >= 40 ? 'bg-amber-500' : 'bg-red-500'
   return (
     <div className="flex items-center gap-2">
       <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full`} style={{ width: `${(val / 10) * 100}%` }} />
+        <div className={`h-full ${color} rounded-full`} style={{ width: `${val}%` }} />
       </div>
-      <span className="text-[13px] font-medium">{val.toFixed(1)}</span>
+      <span className="text-[13px] font-medium">{val.toFixed(0)}</span>
     </div>
   )
 }
@@ -152,12 +152,15 @@ export default function ApplicationsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select
+          value={statusFilter || 'ALL'}
+          onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
+        >
           <SelectTrigger className="w-48">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All statuses</SelectItem>
+            <SelectItem value="ALL">All statuses</SelectItem>
             {ALL_STATUSES.map((s) => (
               <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
             ))}
@@ -298,7 +301,7 @@ export default function ApplicationsPage() {
                 <div className="flex items-center gap-1.5">
                   <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
                   <span className="font-semibold text-sm">{parseFloat(viewApp.score).toFixed(1)}</span>
-                  <span className="text-xs text-muted-foreground">/ 10</span>
+                  <span className="text-xs text-muted-foreground">/ 100</span>
                 </div>
               )}
             </div>
@@ -339,7 +342,7 @@ export default function ApplicationsPage() {
                     </div>
                     <div className="pt-2 border-t border-border/60">
                       <p className="text-[11px] text-muted-foreground mb-0.5">Overall</p>
-                      <p className="text-lg font-bold">{parseFloat(sc.overall_score).toFixed(1)} / 10</p>
+                      <p className="text-lg font-bold">{parseFloat(sc.overall_score).toFixed(1)} / 100</p>
                       <Badge variant="outline" className="mt-1">{sc.recommendation}</Badge>
                     </div>
                     {sc.summary && <p className="text-[13px]">{sc.summary}</p>}

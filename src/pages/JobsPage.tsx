@@ -332,12 +332,15 @@ export default function JobsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select
+          value={statusFilter || 'ALL'}
+          onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
+        >
           <SelectTrigger className="w-40">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All statuses</SelectItem>
+            <SelectItem value="ALL">All statuses</SelectItem>
             <SelectItem value="DRAFT">Draft</SelectItem>
             <SelectItem value="OPEN">Open</SelectItem>
             <SelectItem value="PAUSED">Paused</SelectItem>
