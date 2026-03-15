@@ -1,0 +1,262 @@
+import { useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  FileText,
+  GitBranch,
+  Phone,
+  Star,
+  Calendar,
+  Bell,
+  Activity,
+  PanelLeftClose,
+  PanelLeft,
+  ChevronDown,
+  X,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+
+interface NavItem {
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  href?: string
+  children?: NavItem[]
+}
+
+const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
+  {
+    title: 'OVERVIEW',
+    items: [{ label: 'Dashboard', icon: LayoutDashboard, href: '/' }],
+  },
+  {
+    title: 'RECRUITMENT',
+    items: [
+      { label: 'Jobs', icon: Briefcase, href: '/jobs' },
+      { label: 'Applicants', icon: Users, href: '/applicants' },
+      { label: 'Applications', icon: FileText, href: '/applications' },
+      { label: 'Pipeline', icon: GitBranch, href: '/pipeline' },
+    ],
+  },
+  {
+    title: 'AI SCREENING',
+    items: [
+      { label: 'Call Records', icon: Phone, href: '/calls' },
+      { label: 'Scorecards', icon: Star, href: '/scorecards' },
+    ],
+  },
+  {
+    title: 'INTERVIEWS',
+    items: [{ label: 'Interviews', icon: Calendar, href: '/interviews' }],
+  },
+  {
+    title: 'SYSTEM',
+    items: [
+      { label: 'Notifications', icon: Bell, href: '/notifications' },
+      { label: 'Activity Log', icon: Activity, href: '/activities' },
+    ],
+  },
+]
+
+interface SidebarItemProps {
+  item: NavItem
+  collapsed: boolean
+  depth?: number
+}
+
+function SidebarItem({ item, collapsed, depth = 0 }: SidebarItemProps) {
+  const location = useLocation()
+  const [open, setOpen] = useState(false)
+
+  if (item.children) {
+    const isAnyChildActive = item.children.some((c) => c.href === location.pathname)
+    return (
+      <Collapsible open={open || isAnyChildActive} onOpenChange={setOpen}>
+        <CollapsibleTrigger asChild>
+          <button
+            className={cn(
+              'flex w-full items-center gap-3 h-9 px-3 rounded-lg',
+              'text-[13px] font-medium text-muted-foreground',
+              'hover:text-foreground hover:bg-muted/80 transition-all duration-150'
+            )}
+          >
+            <item.icon className="h-4 w-4 shrink-0" />
+            {!collapsed && (
+              <>
+                <span className="flex-1 text-left">{item.label}</span>
+                <ChevronDown
+                  className={cn(
+                    'h-3.5 w-3.5 text-muted-foreground/60 transition-transform duration-200',
+                    !(open || isAnyChildActive) && '-rotate-90'
+                  )}
+                />
+              </>
+            )}
+          </button>
+        </CollapsibleTrigger>
+        {!collapsed && (
+          <CollapsibleContent>
+            <div className="ml-3 pl-3 border-l border-border/60 space-y-0.5 mt-0.5">
+              {item.children.map((child) => (
+                <SidebarItem key={child.href} item={child} collapsed={false} depth={1} />
+              ))}
+            </div>
+          </CollapsibleContent>
+        )}
+      </Collapsible>
+    )
+  }
+
+  const isActive = location.pathname === item.href
+
+  if (depth === 1) {
+    return (
+      <Link
+        to={item.href!}
+        className={cn(
+          'flex items-center gap-3 h-8 px-3 rounded-lg text-[13px]',
+          'text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-150',
+          isActive && 'text-foreground sidebar-active font-medium -ml-[13px] pl-[23px]'
+        )}
+      >
+        <item.icon className={cn('h-4 w-4 shrink-0', isActive && 'sidebar-active-icon')} />
+        <span>{item.label}</span>
+      </Link>
+    )
+  }
+
+  return (
+    <Link
+      to={item.href!}
+      className={cn(
+        'flex items-center gap-3 h-9 px-3 rounded-lg',
+        'text-[13px] font-medium text-muted-foreground',
+        'hover:text-foreground hover:bg-muted/80 transition-all duration-150',
+        isActive && 'text-foreground sidebar-active -ml-0.5 pl-[10px]'
+      )}
+    >
+      <item.icon className={cn('h-4 w-4 shrink-0', isActive && 'sidebar-active-icon')} />
+      {!collapsed && <span>{item.label}</span>}
+    </Link>
+  )
+}
+
+interface UniversalSidebarProps {
+  mobileOpen: boolean
+  onMobileClose: () => void
+}
+
+export function UniversalSidebar({ mobileOpen, onMobileClose }: UniversalSidebarProps) {
+  const [collapsed, setCollapsed] = useState(false)
+
+  return (
+    <>
+      {/* Mobile Backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm"
+          onClick={onMobileClose}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <div
+        className={cn(
+          'fixed top-0 left-0 h-full w-64 bg-background border-r border-border/40 z-50',
+          'transition-transform duration-300 shadow-xl flex flex-col',
+          'lg:hidden',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        {/* Mobile header */}
+        <div className="h-14 flex items-center justify-between px-4 border-b border-border/40">
+          <span className="font-semibold text-sm">SmartHR-In</span>
+          <button
+            onClick={onMobileClose}
+            className="p-1.5 rounded-lg hover:bg-accent transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <SidebarContent collapsed={false} />
+        <CollapseButton collapsed={false} onToggle={() => {}} />
+      </div>
+
+      {/* Desktop Sidebar */}
+      <aside
+        className={cn(
+          'hidden lg:flex flex-col h-screen bg-background border-r border-border/40',
+          'transition-all duration-300',
+          collapsed ? 'w-16' : 'w-60'
+        )}
+      >
+        {/* Logo */}
+        <div className="h-14 flex items-center border-b border-border/40 px-4 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-foreground flex items-center justify-center shrink-0">
+              <span className="text-background text-xs font-bold">S</span>
+            </div>
+            {!collapsed && (
+              <span className="font-semibold text-sm text-foreground">SmartHR-In</span>
+            )}
+          </div>
+        </div>
+        <SidebarContent collapsed={collapsed} />
+        <CollapseButton collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
+      </aside>
+    </>
+  )
+}
+
+function SidebarContent({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
+      {NAV_SECTIONS.map((section) => (
+        <div key={section.title} className="space-y-0.5">
+          {/* Section Label */}
+          {collapsed ? (
+            <div className="flex justify-center mb-1">
+              <div className="w-5 h-px bg-border" />
+            </div>
+          ) : (
+            <div className="px-3 mb-1">
+              <span className="text-[10px] font-semibold tracking-widest text-muted-foreground/50 uppercase">
+                {section.title}
+              </span>
+            </div>
+          )}
+          {section.items.map((item) => (
+            <SidebarItem key={item.href || item.label} item={item} collapsed={collapsed} />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function CollapseButton({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean
+  onToggle: () => void
+}) {
+  const Icon = collapsed ? PanelLeft : PanelLeftClose
+  return (
+    <div className="shrink-0 p-2 border-t border-border/40">
+      <button
+        onClick={onToggle}
+        className={cn(
+          'w-full flex items-center gap-3 h-9 px-3 rounded-lg',
+          'text-[13px] font-medium text-muted-foreground',
+          'hover:text-foreground hover:bg-muted/80 transition-all duration-150'
+        )}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        {!collapsed && <span>Collapse</span>}
+      </button>
+    </div>
+  )
+}
