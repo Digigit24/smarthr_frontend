@@ -382,9 +382,65 @@ export interface VoiceAgent {
   id: string
   name: string
   provider: CallProvider
-  is_active: boolean
-  description: string
+  is_active?: boolean
+  isActive?: boolean
+  description?: string
+  voiceLanguage?: string
+  callType?: string
+  created_at?: string
+}
+
+// ─── Call Queues ──────────────────────────────────────────────────────────────
+export type CallQueueStatus = 'DRAFT' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'CANCELLED'
+export type CallQueueItemStatus = 'PENDING' | 'CALLING' | 'COMPLETED' | 'FAILED' | 'SKIPPED' | 'CANCELLED'
+
+export interface CallQueueConfig {
+  max_concurrent_calls: number
+  delay_between_calls_seconds: number
+  max_retries: number
+  call_window_start: string
+  call_window_end: string
+  timezone: string
+  auto_shortlist_threshold: number
+  auto_reject_threshold: number
+  filter_statuses: string[]
+}
+
+export interface CallQueue {
+  id: string
+  name: string
+  job_id: string
+  job_title: string
+  voice_agent_id: string
+  status: CallQueueStatus
+  config: CallQueueConfig
+  total_queued: number
+  total_called: number
+  total_completed: number
+  total_failed: number
   created_at: string
+  updated_at: string
+}
+
+export interface CallQueueItem {
+  id: string
+  application: {
+    id: string
+    applicant_name: string
+    applicant_email: string
+    job_title: string
+  }
+  position: number
+  status: CallQueueItemStatus
+  attempts: number
+  score: number | null
+  error_message: string
+  completed_at: string | null
+  call_record: {
+    id: string
+    status: string
+    duration: number
+  } | null
 }
 
 // ─── Scorecards ──────────────────────────────────────────────────────────────

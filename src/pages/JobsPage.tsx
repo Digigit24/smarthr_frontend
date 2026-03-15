@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Briefcase, MapPin, Users, Clock, MoreHorizontal, Send, XCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Plus, Search, Briefcase, MapPin, Users, Clock, MoreHorizontal,
+  Send, XCircle, Bot, ListChecks, ChevronRight,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,8 +29,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { SideDrawer } from '@/components/SideDrawer'
 import { jobsService } from '@/services/jobs'
+import { callQueuesService } from '@/services/callQueues'
 import type { JobListItem, JobDetail, JobFormData } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
 
@@ -140,7 +151,7 @@ function JobCard({
   )
 }
 
-function JobForm({
+function JobFormComp({
   defaultValues,
   onSubmit,
   isLoading,
@@ -186,9 +197,7 @@ function JobForm({
         <div className="space-y-1.5">
           <Label>Job Type</Label>
           <Select value={watch('job_type')} onValueChange={(v) => setValue('job_type', v as JobForm['job_type'])}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="FULL_TIME">Full Time</SelectItem>
               <SelectItem value="PART_TIME">Part Time</SelectItem>
@@ -200,9 +209,7 @@ function JobForm({
         <div className="space-y-1.5">
           <Label>Experience Level</Label>
           <Select value={watch('experience_level')} onValueChange={(v) => setValue('experience_level', v as JobForm['experience_level'])}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ENTRY">Entry</SelectItem>
               <SelectItem value="MID">Mid</SelectItem>
@@ -222,9 +229,7 @@ function JobForm({
         <div className="space-y-1.5">
           <Label>Status</Label>
           <Select value={watch('status')} onValueChange={(v) => setValue('status', v as JobForm['status'])}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="DRAFT">Draft</SelectItem>
               <SelectItem value="OPEN">Open</SelectItem>
@@ -252,13 +257,115 @@ function JobForm({
   )
 }
 
+function VoiceConfigDialog({
+  job,
+  open,
+  onOpenChange,
+  onSuccess,
+}: {
+  job: JobDetail
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  onSuccess: (updated: JobDetail) => void
+}) {
+  const [selectedAgentId, setSelectedAgentId] = useState(job.voice_agent_id || '')
+  const [shortlistThreshold, setShortlistThreshold] = useState(
+    String(job.voice_agent_config?.auto_shortlist_threshold ?? 7.0)
+  )
+  const [rejectThreshold, setRejectThreshold] = useState(
+    String(job.voice_agent_config?.auto_reject_threshold ?? 4.0)
+  )
+
+  const { data: agentsData } = useQuery({
+    queryKey: ['voice-agents'],
+    queryFn: () => callQueuesService.voiceAgents(),
+    enabled: open,
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      jobsService.updateVoiceConfig(job.id, {
+        voice_agent_id: selectedAgentId || undefined,
+        voice_agent_config: {
+          auto_shortlist_threshold: parseFloat(shortlistThreshold),
+          auto_reject_threshold: parseFloat(rejectThreshold),
+        },
+      }),
+    onSuccess: (updated) => {
+      toast.success('Voice config saved')
+      onSuccess(updated)
+      onOpenChange(false)
+    },
+    onError: () => toast.error('Failed to save voice config'),
+  })
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Configure Voice Agent</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Voice Agent</Label>
+            <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select agent..." />
+              </SelectTrigger>
+              <SelectContent>
+                {agentsData?.map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Auto Shortlist Threshold</Label>
+              <Input
+                type="number"
+                min="0"
+                max="10"
+                step="0.1"
+                value={shortlistThreshold}
+                onChange={(e) => setShortlistThreshold(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">Score ≥ this → shortlisted</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Auto Reject Threshold</Label>
+              <Input
+                type="number"
+                min="0"
+                max="10"
+                step="0.1"
+                value={rejectThreshold}
+                onChange={(e) => setRejectThreshold(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">Score ≤ this → rejected</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+              {saveMutation.isPending ? 'Saving...' : 'Save Configuration'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function JobsPage() {
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [viewJob, setViewJob] = useState<JobDetail | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
+  const [voiceConfigOpen, setVoiceConfigOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['jobs', search, statusFilter],
@@ -267,6 +374,12 @@ export default function JobsPage() {
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
       }),
+  })
+
+  const { data: agentData } = useQuery({
+    queryKey: ['voice-agent', viewJob?.voice_agent_id],
+    queryFn: () => callQueuesService.voiceAgent(viewJob!.voice_agent_id!),
+    enabled: !!viewJob?.voice_agent_id,
   })
 
   const createMutation = useMutation({
@@ -403,7 +516,7 @@ export default function JobsPage() {
         ]}
         footerAlignment="right"
       >
-        <JobForm
+        <JobFormComp
           onSubmit={(data) => createMutation.mutate(data as JobFormData)}
           isLoading={createMutation.isPending}
         />
@@ -468,7 +581,13 @@ export default function JobsPage() {
               )}
               <div>
                 <p className="text-muted-foreground text-xs mb-0.5">Applications</p>
-                <p className="font-medium">{viewJob.application_count}</p>
+                <button
+                  className="font-medium text-blue-500 hover:underline flex items-center gap-1"
+                  onClick={() => { setViewOpen(false); navigate(`/applications?job_id=${viewJob.id}`) }}
+                >
+                  {viewJob.application_count} applications
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
               </div>
               {viewJob.published_at && (
                 <div>
@@ -491,9 +610,66 @@ export default function JobsPage() {
               <p className="text-xs font-medium text-muted-foreground mb-1.5">Requirements</p>
               <p className="text-sm whitespace-pre-wrap">{viewJob.requirements}</p>
             </div>
+
+            {/* Voice Config Section */}
+            <div className="rounded-lg border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <Bot className="h-3.5 w-3.5" />
+                  Voice Configuration
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setVoiceConfigOpen(true)}
+                >
+                  Configure
+                </Button>
+              </div>
+              {viewJob.voice_agent_id ? (
+                <div className="text-sm space-y-1">
+                  <div>
+                    <span className="text-muted-foreground text-xs">Agent: </span>
+                    <span className="font-medium">{agentData?.name || viewJob.voice_agent_id}</span>
+                  </div>
+                  {viewJob.voice_agent_config?.auto_shortlist_threshold != null && (
+                    <div className="text-[13px] text-muted-foreground">
+                      Shortlist ≥ {viewJob.voice_agent_config.auto_shortlist_threshold} /
+                      Reject ≤ {viewJob.voice_agent_config.auto_reject_threshold}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[13px] text-muted-foreground">No voice agent configured</p>
+              )}
+            </div>
+
+            {/* Create Queue Button */}
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => {
+                setViewOpen(false)
+                // Navigate to call queues with pre-fill
+                navigate(`/call-queues?job_id=${viewJob.id}&voice_agent_id=${viewJob.voice_agent_id || ''}`)
+              }}
+            >
+              <ListChecks className="h-4 w-4" />
+              Create AI Call Queue for this Job
+            </Button>
           </div>
         )}
       </SideDrawer>
+
+      {/* Voice Config Dialog */}
+      {viewJob && (
+        <VoiceConfigDialog
+          job={viewJob}
+          open={voiceConfigOpen}
+          onOpenChange={setVoiceConfigOpen}
+          onSuccess={(updated) => setViewJob(updated)}
+        />
+      )}
     </div>
   )
 }

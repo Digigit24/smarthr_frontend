@@ -30,4 +30,7 @@ export const jobsService = {
     get<PaginatedResponse<ApplicationListItem>>(`/jobs/${id}/applications/`, { params }),
 
   stats: () => get<JobStats>('/jobs/stats/'),
+
+  updateVoiceConfig: (id: string, data: { voice_agent_id?: string; voice_agent_config?: { auto_shortlist_threshold?: number; auto_reject_threshold?: number } }) =>
+    patch<JobDetail>(`/jobs/${id}/voice-config/`, data),
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Users, Mail, Phone, Briefcase, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Plus, Search, Users, Mail, Phone, Briefcase, MoreHorizontal, Trash2, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,7 +8,6 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -37,6 +36,19 @@ const SOURCE_COLORS: Record<string, string> = {
   IMPORT: 'bg-purple-100 text-purple-700',
 }
 
+const APP_STATUS_COLORS: Record<string, string> = {
+  APPLIED: 'bg-blue-100 text-blue-700',
+  AI_SCREENING: 'bg-amber-100 text-amber-700',
+  AI_COMPLETED: 'bg-purple-100 text-purple-700',
+  SHORTLISTED: 'bg-cyan-100 text-cyan-700',
+  INTERVIEW_SCHEDULED: 'bg-indigo-100 text-indigo-700',
+  INTERVIEWED: 'bg-emerald-100 text-emerald-700',
+  OFFER: 'bg-teal-100 text-teal-700',
+  HIRED: 'bg-green-100 text-green-700',
+  REJECTED: 'bg-red-100 text-red-700',
+  WITHDRAWN: 'bg-gray-100 text-gray-700',
+}
+
 const applicantSchema = z.object({
   first_name: z.string().min(1, 'First name required'),
   last_name: z.string().min(1, 'Last name required'),
@@ -52,6 +64,7 @@ const applicantSchema = z.object({
   notes: z.string().optional(),
 })
 
+type ApplicantFormInput = z.infer<typeof applicantSchema>
 
 function ApplicantCard({
   applicant,
@@ -153,7 +166,7 @@ function ApplicantCard({
   )
 }
 
-function ApplicantForm({
+function ApplicantFormComp({
   defaultValues,
   onSubmit,
 }: {
@@ -196,9 +209,7 @@ function ApplicantForm({
         <div className="space-y-1.5">
           <Label>Source</Label>
           <Select value={watch('source')} onValueChange={(v) => setValue('source', v as ApplicantFormInput['source'])}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="MANUAL">Manual</SelectItem>
               <SelectItem value="WEBSITE">Website</SelectItem>
@@ -238,6 +249,55 @@ function ApplicantForm({
         </div>
       </div>
     </form>
+  )
+}
+
+function ApplicantApplications({ applicantId }: { applicantId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['applicant-applications', applicantId],
+    queryFn: () => applicantsService.applications(applicantId),
+  })
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-16 bg-muted rounded animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+
+  const apps = data?.results || []
+
+  if (apps.length === 0) {
+    return (
+      <p className="text-[13px] text-muted-foreground text-center py-4">No applications yet</p>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {apps.map((app) => (
+        <div key={app.id} className="rounded-lg border p-3 text-[13px]">
+          <div className="flex items-center justify-between">
+            <p className="font-medium truncate">{app.job_title}</p>
+            <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ml-2', APP_STATUS_COLORS[app.status] || 'bg-gray-100 text-gray-700')}>
+              {app.status.replace(/_/g, ' ')}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 mt-1 text-muted-foreground">
+            {app.score && (
+              <span className="flex items-center gap-1">
+                <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                {parseFloat(app.score).toFixed(1)}
+              </span>
+            )}
+            <span>{formatDate(app.created_at)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -364,7 +424,7 @@ export default function ApplicantsPage() {
         ]}
         footerAlignment="right"
       >
-        <ApplicantForm onSubmit={handleCreate} />
+        <ApplicantFormComp onSubmit={handleCreate} />
       </SideDrawer>
 
       {/* View */}
@@ -434,11 +494,15 @@ export default function ApplicantsPage() {
                 <p className="text-sm">{viewApplicant.notes}</p>
               </div>
             )}
+
+            {/* Applications Section */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Applications</p>
+              <ApplicantApplications applicantId={viewApplicant.id} />
+            </div>
           </div>
         )}
       </SideDrawer>
     </div>
   )
 }
-
-type ApplicantFormInput = z.infer<typeof applicantSchema>

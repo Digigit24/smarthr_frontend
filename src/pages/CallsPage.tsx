@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Phone, Search, RefreshCw, Play, FileText } from 'lucide-react'
+import {
+  Phone, Search, RefreshCw, Play, FileText, MessageSquare, ChevronDown,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -13,8 +16,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { SideDrawer } from '@/components/SideDrawer'
 import { callsService } from '@/services/calls'
+import { callQueuesService } from '@/services/callQueues'
+import { applicationsService } from '@/services/applications'
 import type { CallRecordListItem, CallRecordDetail } from '@/types'
 import { formatDateTime, formatDuration, cn } from '@/lib/utils'
 
@@ -29,12 +40,160 @@ const CALL_STATUS_COLORS: Record<string, string> = {
   BUSY: 'bg-yellow-100 text-yellow-700',
 }
 
+const SCORE_DIMENSION_LABELS: Record<string, string> = {
+  communication_score: 'Communication',
+  knowledge_score: 'Knowledge',
+  confidence_score: 'Confidence',
+  relevance_score: 'Relevance',
+}
+
+function ScoreDimensionBar({ label, value }: { label: string; value: string }) {
+  const num = parseFloat(value)
+  const pct = Math.min(100, (num / 100) * 100)
+  const color = pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500'
+  return (
+    <div>
+      <div className="flex justify-between text-[12px] mb-1">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-medium">{num.toFixed(1)}</span>
+      </div>
+      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+        <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
+}
+
+interface TranscriptMessage {
+  role: 'user' | 'bot' | 'agent'
+  content: string
+}
+
+function parseTranscript(raw: string): TranscriptMessage[] {
+  if (!raw) return []
+  // Try to detect line-by-line with "User:" / "Agent:" / "Bot:" patterns
+  const lines = raw.split('\n').filter(Boolean)
+  const messages: TranscriptMessage[] = []
+  for (const line of lines) {
+    const userMatch = line.match(/^(?:User|Candidate|Human):\s*(.+)/i)
+    const botMatch = line.match(/^(?:Agent|Bot|Assistant|AI):\s*(.+)/i)
+    if (userMatch) {
+      messages.push({ role: 'user', content: userMatch[1] })
+    } else if (botMatch) {
+      messages.push({ role: 'bot', content: botMatch[1] })
+    } else if (messages.length > 0) {
+      // Append to last message
+      messages[messages.length - 1].content += ' ' + line
+    } else {
+      messages.push({ role: 'bot', content: line })
+    }
+  }
+  return messages
+}
+
+function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [appSearch, setAppSearch] = useState('')
+  const [selectedAppId, setSelectedAppId] = useState('')
+  const [selectedAgentId, setSelectedAgentId] = useState('')
+  const [manualPhone, setManualPhone] = useState('')
+
+  const { data: applicationsData } = useQuery({
+    queryKey: ['applications-search', appSearch],
+    queryFn: () => applicationsService.list(appSearch ? { search: appSearch, status: 'APPLIED' } : { status: 'APPLIED' }),
+    enabled: open,
+  })
+
+  const { data: agentsData } = useQuery({
+    queryKey: ['voice-agents'],
+    queryFn: () => callQueuesService.voiceAgents(),
+    enabled: open,
+  })
+
+  const triggerMutation = useMutation({
+    mutationFn: () => applicationsService.triggerAiCall(selectedAppId),
+    onSuccess: () => {
+      toast.success('AI call triggered successfully')
+      onOpenChange(false)
+      setSelectedAppId('')
+      setSelectedAgentId('')
+    },
+    onError: () => toast.error('Failed to trigger call'),
+  })
+
+  const canSubmit = selectedAppId && selectedAgentId
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Trigger AI Call</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Search Application</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by applicant name..."
+                className="pl-9"
+                value={appSearch}
+                onChange={(e) => setAppSearch(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Application *</Label>
+            <Select value={selectedAppId} onValueChange={setSelectedAppId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select application..." />
+              </SelectTrigger>
+              <SelectContent>
+                {applicationsData?.results.map((app) => (
+                  <SelectItem key={app.id} value={app.id}>
+                    {app.applicant_name} — {app.job_title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Voice Agent *</Label>
+            <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select voice agent..." />
+              </SelectTrigger>
+              <SelectContent>
+                {agentsData?.map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!canSubmit || triggerMutation.isPending}
+              onClick={() => triggerMutation.mutate()}
+            >
+              <Phone className="h-4 w-4 mr-2" />
+              {triggerMutation.isPending ? 'Triggering...' : 'Trigger Call'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function CallsPage() {
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState('')
   const [viewCall, setViewCall] = useState<CallRecordDetail | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [showTranscript, setShowTranscript] = useState(false)
+  const [triggerDialogOpen, setTriggerDialogOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['calls', statusFilter],
@@ -43,9 +202,11 @@ export default function CallsPage() {
 
   const retryMutation = useMutation({
     mutationFn: (id: string) => callsService.retry(id),
-    onSuccess: () => {
+    onSuccess: (newCall) => {
       qc.invalidateQueries({ queryKey: ['calls'] })
       toast.success('Call retried')
+      // Show new call detail
+      setViewCall(newCall)
     },
     onError: () => toast.error('Failed to retry call'),
   })
@@ -61,11 +222,19 @@ export default function CallsPage() {
     }
   }
 
+  const transcriptMessages = viewCall?.transcript ? parseTranscript(viewCall.transcript) : []
+
   return (
     <div className="p-6 space-y-5">
-      <div>
-        <h1 className="text-lg font-semibold">Call Records</h1>
-        <p className="text-xs text-muted-foreground">{data?.count ?? 0} total calls</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">Call Records</h1>
+          <p className="text-xs text-muted-foreground">{data?.count ?? 0} total calls</p>
+        </div>
+        <Button onClick={() => setTriggerDialogOpen(true)}>
+          <Phone className="h-4 w-4 mr-2" />
+          Trigger Call
+        </Button>
       </div>
 
       <div className="flex items-center gap-3">
@@ -105,6 +274,7 @@ export default function CallsPage() {
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Phone</th>
                 <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Provider</th>
+                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Source</th>
                 <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Status</th>
                 <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Duration</th>
                 <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Started</th>
@@ -120,6 +290,14 @@ export default function CallsPage() {
                 >
                   <td className="px-4 py-3 text-[13px] font-medium">{call.phone}</td>
                   <td className="px-4 py-3 text-[13px] text-muted-foreground">{call.provider}</td>
+                  <td className="px-4 py-3 text-[13px] text-muted-foreground">
+                    {(call as CallRecordListItem & { queue_name?: string }).queue_name
+                      ? <span className="px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full text-[11px]">
+                          {(call as CallRecordListItem & { queue_name?: string }).queue_name}
+                        </span>
+                      : <span className="text-muted-foreground">Manual</span>
+                    }
+                  </td>
                   <td className="px-4 py-3">
                     <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', CALL_STATUS_COLORS[call.status])}>
                       {call.status.replace(/_/g, ' ')}
@@ -137,6 +315,7 @@ export default function CallsPage() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
+                        title="Retry call"
                         onClick={() => retryMutation.mutate(call.id)}
                       >
                         <RefreshCw className="h-3.5 w-3.5" />
@@ -163,10 +342,8 @@ export default function CallsPage() {
                 {
                   label: 'Retry Call',
                   icon: RefreshCw,
-                  onClick: () => {
-                    retryMutation.mutate(viewCall.id)
-                    setViewOpen(false)
-                  },
+                  loading: retryMutation.isPending,
+                  onClick: () => retryMutation.mutate(viewCall.id),
                 },
               ]
             : []
@@ -175,13 +352,23 @@ export default function CallsPage() {
       >
         {viewCall && (
           <div className="space-y-5">
-            <div className="flex items-center gap-2">
+            {/* Status */}
+            <div className="flex items-center gap-2 flex-wrap">
               <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-medium', CALL_STATUS_COLORS[viewCall.status])}>
                 {viewCall.status.replace(/_/g, ' ')}
               </span>
               <Badge variant="secondary">{viewCall.provider}</Badge>
             </div>
 
+            {/* Error alert */}
+            {viewCall.status === 'FAILED' && viewCall.error_message && (
+              <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3">
+                <p className="text-xs font-semibold text-destructive mb-0.5 uppercase tracking-wide">Call Failed</p>
+                <p className="text-[13px] text-destructive">{viewCall.error_message}</p>
+              </div>
+            )}
+
+            {/* Info grid */}
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Phone</p>
@@ -205,43 +392,66 @@ export default function CallsPage() {
               )}
             </div>
 
+            {/* Summary */}
             {viewCall.summary && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Summary</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">Summary</p>
                 <p className="text-[13px]">{viewCall.summary}</p>
               </div>
             )}
 
+            {/* Recording */}
             {viewCall.recording_url && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Recording</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">Recording</p>
                 <audio controls src={viewCall.recording_url} className="w-full h-10" />
               </div>
             )}
 
+            {/* Scorecard */}
             {viewCall.scorecard && (
               <div className="rounded-lg border p-4 space-y-3">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Scorecard</p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  {[
-                    { label: 'Communication', value: viewCall.scorecard.communication_score },
-                    { label: 'Knowledge', value: viewCall.scorecard.knowledge_score },
-                    { label: 'Confidence', value: viewCall.scorecard.confidence_score },
-                    { label: 'Relevance', value: viewCall.scorecard.relevance_score },
-                  ].map((item) => (
-                    <div key={item.label}>
-                      <p className="text-[11px] text-muted-foreground">{item.label}</p>
-                      <p className="font-semibold">{parseFloat(item.value).toFixed(1)}</p>
-                    </div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">AI Scorecard</p>
+                <div className="space-y-2">
+                  {Object.entries(SCORE_DIMENSION_LABELS).map(([key, label]) => (
+                    <ScoreDimensionBar
+                      key={key}
+                      label={label}
+                      value={(viewCall.scorecard as Record<string, string>)[key] ?? '0'}
+                    />
                   ))}
                 </div>
-                <div className="border-t pt-2">
-                  <p className="text-lg font-bold">{parseFloat(viewCall.scorecard.overall_score).toFixed(1)} / 100</p>
-                  <Badge variant="outline">{viewCall.scorecard.recommendation}</Badge>
+                <div className="border-t pt-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Overall Score</p>
+                    <p className="text-xl font-bold">{parseFloat(viewCall.scorecard.overall_score).toFixed(1)} <span className="text-sm font-normal text-muted-foreground">/ 100</span></p>
+                  </div>
+                  <Badge variant="outline" className="text-sm">{viewCall.scorecard.recommendation}</Badge>
                 </div>
+                {viewCall.scorecard.strengths && viewCall.scorecard.strengths.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-medium text-emerald-600 mb-1">Strengths</p>
+                    <div className="flex flex-wrap gap-1">
+                      {viewCall.scorecard.strengths.map((s, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded text-[12px]">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {viewCall.scorecard.weaknesses && viewCall.scorecard.weaknesses.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-medium text-red-500 mb-1">Areas for Improvement</p>
+                    <div className="flex flex-wrap gap-1">
+                      {viewCall.scorecard.weaknesses.map((w, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-[12px]">{w}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
+            {/* Transcript */}
             {viewCall.transcript && (
               <div>
                 <Button
@@ -250,26 +460,54 @@ export default function CallsPage() {
                   className="gap-2"
                   onClick={() => setShowTranscript((s) => !s)}
                 >
-                  <FileText className="h-4 w-4" />
+                  <MessageSquare className="h-4 w-4" />
                   {showTranscript ? 'Hide' : 'Show'} Transcript
+                  <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', showTranscript && 'rotate-180')} />
                 </Button>
                 {showTranscript && (
-                  <pre className="mt-3 p-3 bg-muted rounded-lg text-[13px] whitespace-pre-wrap font-mono overflow-auto max-h-64">
-                    {viewCall.transcript}
-                  </pre>
+                  <div className="mt-3 space-y-2 max-h-80 overflow-y-auto pr-1">
+                    {transcriptMessages.length > 0 ? (
+                      transcriptMessages.map((msg, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            'rounded-lg px-3 py-2 text-[13px] max-w-[90%]',
+                            msg.role === 'user'
+                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 ml-auto'
+                              : 'bg-muted text-foreground'
+                          )}
+                        >
+                          <p className={cn('text-[10px] font-medium mb-0.5 uppercase tracking-wide',
+                            msg.role === 'user' ? 'text-blue-500' : 'text-muted-foreground'
+                          )}>
+                            {msg.role === 'user' ? 'Candidate' : 'Agent'}
+                          </p>
+                          {msg.content}
+                        </div>
+                      ))
+                    ) : (
+                      <pre className="p-3 bg-muted rounded-lg text-[13px] whitespace-pre-wrap font-mono overflow-auto">
+                        {viewCall.transcript}
+                      </pre>
+                    )}
+                  </div>
                 )}
               </div>
             )}
 
-            {viewCall.error_message && (
-              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
-                <p className="text-xs font-medium text-destructive mb-0.5">Error</p>
+            {/* Non-FAILED error message */}
+            {viewCall.status !== 'FAILED' && viewCall.error_message && (
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3">
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-0.5">Note</p>
                 <p className="text-[13px]">{viewCall.error_message}</p>
               </div>
             )}
           </div>
         )}
       </SideDrawer>
+
+      {/* Trigger Call Dialog */}
+      <TriggerCallDialog open={triggerDialogOpen} onOpenChange={setTriggerDialogOpen} />
     </div>
   )
 }

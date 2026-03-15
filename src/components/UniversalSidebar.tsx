@@ -7,6 +7,7 @@ import {
   FileText,
   GitBranch,
   Phone,
+  ListChecks,
   Star,
   Calendar,
   Bell,
@@ -44,6 +45,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'AI SCREENING',
     items: [
       { label: 'Call Records', icon: Phone, href: '/calls' },
+      { label: 'AI Queues', icon: ListChecks, href: '/call-queues' },
       { label: 'Scorecards', icon: Star, href: '/scorecards' },
     ],
   },

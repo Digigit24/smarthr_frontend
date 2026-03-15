@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bell, CheckCheck } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Bell, CheckCheck, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { notificationsService } from '@/services/notifications'
+import type { NotificationCategory } from '@/types'
 import { formatDateTime, cn } from '@/lib/utils'
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -13,17 +16,41 @@ const CATEGORY_COLORS: Record<string, string> = {
   SYSTEM: 'bg-gray-100 text-gray-700',
 }
 
+const CATEGORY_TABS: { label: string; value: string }[] = [
+  { label: 'All', value: 'ALL' },
+  { label: 'Application', value: 'APPLICATION' },
+  { label: 'Interview', value: 'INTERVIEW' },
+  { label: 'Call', value: 'CALL' },
+  { label: 'System', value: 'SYSTEM' },
+]
+
+function getNotificationRoute(data: Record<string, unknown>): string | null {
+  if (data.application_id) return '/applications'
+  if (data.job_id) return '/jobs'
+  if (data.interview_id) return '/interviews'
+  if (data.call_record_id) return '/calls'
+  return null
+}
+
 export default function NotificationsPage() {
   const qc = useQueryClient()
+  const navigate = useNavigate()
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
+  const [page, setPage] = useState(1)
+
+  const params: Record<string, string> = { page: String(page) }
+  if (categoryFilter !== 'ALL') params.category = categoryFilter
 
   const { data, isLoading } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => notificationsService.list(),
+    queryKey: ['notifications', categoryFilter, page],
+    queryFn: () => notificationsService.list(params),
   })
 
   const markReadMutation = useMutation({
     mutationFn: (id: string) => notificationsService.markRead(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+    },
   })
 
   const markAllReadMutation = useMutation({
@@ -36,6 +63,14 @@ export default function NotificationsPage() {
 
   const notifications = data?.results || []
   const unreadCount = notifications.filter((n) => !n.is_read).length
+
+  const handleCardClick = (n: { is_read: boolean; id: string; data: Record<string, unknown>; category: NotificationCategory }) => {
+    if (!n.is_read) {
+      markReadMutation.mutate(n.id)
+    }
+    const route = getNotificationRoute(n.data)
+    if (route) navigate(route)
+  }
 
   return (
     <div className="p-6 space-y-5">
@@ -57,6 +92,24 @@ export default function NotificationsPage() {
         )}
       </div>
 
+      {/* Category Tabs */}
+      <div className="flex gap-1 border-b border-border">
+        {CATEGORY_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => { setCategoryFilter(tab.value); setPage(1) }}
+            className={cn(
+              'px-3 py-2 text-[13px] font-medium transition-colors border-b-2 -mb-px',
+              categoryFilter === tab.value
+                ? 'border-foreground text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -71,44 +124,80 @@ export default function NotificationsPage() {
           <p className="font-medium">No notifications</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {notifications.map((n) => (
-            <Card
-              key={n.id}
-              className={cn(
-                'cursor-pointer hover:border-border/80 transition-colors',
-                !n.is_read && 'border-blue-200 dark:border-blue-900/50 bg-blue-50/30 dark:bg-blue-900/10'
-              )}
-              onClick={() => !n.is_read && markReadMutation.mutate(n.id)}
-            >
-              <CardContent className="p-4 flex items-start gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className={cn('px-1.5 py-0.5 rounded text-[11px] font-medium', CATEGORY_COLORS[n.category])}>
-                      {n.category}
-                    </span>
+        <>
+          <div className="space-y-2">
+            {notifications.map((n) => {
+              const route = getNotificationRoute(n.data)
+              return (
+                <Card
+                  key={n.id}
+                  className={cn(
+                    'transition-colors',
+                    route && 'cursor-pointer hover:border-border/80',
+                    !n.is_read && 'border-blue-200 dark:border-blue-900/50 bg-blue-50/30 dark:bg-blue-900/10'
+                  )}
+                  onClick={() => handleCardClick(n as typeof n & { data: Record<string, unknown> })}
+                >
+                  <CardContent className="p-4 flex items-start gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={cn('px-1.5 py-0.5 rounded text-[11px] font-medium', CATEGORY_COLORS[n.category])}>
+                          {n.category}
+                        </span>
+                        {!n.is_read && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        )}
+                        {route && (
+                          <span className="text-[11px] text-muted-foreground ml-auto">click to navigate →</span>
+                        )}
+                      </div>
+                      <p className="font-medium text-sm">{n.title}</p>
+                      <p className="text-[13px] text-muted-foreground mt-0.5">{n.message}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">{formatDateTime(n.sent_at)}</p>
+                    </div>
                     {!n.is_read && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 shrink-0"
+                        onClick={(e) => { e.stopPropagation(); markReadMutation.mutate(n.id) }}
+                      >
+                        Mark read
+                      </Button>
                     )}
-                  </div>
-                  <p className="font-medium text-sm">{n.title}</p>
-                  <p className="text-[13px] text-muted-foreground mt-0.5">{n.message}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">{formatDateTime(n.sent_at)}</p>
-                </div>
-                {!n.is_read && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 shrink-0"
-                    onClick={(e) => { e.stopPropagation(); markReadMutation.mutate(n.id) }}
-                  >
-                    Mark read
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+
+          {/* Pagination */}
+          {(data?.next || data?.previous) && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-sm text-muted-foreground">{data?.count} total</p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!data?.previous}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!data?.next}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

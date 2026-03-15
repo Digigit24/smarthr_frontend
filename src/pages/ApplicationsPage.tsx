@@ -16,7 +16,7 @@ import {
 import { SideDrawer } from '@/components/SideDrawer'
 import { applicationsService } from '@/services/applications'
 import type { ApplicationListItem, ApplicationDetail, ApplicationStatus } from '@/types'
-import { formatDate, formatDateTime, cn } from '@/lib/utils'
+import { formatDate, formatDateTime, formatDuration, cn } from '@/lib/utils'
 
 const STATUS_COLORS: Record<string, string> = {
   APPLIED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -31,6 +31,26 @@ const STATUS_COLORS: Record<string, string> = {
   WITHDRAWN: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
 }
 
+const CALL_STATUS_COLORS: Record<string, string> = {
+  QUEUED: 'bg-gray-100 text-gray-700',
+  INITIATED: 'bg-blue-100 text-blue-700',
+  RINGING: 'bg-amber-100 text-amber-700',
+  IN_PROGRESS: 'bg-indigo-100 text-indigo-700',
+  COMPLETED: 'bg-emerald-100 text-emerald-700',
+  FAILED: 'bg-red-100 text-red-700',
+  NO_ANSWER: 'bg-orange-100 text-orange-700',
+  BUSY: 'bg-yellow-100 text-yellow-700',
+}
+
+const INTERVIEW_STATUS_COLORS: Record<string, string> = {
+  SCHEDULED: 'bg-blue-100 text-blue-700',
+  CONFIRMED: 'bg-cyan-100 text-cyan-700',
+  IN_PROGRESS: 'bg-indigo-100 text-indigo-700',
+  COMPLETED: 'bg-emerald-100 text-emerald-700',
+  CANCELLED: 'bg-red-100 text-red-700',
+  NO_SHOW: 'bg-orange-100 text-orange-700',
+}
+
 const ALL_STATUSES: ApplicationStatus[] = [
   'APPLIED', 'AI_SCREENING', 'AI_COMPLETED', 'SHORTLISTED',
   'INTERVIEW_SCHEDULED', 'INTERVIEWED', 'OFFER', 'HIRED', 'REJECTED', 'WITHDRAWN',
@@ -38,7 +58,7 @@ const ALL_STATUSES: ApplicationStatus[] = [
 
 function ScoreBar({ score }: { score: string | null }) {
   if (!score) return <span className="text-muted-foreground text-[13px]">—</span>
-  const val = parseFloat(score) // 0–100 scale
+  const val = parseFloat(score)
   const color = val >= 70 ? 'bg-emerald-500' : val >= 40 ? 'bg-amber-500' : 'bg-red-500'
   return (
     <div className="flex items-center gap-2">
@@ -50,6 +70,23 @@ function ScoreBar({ score }: { score: string | null }) {
   )
 }
 
+function ScoreDimensionBar({ label, value }: { label: string; value: string }) {
+  const num = parseFloat(value)
+  const pct = Math.min(100, num)
+  const color = pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500'
+  return (
+    <div>
+      <div className="flex justify-between text-[12px] mb-1">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-medium">{num.toFixed(1)}</span>
+      </div>
+      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+        <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
+}
+
 export default function ApplicationsPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
@@ -57,6 +94,7 @@ export default function ApplicationsPage() {
   const [viewApp, setViewApp] = useState<ApplicationDetail | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [expandedCallId, setExpandedCallId] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['applications', search, statusFilter],
@@ -99,6 +137,7 @@ export default function ApplicationsPage() {
       const detail = await applicationsService.get(app.id)
       setViewApp(detail)
       setViewOpen(true)
+      setExpandedCallId(null)
     } catch {
       toast.error('Failed to load application')
     }
@@ -219,12 +258,7 @@ export default function ApplicationsPage() {
                     {app.job_title}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={cn(
-                        'inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium',
-                        STATUS_COLORS[app.status]
-                      )}
-                    >
+                    <span className={cn('inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium', STATUS_COLORS[app.status])}>
                       {app.status.replace(/_/g, ' ')}
                     </span>
                   </td>
@@ -246,6 +280,7 @@ export default function ApplicationsPage() {
                         <Phone className="h-3.5 w-3.5" />
                       </Button>
                       <Select
+                        value={app.status}
                         onValueChange={(status) => changeStatusMutation.mutate({ id: app.id, status })}
                       >
                         <SelectTrigger className="h-7 w-7 p-0 border-0 shadow-none [&>svg]:hidden hover:bg-accent rounded">
@@ -282,7 +317,7 @@ export default function ApplicationsPage() {
                   icon: Phone,
                   onClick: () => {
                     triggerCallMutation.mutate(viewApp.id)
-                    setViewOpen(false)
+                    toast.success('AI call triggered')
                   },
                 },
               ]
@@ -306,12 +341,27 @@ export default function ApplicationsPage() {
               )}
             </div>
 
+            {/* Rejection reason */}
+            {viewApp.status === 'REJECTED' && viewApp.rejection_reason && (
+              <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+                <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-0.5 uppercase tracking-wide">Rejection Reason</p>
+                <p className="text-[13px]">{viewApp.rejection_reason}</p>
+              </div>
+            )}
+
             {/* Applicant */}
             <div className="rounded-lg border p-4 space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Applicant</p>
               <p className="font-semibold">{viewApp.applicant.first_name} {viewApp.applicant.last_name}</p>
               <p className="text-[13px] text-muted-foreground">{viewApp.applicant.email}</p>
               <p className="text-[13px] text-muted-foreground">{viewApp.applicant.current_role} @ {viewApp.applicant.current_company}</p>
+              {viewApp.applicant.skills?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {viewApp.applicant.skills.slice(0, 6).map((s) => (
+                    <span key={s} className="px-1.5 py-0.5 bg-muted rounded text-[11px]">{s}</span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Job */}
@@ -321,66 +371,114 @@ export default function ApplicationsPage() {
               <p className="text-[13px] text-muted-foreground">{viewApp.job.department} · {viewApp.job.location}</p>
             </div>
 
-            {/* Scorecards */}
-            {viewApp.scorecards.length > 0 && (
+            {/* Call Records */}
+            {viewApp.call_records?.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">AI Scorecard</p>
-                {viewApp.scorecards.map((sc) => (
-                  <div key={sc.id} className="rounded-lg border p-4 space-y-3">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {[
-                        { label: 'Communication', value: sc.communication_score },
-                        { label: 'Knowledge', value: sc.knowledge_score },
-                        { label: 'Confidence', value: sc.confidence_score },
-                        { label: 'Relevance', value: sc.relevance_score },
-                      ].map((item) => (
-                        <div key={item.label}>
-                          <p className="text-[11px] text-muted-foreground">{item.label}</p>
-                          <p className="font-semibold">{parseFloat(item.value).toFixed(1)}</p>
-                        </div>
-                      ))}
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Call Records ({viewApp.call_records.length})</p>
+                {viewApp.call_records.map((cr) => (
+                  <div key={cr.id} className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', CALL_STATUS_COLORS[cr.status])}>
+                        {cr.status.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-[12px] text-muted-foreground">{formatDuration(cr.duration)}</span>
                     </div>
-                    <div className="pt-2 border-t border-border/60">
-                      <p className="text-[11px] text-muted-foreground mb-0.5">Overall</p>
-                      <p className="text-lg font-bold">{parseFloat(sc.overall_score).toFixed(1)} / 100</p>
-                      <Badge variant="outline" className="mt-1">{sc.recommendation}</Badge>
-                    </div>
-                    {sc.summary && <p className="text-[13px]">{sc.summary}</p>}
-                    {sc.strengths.length > 0 && (
+                    {cr.started_at && (
+                      <p className="text-[12px] text-muted-foreground">{formatDateTime(cr.started_at)}</p>
+                    )}
+                    {cr.summary && <p className="text-[13px]">{cr.summary}</p>}
+                    {cr.recording_url && (
                       <div>
-                        <p className="text-[11px] font-medium text-emerald-600 mb-1">Strengths</p>
-                        <ul className="list-disc list-inside text-[13px] space-y-0.5">
-                          {sc.strengths.map((s, i) => <li key={i}>{s}</li>)}
-                        </ul>
+                        <p className="text-[11px] text-muted-foreground mb-1">Recording</p>
+                        <audio controls src={cr.recording_url} className="w-full h-8" />
                       </div>
                     )}
-                    {sc.weaknesses.length > 0 && (
-                      <div>
-                        <p className="text-[11px] font-medium text-red-500 mb-1">Areas for Improvement</p>
-                        <ul className="list-disc list-inside text-[13px] space-y-0.5">
-                          {sc.weaknesses.map((w, i) => <li key={i}>{w}</li>)}
-                        </ul>
-                      </div>
+                    {cr.recording_url === '' && (
+                      <button
+                        className="text-[12px] text-blue-500 hover:underline"
+                        onClick={() => setExpandedCallId(expandedCallId === cr.id ? null : cr.id)}
+                      >
+                        {expandedCallId === cr.id ? 'Hide transcript' : 'Show transcript'}
+                      </button>
                     )}
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Interviews */}
-            {viewApp.interviews.length > 0 && (
+            {/* Scorecards */}
+            {viewApp.scorecards?.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Interviews</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">AI Scorecard</p>
+                {viewApp.scorecards.map((sc) => (
+                  <div key={sc.id} className="rounded-lg border p-4 space-y-3">
+                    <div className="space-y-2">
+                      {[
+                        { label: 'Communication', value: sc.communication_score },
+                        { label: 'Knowledge', value: sc.knowledge_score },
+                        { label: 'Confidence', value: sc.confidence_score },
+                        { label: 'Relevance', value: sc.relevance_score },
+                      ].map((item) => (
+                        <ScoreDimensionBar key={item.label} label={item.label} value={item.value} />
+                      ))}
+                    </div>
+                    <div className="pt-2 border-t border-border/60 flex items-center justify-between">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Overall Score</p>
+                        <p className="text-xl font-bold">{parseFloat(sc.overall_score).toFixed(1)} <span className="text-sm font-normal text-muted-foreground">/ 100</span></p>
+                      </div>
+                      <Badge variant="outline">{sc.recommendation}</Badge>
+                    </div>
+                    {sc.summary && <p className="text-[13px]">{sc.summary}</p>}
+                    <div className="flex gap-4">
+                      {sc.strengths?.length > 0 && (
+                        <div className="flex-1">
+                          <p className="text-[11px] font-medium text-emerald-600 mb-1">Strengths</p>
+                          <div className="flex flex-wrap gap-1">
+                            {sc.strengths.map((s, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded text-[12px]">{s}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {sc.weaknesses?.length > 0 && (
+                        <div className="flex-1">
+                          <p className="text-[11px] font-medium text-red-500 mb-1">To Improve</p>
+                          <div className="flex flex-wrap gap-1">
+                            {sc.weaknesses.map((w, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-[12px]">{w}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Interviews */}
+            {viewApp.interviews?.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Interviews ({viewApp.interviews.length})</p>
                 {viewApp.interviews.map((iv) => (
-                  <div key={iv.id} className="rounded-lg border p-3 text-[13px]">
+                  <div key={iv.id} className="rounded-lg border p-3 text-[13px] space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{iv.interview_type.replace(/_/g, ' ')}</span>
-                      <span className={cn('px-2 py-0.5 rounded-full text-[11px]', iv.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700')}>
+                      <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', INTERVIEW_STATUS_COLORS[iv.status] || 'bg-gray-100 text-gray-700')}>
                         {iv.status}
                       </span>
                     </div>
-                    <p className="text-muted-foreground mt-1">{formatDateTime(iv.scheduled_at)} · {iv.duration_minutes}min</p>
+                    <p className="text-muted-foreground">{formatDateTime(iv.scheduled_at)} · {iv.duration_minutes}min</p>
                     <p className="text-muted-foreground">{iv.interviewer_name} &lt;{iv.interviewer_email}&gt;</p>
+                    {iv.meeting_link && (
+                      <a href={iv.meeting_link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-[12px]">
+                        Join Meeting
+                      </a>
+                    )}
+                    {iv.feedback && (
+                      <p className="text-[13px] italic text-muted-foreground mt-1">"{iv.feedback}"</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -390,13 +488,14 @@ export default function ApplicationsPage() {
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground">Change Status</p>
               <Select
+                value={viewApp.status}
                 onValueChange={(status) => {
                   changeStatusMutation.mutate({ id: viewApp.id, status })
-                  setViewOpen(false)
+                  setViewApp((prev) => prev ? { ...prev, status: status as ApplicationStatus } : prev)
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select new status..." />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {ALL_STATUSES.map((s) => (

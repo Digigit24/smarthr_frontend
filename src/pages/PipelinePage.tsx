@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, GripVertical, Trash2, Zap } from 'lucide-react'
 import { toast } from 'sonner'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { SideDrawer } from '@/components/SideDrawer'
 import { pipelineService } from '@/services/pipeline'
@@ -15,14 +15,34 @@ import { cn } from '@/lib/utils'
 function StageCard({
   stage,
   onDelete,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isDragOver,
 }: {
   stage: PipelineStage
   onDelete: (id: string) => void
+  onDragStart: (e: React.DragEvent, id: string) => void
+  onDragOver: (e: React.DragEvent, id: string) => void
+  onDrop: (e: React.DragEvent, id: string) => void
+  onDragEnd: () => void
+  isDragOver: boolean
 }) {
   return (
-    <Card>
+    <Card
+      draggable
+      onDragStart={(e) => onDragStart(e, stage.id)}
+      onDragOver={(e) => onDragOver(e, stage.id)}
+      onDrop={(e) => onDrop(e, stage.id)}
+      onDragEnd={onDragEnd}
+      className={cn(
+        'transition-all duration-150',
+        isDragOver && 'border-primary border-2 scale-[1.02]'
+      )}
+    >
       <CardContent className="p-4 flex items-center gap-3">
-        <GripVertical className="h-5 w-5 text-muted-foreground/40 shrink-0" />
+        <GripVertical className="h-5 w-5 text-muted-foreground/40 shrink-0 cursor-grab active:cursor-grabbing" />
         <div
           className="w-3 h-3 rounded-full shrink-0"
           style={{ backgroundColor: stage.color }}
@@ -69,6 +89,11 @@ export default function PipelinePage() {
     is_terminal: false,
   })
 
+  // Drag state
+  const dragId = useRef<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [orderedIds, setOrderedIds] = useState<string[] | null>(null)
+
   const { data, isLoading } = useQuery({
     queryKey: ['pipeline'],
     queryFn: () => pipelineService.list(),
@@ -94,7 +119,7 @@ export default function PipelinePage() {
     onError: (err: unknown) => {
       const status = (err as { response?: { status?: number } })?.response?.status
       if (status === 405) {
-        toast.error('Create stage not allowed — check backend URL router configuration (POST /api/v1/pipeline/ is returning 405)')
+        toast.error('Create stage not allowed — check backend URL router configuration')
       } else {
         toast.error('Failed to create stage')
       }
@@ -110,7 +135,61 @@ export default function PipelinePage() {
     onError: () => toast.error('Failed to delete stage'),
   })
 
-  const stages = data?.results || []
+  const reorderMutation = useMutation({
+    mutationFn: (ids: string[]) => pipelineService.reorder(ids),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pipeline'] })
+      toast.success('Pipeline reordered')
+    },
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ['pipeline'] })
+      toast.error('Failed to reorder pipeline')
+    },
+  })
+
+  const baseStages = data?.results || []
+  // Apply local drag ordering if we have one
+  const stages = orderedIds
+    ? orderedIds.map((id) => baseStages.find((s) => s.id === id)!).filter(Boolean)
+    : baseStages
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    dragId.current = id
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (id !== dragId.current) {
+      setDragOverId(id)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault()
+    if (!dragId.current || dragId.current === targetId) return
+
+    const currentIds = orderedIds || baseStages.map((s) => s.id)
+    const fromIdx = currentIds.indexOf(dragId.current)
+    const toIdx = currentIds.indexOf(targetId)
+
+    if (fromIdx === -1 || toIdx === -1) return
+
+    const newIds = [...currentIds]
+    newIds.splice(fromIdx, 1)
+    newIds.splice(toIdx, 0, dragId.current)
+    setOrderedIds(newIds)
+    setDragOverId(null)
+    dragId.current = null
+
+    reorderMutation.mutate(newIds)
+  }
+
+  const handleDragEnd = () => {
+    dragId.current = null
+    setDragOverId(null)
+  }
 
   return (
     <div className="p-6 space-y-5">
@@ -167,8 +246,20 @@ export default function PipelinePage() {
             <div className="w-7" />
           </div>
           {stages.map((stage) => (
-            <StageCard key={stage.id} stage={stage} onDelete={deleteMutation.mutate} />
+            <StageCard
+              key={stage.id}
+              stage={stage}
+              onDelete={deleteMutation.mutate}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
+              isDragOver={dragOverId === stage.id}
+            />
           ))}
+          <p className="text-[11px] text-muted-foreground text-center pt-1">
+            Drag stages to reorder them
+          </p>
         </div>
       )}
 
