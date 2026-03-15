@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
+import { useAuthStore } from '@/stores/authStore'
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'https://admin.celiyo.com'
@@ -9,22 +10,28 @@ export const api: AxiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Request interceptor — attach Bearer token
+// Request interceptor — attach Bearer token from the zustand store
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
+  // Read from the zustand store (always up-to-date, not a stale localStorage read)
+  const token = useAuthStore.getState().accessToken
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
+// Guard against multiple simultaneous 401s each triggering a redirect
+let isRedirecting = false
+
 // Response interceptor — handle 401
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
+    if (error.response?.status === 401 && !isRedirecting) {
+      isRedirecting = true
+      // clearAuth() updates zustand state AND the persisted `smarthr-auth` key,
+      // so on page reload isAuthenticated will be false and login page won't redirect.
+      useAuthStore.getState().clearAuth()
       window.location.href = '/login'
     }
     return Promise.reject(error)
