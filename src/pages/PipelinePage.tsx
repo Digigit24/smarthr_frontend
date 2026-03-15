@@ -91,7 +91,14 @@ export default function PipelinePage() {
       setForm({ name: '', slug: '', color: '#6b7280', is_terminal: false })
       toast.success('Stage created')
     },
-    onError: () => toast.error('Failed to create stage'),
+    onError: (err: unknown) => {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (status === 405) {
+        toast.error('Create stage not allowed — check backend URL router configuration (POST /api/v1/pipeline/ is returning 405)')
+      } else {
+        toast.error('Failed to create stage')
+      }
+    },
   })
 
   const deleteMutation = useMutation({
