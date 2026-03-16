@@ -160,6 +160,20 @@ export default function DashboardPage() {
           color="text-amber-500"
         />
         <StatCard
+          title="Applications Today"
+          value={metrics?.applications_today ?? 0}
+          icon={Users}
+          description="Received today"
+          color="text-orange-500"
+        />
+        <StatCard
+          title="Calls Today"
+          value={metrics?.calls_today ?? 0}
+          icon={Phone}
+          description="Completed today"
+          color="text-rose-500"
+        />
+        <StatCard
           title="Shortlisted"
           value={metrics?.shortlisted_count ?? 0}
           icon={UserCheck}
