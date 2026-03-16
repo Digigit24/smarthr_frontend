@@ -605,6 +605,7 @@ export default function CallQueuesPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [ordering, setOrdering] = useState('-created_at')
   const [createOpen, setCreateOpen] = useState(false)
   const [viewQueueId, setViewQueueId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
@@ -612,11 +613,12 @@ export default function CallQueuesPage() {
   const [defaultVoiceAgentId, setDefaultVoiceAgentId] = useState<string | undefined>()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['call-queues', search, statusFilter],
+    queryKey: ['call-queues', search, statusFilter, ordering],
     queryFn: () =>
       callQueuesService.list({
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
+        ordering,
       }),
   })
 
@@ -750,8 +752,8 @@ export default function CallQueuesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search queues..."
@@ -772,6 +774,17 @@ export default function CallQueuesPage() {
             {(['DRAFT', 'RUNNING', 'PAUSED', 'COMPLETED', 'CANCELLED'] as CallQueueStatus[]).map((s) => (
               <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={ordering} onValueChange={setOrdering}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="-created_at">Newest first</SelectItem>
+            <SelectItem value="created_at">Oldest first</SelectItem>
+            <SelectItem value="name">Name A–Z</SelectItem>
+            <SelectItem value="-total_queued">Most queued</SelectItem>
           </SelectContent>
         </Select>
       </div>

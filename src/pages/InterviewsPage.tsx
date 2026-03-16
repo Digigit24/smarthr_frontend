@@ -54,17 +54,19 @@ export default function InterviewsPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [viewInterviewId, setViewInterviewId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['interviews', search, statusFilter],
+    queryKey: ['interviews', search, statusFilter, typeFilter],
     queryFn: () =>
       interviewsService.list({
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
+        ...(typeFilter && { interview_type: typeFilter }),
         ordering: 'scheduled_at',
       }),
   })
@@ -141,8 +143,8 @@ export default function InterviewsPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search interviewer..."
@@ -161,7 +163,21 @@ export default function InterviewsPage() {
           <SelectContent>
             <SelectItem value="ALL">All statuses</SelectItem>
             {['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
+              <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={typeFilter || 'ALL'}
+          onValueChange={(v) => setTypeFilter(v === 'ALL' ? '' : v)}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="All types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All types</SelectItem>
+            {['AI_VOICE', 'HR_SCREEN', 'TECHNICAL', 'CULTURE_FIT', 'FINAL'].map((t) => (
+              <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>
             ))}
           </SelectContent>
         </Select>

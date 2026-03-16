@@ -91,17 +91,19 @@ export default function ApplicationsPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [ordering, setOrdering] = useState('-created_at')
   const [viewAppId, setViewAppId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [expandedCallId, setExpandedCallId] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['applications', search, statusFilter],
+    queryKey: ['applications', search, statusFilter, ordering],
     queryFn: () =>
       applicationsService.list({
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
+        ordering,
       }),
   })
 
@@ -182,8 +184,8 @@ export default function ApplicationsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search applications..."
@@ -204,6 +206,18 @@ export default function ApplicationsPage() {
             {ALL_STATUSES.map((s) => (
               <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={ordering} onValueChange={setOrdering}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="-created_at">Newest first</SelectItem>
+            <SelectItem value="created_at">Oldest first</SelectItem>
+            <SelectItem value="-score">Highest score</SelectItem>
+            <SelectItem value="score">Lowest score</SelectItem>
+            <SelectItem value="applicant_name">Name A–Z</SelectItem>
           </SelectContent>
         </Select>
       </div>

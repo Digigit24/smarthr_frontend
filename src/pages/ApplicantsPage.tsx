@@ -304,13 +304,20 @@ function ApplicantApplications({ applicantId }: { applicantId: string }) {
 export default function ApplicantsPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
+  const [sourceFilter, setSourceFilter] = useState('')
+  const [ordering, setOrdering] = useState('-created_at')
   const [createOpen, setCreateOpen] = useState(false)
   const [viewApplicantId, setViewApplicantId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['applicants', search],
-    queryFn: () => applicantsService.list(search ? { search } : undefined),
+    queryKey: ['applicants', search, sourceFilter, ordering],
+    queryFn: () =>
+      applicantsService.list({
+        ...(search && { search }),
+        ...(sourceFilter && { source: sourceFilter }),
+        ordering,
+      }),
   })
 
   const { data: viewApplicant, isLoading: viewApplicantLoading } = useQuery({
@@ -365,14 +372,45 @@ export default function ApplicantsPage() {
         </Button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by name, email..."
-          className="pl-9"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, email..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select
+          value={sourceFilter || 'ALL'}
+          onValueChange={(v) => setSourceFilter(v === 'ALL' ? '' : v)}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All sources" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All sources</SelectItem>
+            <SelectItem value="MANUAL">Manual</SelectItem>
+            <SelectItem value="WEBSITE">Website</SelectItem>
+            <SelectItem value="LINKEDIN">LinkedIn</SelectItem>
+            <SelectItem value="REFERRAL">Referral</SelectItem>
+            <SelectItem value="IMPORT">Import</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={ordering} onValueChange={setOrdering}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="-created_at">Newest first</SelectItem>
+            <SelectItem value="created_at">Oldest first</SelectItem>
+            <SelectItem value="full_name">Name A–Z</SelectItem>
+            <SelectItem value="-full_name">Name Z–A</SelectItem>
+            <SelectItem value="-experience_years">Most experienced</SelectItem>
+            <SelectItem value="experience_years">Least experienced</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (

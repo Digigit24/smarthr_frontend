@@ -1,8 +1,16 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Star, Loader2 } from 'lucide-react'
+import { Star, Search, Loader2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { SideDrawer } from '@/components/SideDrawer'
 import { scorecardsService } from '@/services/scorecards'
 import type { ScorecardListItem } from '@/types'
@@ -23,12 +31,20 @@ function ScoreGauge({ score }: { score: string }) {
 }
 
 export default function ScorecardsPage() {
+  const [search, setSearch] = useState('')
+  const [recFilter, setRecFilter] = useState('')
+  const [ordering, setOrdering] = useState('-overall_score')
   const [viewCardId, setViewCardId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['scorecards'],
-    queryFn: () => scorecardsService.list({ ordering: '-overall_score' }),
+    queryKey: ['scorecards', search, recFilter, ordering],
+    queryFn: () =>
+      scorecardsService.list({
+        ...(search && { search }),
+        ...(recFilter && { recommendation: recFilter }),
+        ordering,
+      }),
   })
 
   const { data: viewCard, isLoading: viewCardLoading } = useQuery({
@@ -47,6 +63,46 @@ export default function ScorecardsPage() {
       <div>
         <h1 className="text-lg font-semibold">Scorecards</h1>
         <p className="text-xs text-muted-foreground">{data?.count ?? 0} total scorecards</p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search scorecards..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select
+          value={recFilter || 'ALL'}
+          onValueChange={(v) => setRecFilter(v === 'ALL' ? '' : v)}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="All recommendations" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All recommendations</SelectItem>
+            <SelectItem value="STRONG_YES">Strong Yes</SelectItem>
+            <SelectItem value="YES">Yes</SelectItem>
+            <SelectItem value="MAYBE">Maybe</SelectItem>
+            <SelectItem value="NO">No</SelectItem>
+            <SelectItem value="STRONG_NO">Strong No</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={ordering} onValueChange={setOrdering}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="-overall_score">Highest score</SelectItem>
+            <SelectItem value="overall_score">Lowest score</SelectItem>
+            <SelectItem value="-created_at">Newest first</SelectItem>
+            <SelectItem value="created_at">Oldest first</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (

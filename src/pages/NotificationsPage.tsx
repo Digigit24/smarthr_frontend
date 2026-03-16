@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Bell, CheckCheck, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Bell, CheckCheck, ChevronLeft, ChevronRight, Search, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { notificationsService } from '@/services/notifications'
 import type { NotificationCategory } from '@/types'
@@ -35,14 +36,19 @@ function getNotificationRoute(data: Record<string, unknown>): string | null {
 export default function NotificationsPage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
+  const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
+  const [readFilter, setReadFilter] = useState<string>('ALL')
   const [page, setPage] = useState(1)
 
   const params: Record<string, string> = { page: String(page) }
   if (categoryFilter !== 'ALL') params.category = categoryFilter
+  if (readFilter === 'UNREAD') params.is_read = 'false'
+  if (readFilter === 'READ') params.is_read = 'true'
+  if (searchQuery) params.search = searchQuery
 
   const { data, isLoading } = useQuery({
-    queryKey: ['notifications', categoryFilter, page],
+    queryKey: ['notifications', categoryFilter, readFilter, searchQuery, page],
     queryFn: () => notificationsService.list(params),
   })
 
@@ -90,6 +96,35 @@ export default function NotificationsPage() {
             Mark all read
           </Button>
         )}
+      </div>
+
+      {/* Search & Read Filter */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search notifications..."
+            className="pl-9"
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+          />
+        </div>
+        <div className="flex gap-1">
+          {['ALL', 'UNREAD', 'READ'].map((v) => (
+            <button
+              key={v}
+              onClick={() => { setReadFilter(v); setPage(1) }}
+              className={cn(
+                'px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors',
+                readFilter === v
+                  ? 'bg-foreground text-background'
+                  : 'bg-muted text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {v === 'ALL' ? 'All' : v === 'UNREAD' ? 'Unread' : 'Read'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Category Tabs */}

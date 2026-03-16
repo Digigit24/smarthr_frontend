@@ -189,15 +189,22 @@ function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 
 export default function CallsPage() {
   const qc = useQueryClient()
+  const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [providerFilter, setProviderFilter] = useState('')
   const [viewCallId, setViewCallId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [showTranscript, setShowTranscript] = useState(false)
   const [triggerDialogOpen, setTriggerDialogOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['calls', statusFilter],
-    queryFn: () => callsService.list(statusFilter ? { status: statusFilter } : undefined),
+    queryKey: ['calls', search, statusFilter, providerFilter],
+    queryFn: () =>
+      callsService.list({
+        ...(search && { search }),
+        ...(statusFilter && { status: statusFilter }),
+        ...(providerFilter && { provider: providerFilter }),
+      }),
   })
 
   const { data: viewCall, isLoading: viewCallLoading } = useQuery({
@@ -237,12 +244,21 @@ export default function CallsPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by phone..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         <Select
           value={statusFilter || 'ALL'}
           onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-44">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -250,6 +266,19 @@ export default function CallsPage() {
             {['QUEUED', 'INITIATED', 'RINGING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'NO_ANSWER', 'BUSY'].map((s) => (
               <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={providerFilter || 'ALL'}
+          onValueChange={(v) => setProviderFilter(v === 'ALL' ? '' : v)}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All providers" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All providers</SelectItem>
+            <SelectItem value="OMNIDIM">Omnidim</SelectItem>
+            <SelectItem value="BOLNA">Bolna</SelectItem>
           </SelectContent>
         </Select>
       </div>
