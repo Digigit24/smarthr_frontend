@@ -353,6 +353,9 @@ export default function JobsPage() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [jobTypeFilter, setJobTypeFilter] = useState('')
+  const [expLevelFilter, setExpLevelFilter] = useState('')
+  const [ordering, setOrdering] = useState('-created_at')
   const [createOpen, setCreateOpen] = useState(false)
   const [viewJobId, setViewJobId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
@@ -361,11 +364,14 @@ export default function JobsPage() {
   const [voiceConfigOpen, setVoiceConfigOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['jobs', search, statusFilter],
+    queryKey: ['jobs', search, statusFilter, jobTypeFilter, expLevelFilter, ordering],
     queryFn: () =>
       jobsService.list({
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
+        ...(jobTypeFilter && { job_type: jobTypeFilter }),
+        ...(expLevelFilter && { experience_level: expLevelFilter }),
+        ordering,
       }),
   })
 
@@ -451,8 +457,8 @@ export default function JobsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search jobs..."
@@ -474,6 +480,52 @@ export default function JobsPage() {
             <SelectItem value="OPEN">Open</SelectItem>
             <SelectItem value="PAUSED">Paused</SelectItem>
             <SelectItem value="CLOSED">Closed</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={jobTypeFilter || 'ALL'}
+          onValueChange={(v) => setJobTypeFilter(v === 'ALL' ? '' : v)}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All types</SelectItem>
+            <SelectItem value="FULL_TIME">Full Time</SelectItem>
+            <SelectItem value="PART_TIME">Part Time</SelectItem>
+            <SelectItem value="CONTRACT">Contract</SelectItem>
+            <SelectItem value="INTERNSHIP">Internship</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={expLevelFilter || 'ALL'}
+          onValueChange={(v) => setExpLevelFilter(v === 'ALL' ? '' : v)}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All levels" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All levels</SelectItem>
+            <SelectItem value="ENTRY">Entry</SelectItem>
+            <SelectItem value="MID">Mid</SelectItem>
+            <SelectItem value="SENIOR">Senior</SelectItem>
+            <SelectItem value="LEAD">Lead</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={ordering}
+          onValueChange={setOrdering}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="-created_at">Newest first</SelectItem>
+            <SelectItem value="created_at">Oldest first</SelectItem>
+            <SelectItem value="title">Title A–Z</SelectItem>
+            <SelectItem value="-title">Title Z–A</SelectItem>
+            <SelectItem value="-application_count">Most applications</SelectItem>
+            <SelectItem value="application_count">Least applications</SelectItem>
           </SelectContent>
         </Select>
       </div>
