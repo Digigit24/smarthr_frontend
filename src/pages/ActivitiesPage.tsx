@@ -131,11 +131,11 @@ export default function ActivitiesPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Filter by actor email..."
-            className="pl-9 w-52"
+            className="pl-9 w-full sm:w-52"
             value={actorFilter}
             onChange={(e) => setActorFilter(e.target.value)}
           />
@@ -144,7 +144,7 @@ export default function ActivitiesPage() {
           value={verbFilter || 'ALL'}
           onValueChange={(v) => setVerbFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
             <SelectValue placeholder="All verbs" />
           </SelectTrigger>
           <SelectContent>
@@ -158,7 +158,7 @@ export default function ActivitiesPage() {
           value={resourceTypeFilter || 'ALL'}
           onValueChange={(v) => setResourceTypeFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-40">
             <SelectValue placeholder="All types" />
           </SelectTrigger>
           <SelectContent>

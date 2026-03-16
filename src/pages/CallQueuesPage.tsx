@@ -305,7 +305,7 @@ function CreateQueueForm({
       <div className="space-y-3 border-t pt-4">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Call Configuration</p>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label>Max Concurrent Calls</Label>
             <Input type="number" min="1" max="10" {...register('max_concurrent_calls')} />
@@ -424,7 +424,7 @@ function QueueDetailContent({ queue: initialQueue, onActionSuccess }: {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
           { label: 'Queued', value: queue.total_queued, icon: Users, color: 'text-gray-600' },
           { label: 'Called', value: queue.total_called, icon: Phone, color: 'text-blue-600' },
@@ -456,7 +456,7 @@ function QueueDetailContent({ queue: initialQueue, onActionSuccess }: {
       {/* Config */}
       <div className="rounded-lg border p-4 space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Configuration</p>
-        <div className="grid grid-cols-2 gap-y-2 text-[13px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-[13px]">
           <div>
             <span className="text-muted-foreground">Concurrent calls: </span>
             <span className="font-medium">{queue.config.max_concurrent_calls}</span>
@@ -524,8 +524,8 @@ function QueueDetailContent({ queue: initialQueue, onActionSuccess }: {
           </div>
         ) : (
           <>
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-[13px]">
+            <div className="rounded-lg border overflow-x-auto">
+              <table className="w-full text-[13px] min-w-[550px]">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="px-3 py-2 text-left font-medium text-muted-foreground text-[12px]">#</th>
@@ -753,7 +753,7 @@ export default function CallQueuesPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search queues..."
@@ -766,7 +766,7 @@ export default function CallQueuesPage() {
           value={statusFilter || 'ALL'}
           onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-40">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -777,7 +777,7 @@ export default function CallQueuesPage() {
           </SelectContent>
         </Select>
         <Select value={ordering} onValueChange={setOrdering}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>

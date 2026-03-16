@@ -267,7 +267,7 @@ export default function DashboardPage() {
                   const pct = (item.count / max) * 100
                   return (
                     <div key={item.status} className="flex items-center gap-3">
-                      <div className="w-36 text-[13px] text-muted-foreground text-right shrink-0">
+                      <div className="w-20 sm:w-36 text-[12px] sm:text-[13px] text-muted-foreground text-right shrink-0">
                         {STATUS_LABELS[item.status] || item.status}
                       </div>
                       <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">

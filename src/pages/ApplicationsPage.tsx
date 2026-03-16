@@ -185,7 +185,7 @@ export default function ApplicationsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search applications..."
@@ -198,7 +198,7 @@ export default function ApplicationsPage() {
           value={statusFilter || 'ALL'}
           onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-48">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -209,7 +209,7 @@ export default function ApplicationsPage() {
           </SelectContent>
         </Select>
         <Select value={ordering} onValueChange={setOrdering}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
@@ -234,8 +234,8 @@ export default function ApplicationsPage() {
           <p className="font-medium">No applications found</p>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-lg border overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="w-8 px-3 py-2.5 text-left" />

@@ -184,7 +184,7 @@ function ApplicantFormComp({
 
   return (
     <form id="applicant-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>First Name *</Label>
           <Input placeholder="Alice" {...register('first_name')} />
@@ -405,7 +405,7 @@ export default function ApplicantsPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by name, email..."
@@ -418,7 +418,7 @@ export default function ApplicantsPage() {
           value={sourceFilter || 'ALL'}
           onValueChange={(v) => setSourceFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-40">
             <SelectValue placeholder="All sources" />
           </SelectTrigger>
           <SelectContent>
@@ -431,7 +431,7 @@ export default function ApplicantsPage() {
           </SelectContent>
         </Select>
         <Select value={ordering} onValueChange={setOrdering}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
@@ -594,7 +594,7 @@ export default function ApplicantsPage() {
                 <p className="text-sm text-muted-foreground">{viewApplicant.current_company || '—'}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-muted-foreground text-xs mb-0.5">Email</p>
                 <p>{viewApplicant.email}</p>

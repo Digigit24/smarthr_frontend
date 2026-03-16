@@ -169,7 +169,7 @@ function JobFormComp({
 
   return (
     <form id="job-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="col-span-2 space-y-1.5">
           <Label>Job Title *</Label>
           <Input placeholder="e.g. Senior Python Developer" {...register('title')} />
@@ -292,7 +292,7 @@ function VoiceConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-full max-w-md">
         <DialogHeader>
           <DialogTitle>Configure Voice Agent</DialogTitle>
         </DialogHeader>
@@ -310,7 +310,7 @@ function VoiceConfigDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Auto Shortlist Threshold</Label>
               <Input
@@ -458,7 +458,7 @@ export default function JobsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search jobs..."
@@ -471,7 +471,7 @@ export default function JobsPage() {
           value={statusFilter || 'ALL'}
           onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-40">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -486,7 +486,7 @@ export default function JobsPage() {
           value={jobTypeFilter || 'ALL'}
           onValueChange={(v) => setJobTypeFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-40">
             <SelectValue placeholder="All types" />
           </SelectTrigger>
           <SelectContent>
@@ -501,7 +501,7 @@ export default function JobsPage() {
           value={expLevelFilter || 'ALL'}
           onValueChange={(v) => setExpLevelFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-40">
             <SelectValue placeholder="All levels" />
           </SelectTrigger>
           <SelectContent>
@@ -516,7 +516,7 @@ export default function JobsPage() {
           value={ordering}
           onValueChange={setOrdering}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
@@ -683,7 +683,7 @@ export default function JobsPage() {
               <Badge variant="secondary">{viewJob.job_type.replace('_', ' ')}</Badge>
               <Badge variant="secondary">{viewJob.experience_level}</Badge>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground text-xs mb-0.5">Department</p>
                 <p className="font-medium">{viewJob.department}</p>

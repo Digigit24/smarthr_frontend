@@ -207,7 +207,7 @@ export default function InterviewsPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search interviewer..."
@@ -220,7 +220,7 @@ export default function InterviewsPage() {
           value={statusFilter || 'ALL'}
           onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -234,7 +234,7 @@ export default function InterviewsPage() {
           value={typeFilter || 'ALL'}
           onValueChange={(v) => setTypeFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
             <SelectValue placeholder="All types" />
           </SelectTrigger>
           <SelectContent>
@@ -322,7 +322,7 @@ export default function InterviewsPage() {
             <Input placeholder="application-uuid" {...createRegister('application')} />
             {createErrors.application && <p className="text-xs text-destructive">{createErrors.application.message}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Type</Label>
               <Select value={createWatch('interview_type')} onValueChange={(v) => createSetValue('interview_type', v as InterviewType)}>
@@ -343,7 +343,7 @@ export default function InterviewsPage() {
             <Label>Scheduled At *</Label>
             <Input type="datetime-local" {...createRegister('scheduled_at')} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Interviewer Name *</Label>
               <Input placeholder="John Doe" {...createRegister('interviewer_name')} />
@@ -430,7 +430,7 @@ export default function InterviewsPage() {
               </span>
               <span className="text-muted-foreground">{viewInterview.interview_type.replace(/_/g, ' ')}</span>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><p className="text-xs text-muted-foreground mb-0.5">Scheduled</p><p>{formatDateTime(viewInterview.scheduled_at)}</p></div>
               <div><p className="text-xs text-muted-foreground mb-0.5">Duration</p><p>{viewInterview.duration_minutes} min</p></div>
               <div><p className="text-xs text-muted-foreground mb-0.5">Interviewer</p><p>{viewInterview.interviewer_name}</p></div>

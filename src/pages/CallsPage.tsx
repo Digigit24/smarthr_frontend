@@ -126,7 +126,7 @@ function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-full max-w-md">
         <DialogHeader>
           <DialogTitle>Trigger AI Call</DialogTitle>
         </DialogHeader>
@@ -292,7 +292,7 @@ export default function CallsPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by phone..."
@@ -305,7 +305,7 @@ export default function CallsPage() {
           value={statusFilter || 'ALL'}
           onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -319,7 +319,7 @@ export default function CallsPage() {
           value={providerFilter || 'ALL'}
           onValueChange={(v) => setProviderFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-40">
             <SelectValue placeholder="All providers" />
           </SelectTrigger>
           <SelectContent>
@@ -341,8 +341,8 @@ export default function CallsPage() {
           <p className="font-medium">No call records</p>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-lg border overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Phone</th>
@@ -492,7 +492,7 @@ export default function CallsPage() {
             {/* Info grid - ALL fields */}
             <div className="rounded-lg border p-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Call Information</p>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground mb-0.5">Phone</p>
                   <p className="font-medium">{viewCall.phone}</p>

@@ -128,7 +128,7 @@ export default function ScorecardsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search scorecards..."
@@ -141,7 +141,7 @@ export default function ScorecardsPage() {
           value={recFilter || 'ALL'}
           onValueChange={(v) => setRecFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
             <SelectValue placeholder="All recommendations" />
           </SelectTrigger>
           <SelectContent>
@@ -154,7 +154,7 @@ export default function ScorecardsPage() {
           </SelectContent>
         </Select>
         <Select value={ordering} onValueChange={setOrdering}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
@@ -274,7 +274,7 @@ export default function ScorecardsPage() {
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               {[
                 { label: 'Communication', value: viewCard.communication_score },
                 { label: 'Knowledge', value: viewCard.knowledge_score },
