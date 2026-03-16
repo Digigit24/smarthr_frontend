@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Phone, Search, RefreshCw, Play, FileText, MessageSquare, ChevronDown, Loader2,
+  Eye, Pencil, Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -194,6 +196,9 @@ export default function CallsPage() {
   const [providerFilter, setProviderFilter] = useState('')
   const [viewCallId, setViewCallId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
+  const [editCallId, setEditCallId] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ phone: '', summary: '', status: '' })
   const [showTranscript, setShowTranscript] = useState(false)
   const [triggerDialogOpen, setTriggerDialogOpen] = useState(false)
 
@@ -213,6 +218,12 @@ export default function CallsPage() {
     enabled: !!viewCallId,
   })
 
+  const { data: editCall, isLoading: editCallLoading } = useQuery({
+    queryKey: ['call-detail', editCallId],
+    queryFn: () => callsService.get(editCallId!),
+    enabled: !!editCallId,
+  })
+
   const retryMutation = useMutation({
     mutationFn: (id: string) => callsService.retry(id),
     onSuccess: (newCall) => {
@@ -223,10 +234,46 @@ export default function CallsPage() {
     onError: () => toast.error('Failed to retry call'),
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      callsService.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['calls'] })
+      qc.invalidateQueries({ queryKey: ['call-detail'] })
+      setEditOpen(false)
+      setEditCallId(null)
+      toast.success('Call record updated')
+    },
+    onError: () => toast.error('Failed to update call record'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => callsService.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['calls'] })
+      setViewOpen(false)
+      setViewCallId(null)
+      toast.success('Call record deleted')
+    },
+    onError: () => toast.error('Failed to delete call record'),
+  })
+
   const handleView = (call: CallRecordListItem) => {
     setViewCallId(call.id)
     setViewOpen(true)
     setShowTranscript(false)
+  }
+
+  const handleEdit = (call: CallRecordListItem) => {
+    setEditCallId(call.id)
+    setEditForm({ phone: call.phone, summary: call.summary || '', status: call.status })
+    setEditOpen(true)
+  }
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this call record?')) {
+      deleteMutation.mutate(id)
+    }
   }
 
   const transcriptMessages = viewCall?.transcript ? parseTranscript(viewCall.transcript) : []
@@ -336,17 +383,35 @@ export default function CallsPage() {
                     {call.started_at ? formatDateTime(call.started_at) : '—'}
                   </td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                    {call.status === 'FAILED' && (
+                    <div className="flex items-center gap-0.5">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7"
-                        title="Retry call"
-                        onClick={() => retryMutation.mutate(call.id)}
+                        className="h-7 w-7 text-muted-foreground hover:text-blue-500"
+                        title="View"
+                        onClick={() => handleView(call)}
                       >
-                        <RefreshCw className="h-3.5 w-3.5" />
+                        <Eye className="h-3.5 w-3.5" />
                       </Button>
-                    )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-amber-500"
+                        title="Edit"
+                        onClick={() => handleEdit(call)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        title="Delete"
+                        onClick={() => handleDelete(call.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -366,18 +431,37 @@ export default function CallsPage() {
         mode="view"
         size="xl"
         footerButtons={
-          viewCall?.status === 'FAILED'
+          viewCall
             ? [
                 {
-                  label: 'Retry Call',
-                  icon: RefreshCw,
-                  loading: retryMutation.isPending,
-                  onClick: () => retryMutation.mutate(viewCall.id),
+                  label: 'Edit',
+                  variant: 'outline',
+                  icon: Pencil,
+                  onClick: () => {
+                    setViewOpen(false)
+                    setEditCallId(viewCall.id)
+                    setEditForm({ phone: viewCall.phone, summary: viewCall.summary || '', status: viewCall.status })
+                    setEditOpen(true)
+                  },
                 },
+                {
+                  label: 'Delete',
+                  variant: 'destructive',
+                  icon: Trash2,
+                  onClick: () => handleDelete(viewCall.id),
+                },
+                ...(viewCall.status === 'FAILED'
+                  ? [{
+                      label: 'Retry Call',
+                      icon: RefreshCw,
+                      loading: retryMutation.isPending,
+                      onClick: () => retryMutation.mutate(viewCall.id),
+                    }]
+                  : []),
               ]
             : []
         }
-        footerAlignment="right"
+        footerAlignment="between"
       >
         {viewCallLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -386,12 +470,15 @@ export default function CallsPage() {
           </div>
         ) : viewCall ? (
           <div className="space-y-5">
-            {/* Status */}
+            {/* Status & Provider badges */}
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-medium', CALL_STATUS_COLORS[viewCall.status])}>
+              <span className={cn('px-2.5 py-1 rounded-full text-xs font-medium', CALL_STATUS_COLORS[viewCall.status])}>
                 {viewCall.status.replace(/_/g, ' ')}
               </span>
               <Badge variant="secondary">{viewCall.provider}</Badge>
+              {viewCall.voice_agent_id && (
+                <Badge variant="outline" className="text-xs">Agent: {viewCall.voice_agent_id}</Badge>
+              )}
             </div>
 
             {/* Error alert */}
@@ -402,42 +489,77 @@ export default function CallsPage() {
               </div>
             )}
 
-            {/* Info grid */}
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Phone</p>
-                <p className="font-medium">{viewCall.phone}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Duration</p>
-                <p className="font-medium">{formatDuration(viewCall.duration)}</p>
-              </div>
-              {viewCall.started_at && (
+            {/* Info grid - ALL fields */}
+            <div className="rounded-lg border p-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Call Information</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Started</p>
-                  <p className="font-medium">{formatDateTime(viewCall.started_at)}</p>
+                  <p className="text-xs text-muted-foreground mb-0.5">Phone</p>
+                  <p className="font-medium">{viewCall.phone}</p>
                 </div>
-              )}
-              {viewCall.ended_at && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Ended</p>
-                  <p className="font-medium">{formatDateTime(viewCall.ended_at)}</p>
+                  <p className="text-xs text-muted-foreground mb-0.5">Duration</p>
+                  <p className="font-medium">{formatDuration(viewCall.duration)}</p>
                 </div>
-              )}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Provider</p>
+                  <p className="font-medium">{viewCall.provider}</p>
+                </div>
+                {viewCall.provider_call_id && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Provider Call ID</p>
+                    <p className="font-medium font-mono text-[12px]">{viewCall.provider_call_id}</p>
+                  </div>
+                )}
+                {viewCall.voice_agent_id && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Voice Agent ID</p>
+                    <p className="font-medium font-mono text-[12px]">{viewCall.voice_agent_id}</p>
+                  </div>
+                )}
+                {viewCall.application_id && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Application ID</p>
+                    <p className="font-medium font-mono text-[12px]">{viewCall.application_id}</p>
+                  </div>
+                )}
+                {viewCall.started_at && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Started</p>
+                    <p className="font-medium">{formatDateTime(viewCall.started_at)}</p>
+                  </div>
+                )}
+                {viewCall.ended_at && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Ended</p>
+                    <p className="font-medium">{formatDateTime(viewCall.ended_at)}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Created</p>
+                  <p className="font-medium">{formatDateTime(viewCall.created_at)}</p>
+                </div>
+                {viewCall.updated_at && viewCall.updated_at !== viewCall.created_at && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-0.5">Updated</p>
+                    <p className="font-medium">{formatDateTime(viewCall.updated_at)}</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Summary */}
             {viewCall.summary && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">Summary</p>
-                <p className="text-[13px]">{viewCall.summary}</p>
+              <div className="rounded-lg border p-4">
+                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Summary</p>
+                <p className="text-[13px] leading-relaxed">{viewCall.summary}</p>
               </div>
             )}
 
             {/* Recording */}
             {viewCall.recording_url && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">Recording</p>
+              <div className="rounded-lg border p-4">
+                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Recording</p>
                 <audio controls src={viewCall.recording_url} className="w-full h-10" />
               </div>
             )}
@@ -462,6 +584,12 @@ export default function CallsPage() {
                   </div>
                   <Badge variant="outline" className="text-sm">{viewCall.scorecard.recommendation}</Badge>
                 </div>
+                {viewCall.scorecard.summary && (
+                  <div className="border-t pt-3">
+                    <p className="text-[11px] font-medium text-muted-foreground mb-1">Scorecard Summary</p>
+                    <p className="text-[13px]">{viewCall.scorecard.summary}</p>
+                  </div>
+                )}
                 {viewCall.scorecard.strengths && viewCall.scorecard.strengths.length > 0 && (
                   <div>
                     <p className="text-[11px] font-medium text-emerald-600 mb-1">Strengths</p>
@@ -482,16 +610,27 @@ export default function CallsPage() {
                     </div>
                   </div>
                 )}
+                {viewCall.scorecard.detailed_feedback && Object.keys(viewCall.scorecard.detailed_feedback).length > 0 && (
+                  <div className="border-t pt-3 space-y-2">
+                    <p className="text-[11px] font-medium text-muted-foreground">Detailed Feedback</p>
+                    {Object.entries(viewCall.scorecard.detailed_feedback).map(([key, val]) => (
+                      <div key={key}>
+                        <p className="text-[11px] font-medium text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</p>
+                        <p className="text-[13px]">{val}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Transcript */}
             {viewCall.transcript && (
-              <div>
+              <div className="rounded-lg border p-4">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="gap-2"
+                  className="gap-2 -ml-2 -mt-1"
                   onClick={() => setShowTranscript((s) => !s)}
                 >
                   <MessageSquare className="h-4 w-4" />
@@ -536,6 +675,78 @@ export default function CallsPage() {
                 <p className="text-[13px]">{viewCall.error_message}</p>
               </div>
             )}
+          </div>
+        ) : null}
+      </SideDrawer>
+
+      {/* Edit Call Drawer */}
+      <SideDrawer
+        open={editOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open)
+          if (!open) setEditCallId(null)
+        }}
+        title="Edit Call Record"
+        mode="edit"
+        size="md"
+        isLoading={updateMutation.isPending}
+        footerButtons={[
+          { label: 'Cancel', variant: 'outline', onClick: () => { setEditOpen(false); setEditCallId(null) } },
+          {
+            label: 'Save Changes',
+            loading: updateMutation.isPending,
+            onClick: () => {
+              if (editCallId) {
+                updateMutation.mutate({
+                  id: editCallId,
+                  data: {
+                    phone: editForm.phone,
+                    summary: editForm.summary,
+                    status: editForm.status,
+                  },
+                })
+              }
+            },
+          },
+        ]}
+        footerAlignment="right"
+      >
+        {editCallLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground mt-3">Loading call details...</p>
+          </div>
+        ) : editCall ? (
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Phone</Label>
+              <Input
+                value={editForm.phone}
+                onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select
+                value={editForm.status}
+                onValueChange={(v) => setEditForm((f) => ({ ...f, status: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['QUEUED', 'INITIATED', 'RINGING', 'IN_PROGRESS', 'COMPLETED', 'FAILED', 'NO_ANSWER', 'BUSY'].map((s) => (
+                    <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Summary</Label>
+              <Textarea
+                rows={4}
+                value={editForm.summary}
+                onChange={(e) => setEditForm((f) => ({ ...f, summary: e.target.value }))}
+              />
+            </div>
           </div>
         ) : null}
       </SideDrawer>

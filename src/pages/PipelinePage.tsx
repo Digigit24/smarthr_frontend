@@ -1,11 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, GripVertical, Trash2, Zap, Loader2 } from 'lucide-react'
+import { Plus, GripVertical, Trash2, Search, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { SideDrawer } from '@/components/SideDrawer'
 import { pipelineService } from '@/services/pipeline'
@@ -81,6 +88,8 @@ function StageCard({
 
 export default function PipelinePage() {
   const qc = useQueryClient()
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'order' | 'name' | '-name'>('order')
   const [createOpen, setCreateOpen] = useState(false)
   const [form, setForm] = useState({
     name: '',
@@ -149,9 +158,22 @@ export default function PipelinePage() {
 
   const baseStages = data?.results || []
   // Apply local drag ordering if we have one
-  const stages = orderedIds
+  const reorderedStages = orderedIds
     ? orderedIds.map((id) => baseStages.find((s) => s.id === id)!).filter(Boolean)
     : baseStages
+
+  const stages = useMemo(() => {
+    let filtered = reorderedStages
+    if (search) {
+      const q = search.toLowerCase()
+      filtered = filtered.filter(
+        (s) => s.name.toLowerCase().includes(q) || s.slug.toLowerCase().includes(q)
+      )
+    }
+    if (sortBy === 'name') return [...filtered].sort((a, b) => a.name.localeCompare(b.name))
+    if (sortBy === '-name') return [...filtered].sort((a, b) => b.name.localeCompare(a.name))
+    return filtered // default: order
+  }, [reorderedStages, search, sortBy])
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     dragId.current = id
@@ -198,20 +220,33 @@ export default function PipelinePage() {
           <h1 className="text-lg font-semibold">Pipeline Stages</h1>
           <p className="text-xs text-muted-foreground">{stages.length} stages configured</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => seedMutation.mutate()}
-            disabled={seedMutation.isPending}
-          >
-            <Zap className="h-4 w-4 mr-2" />
-            Seed Defaults
-          </Button>
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Stage
-          </Button>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Stage
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search stages..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="order">By order</SelectItem>
+            <SelectItem value="name">Name A–Z</SelectItem>
+            <SelectItem value="-name">Name Z–A</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
@@ -222,11 +257,7 @@ export default function PipelinePage() {
       ) : stages.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <p className="font-medium">No pipeline stages</p>
-          <p className="text-sm mt-1">Seed the defaults or create stages manually</p>
-          <Button className="mt-4" onClick={() => seedMutation.mutate()}>
-            <Zap className="h-4 w-4 mr-2" />
-            Seed Default Stages
-          </Button>
+          <p className="text-sm mt-1">Create stages manually</p>
         </div>
       ) : (
         <div className="space-y-2">
