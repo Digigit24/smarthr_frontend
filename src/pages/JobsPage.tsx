@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus, Search, Briefcase, MapPin, Users, Clock, MoreHorizontal,
-  Send, XCircle, Bot, ListChecks, ChevronRight,
+  Send, XCircle, Bot, ListChecks, ChevronRight, Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
@@ -560,31 +560,9 @@ export default function JobsPage() {
         footerAlignment="right"
       >
         {viewJobLoading ? (
-          <div className="space-y-4 animate-pulse">
-            <div className="flex gap-2">
-              <div className="h-5 w-16 bg-muted rounded-full" />
-              <div className="h-5 w-20 bg-muted rounded" />
-              <div className="h-5 w-14 bg-muted rounded" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="space-y-1">
-                  <div className="h-3 w-16 bg-muted rounded" />
-                  <div className="h-4 w-24 bg-muted rounded" />
-                </div>
-              ))}
-            </div>
-            <div className="space-y-2">
-              <div className="h-3 w-20 bg-muted rounded" />
-              <div className="h-4 w-full bg-muted rounded" />
-              <div className="h-4 w-3/4 bg-muted rounded" />
-              <div className="h-4 w-5/6 bg-muted rounded" />
-            </div>
-            <div className="space-y-2">
-              <div className="h-3 w-24 bg-muted rounded" />
-              <div className="h-4 w-full bg-muted rounded" />
-              <div className="h-4 w-2/3 bg-muted rounded" />
-            </div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground mt-3">Loading job details...</p>
           </div>
         ) : viewJob ? (
           <div className="space-y-4">
