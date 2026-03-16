@@ -52,9 +52,9 @@ export function UniversalHeader({
         </button>
         <div className="flex flex-col">
           <span className="text-sm font-semibold text-foreground">{pageTitle}</span>
-          <span className="text-xs text-muted-foreground hidden sm:block">
+          {/* <span className="text-xs text-muted-foreground hidden sm:block">
             {displayName}, {getTimeBasedGreeting()}
-          </span>
+          </span> */}
         </div>
       </div>
 

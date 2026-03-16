@@ -178,7 +178,7 @@ export default function ActivitiesPage() {
             ))}
           </SelectContent>
         </Select>
-        <Input
+        {/* <Input
           type="date"
           className="w-36"
           value={dateFrom}
@@ -191,7 +191,7 @@ export default function ActivitiesPage() {
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
           title="To date"
-        />
+        /> */}
       </div>
 
       {isLoading ? (
