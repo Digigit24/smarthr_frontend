@@ -78,7 +78,8 @@ const queueSchema = z.object({
   filter_statuses: z.array(z.string()).default(['APPLIED']),
 })
 
-type QueueForm = z.infer<typeof queueSchema>
+type QueueForm = z.output<typeof queueSchema>
+type QueueFormInput = z.input<typeof queueSchema>
 
 const APPLICATION_STATUSES = [
   'APPLIED', 'AI_SCREENING', 'AI_COMPLETED', 'SHORTLISTED',
@@ -217,7 +218,7 @@ function CreateQueueForm({
   defaultVoiceAgentId?: string
   onSubmit: (data: QueueForm) => void
 }) {
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<QueueForm>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<QueueFormInput, unknown, QueueForm>({
     resolver: zodResolver(queueSchema),
     defaultValues: {
       max_concurrent_calls: 1,

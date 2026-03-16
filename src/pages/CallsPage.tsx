@@ -573,7 +573,7 @@ export default function CallsPage() {
                     <ScoreDimensionBar
                       key={key}
                       label={label}
-                      value={(viewCall.scorecard as Record<string, string>)[key] ?? '0'}
+                      value={(viewCall.scorecard as unknown as Record<string, string>)[key] ?? '0'}
                     />
                   ))}
                 </div>
