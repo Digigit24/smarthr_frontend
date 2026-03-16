@@ -266,7 +266,7 @@ function VoiceConfigDialog({
   job: JobDetail
   open: boolean
   onOpenChange: (v: boolean) => void
-  onSuccess: (updated: JobDetail) => void
+  onSuccess: () => void
 }) {
   const [selectedAgentId, setSelectedAgentId] = useState(job.voice_agent_id || '')
   const [shortlistThreshold, setShortlistThreshold] = useState(
@@ -291,9 +291,9 @@ function VoiceConfigDialog({
           auto_reject_threshold: parseFloat(rejectThreshold),
         },
       }),
-    onSuccess: (updated) => {
+    onSuccess: () => {
       toast.success('Voice config saved')
-      onSuccess(updated)
+      onSuccess()
       onOpenChange(false)
     },
     onError: () => toast.error('Failed to save voice config'),
@@ -363,7 +363,7 @@ export default function JobsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
-  const [viewJob, setViewJob] = useState<JobDetail | null>(null)
+  const [viewJobId, setViewJobId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [voiceConfigOpen, setVoiceConfigOpen] = useState(false)
 
@@ -374,6 +374,12 @@ export default function JobsPage() {
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
       }),
+  })
+
+  const { data: viewJob, isLoading: viewJobLoading } = useQuery({
+    queryKey: ['job-detail', viewJobId],
+    queryFn: () => jobsService.get(viewJobId!),
+    enabled: !!viewJobId,
   })
 
   const { data: agentData } = useQuery({
@@ -410,14 +416,9 @@ export default function JobsPage() {
     onError: () => toast.error('Failed to close job'),
   })
 
-  const handleView = async (job: JobListItem) => {
-    try {
-      const detail = await jobsService.get(job.id)
-      setViewJob(detail)
-      setViewOpen(true)
-    } catch {
-      toast.error('Failed to load job details')
-    }
+  const handleView = (job: JobListItem) => {
+    setViewJobId(job.id)
+    setViewOpen(true)
   }
 
   return (
@@ -525,7 +526,10 @@ export default function JobsPage() {
       {/* View Job Drawer */}
       <SideDrawer
         open={viewOpen}
-        onOpenChange={setViewOpen}
+        onOpenChange={(open) => {
+          setViewOpen(open)
+          if (!open) setViewJobId(null)
+        }}
         title={viewJob?.title || 'Job Details'}
         mode="view"
         size="xl"
@@ -555,7 +559,34 @@ export default function JobsPage() {
         }
         footerAlignment="right"
       >
-        {viewJob && (
+        {viewJobLoading ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="flex gap-2">
+              <div className="h-5 w-16 bg-muted rounded-full" />
+              <div className="h-5 w-20 bg-muted rounded" />
+              <div className="h-5 w-14 bg-muted rounded" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-1">
+                  <div className="h-3 w-16 bg-muted rounded" />
+                  <div className="h-4 w-24 bg-muted rounded" />
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-20 bg-muted rounded" />
+              <div className="h-4 w-full bg-muted rounded" />
+              <div className="h-4 w-3/4 bg-muted rounded" />
+              <div className="h-4 w-5/6 bg-muted rounded" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-24 bg-muted rounded" />
+              <div className="h-4 w-full bg-muted rounded" />
+              <div className="h-4 w-2/3 bg-muted rounded" />
+            </div>
+          </div>
+        ) : viewJob ? (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
               <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-medium', JOB_STATUS_COLORS[viewJob.status])}>
@@ -658,7 +689,7 @@ export default function JobsPage() {
               Create AI Call Queue for this Job
             </Button>
           </div>
-        )}
+        ) : null}
       </SideDrawer>
 
       {/* Voice Config Dialog */}
@@ -667,7 +698,7 @@ export default function JobsPage() {
           job={viewJob}
           open={voiceConfigOpen}
           onOpenChange={setVoiceConfigOpen}
-          onSuccess={(updated) => setViewJob(updated)}
+          onSuccess={() => qc.invalidateQueries({ queryKey: ['job-detail', viewJobId] })}
         />
       )}
     </div>
