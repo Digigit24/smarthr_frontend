@@ -8,6 +8,7 @@ import {
   Gift,
   BarChart2,
   Calendar,
+  Loader2,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -104,19 +105,9 @@ export default function DashboardPage() {
 
   if (metricsLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader className="pb-2">
-                <div className="h-4 bg-muted rounded w-24" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 bg-muted rounded w-16" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground mt-3">Loading dashboard...</p>
       </div>
     )
   }

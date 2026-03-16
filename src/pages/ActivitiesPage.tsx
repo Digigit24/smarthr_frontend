@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Activity, Search, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Activity, Search, RefreshCw, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -195,12 +195,9 @@ export default function ActivitiesPage() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-4 h-14" />
-            </Card>
-          ))}
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground mt-3">Loading activity log...</p>
         </div>
       ) : activities.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">

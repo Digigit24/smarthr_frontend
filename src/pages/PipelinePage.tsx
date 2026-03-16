@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, GripVertical, Trash2, Zap } from 'lucide-react'
+import { Plus, GripVertical, Trash2, Zap, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
@@ -215,12 +215,9 @@ export default function PipelinePage() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-4 h-14" />
-            </Card>
-          ))}
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground mt-3">Loading pipeline...</p>
         </div>
       ) : stages.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">

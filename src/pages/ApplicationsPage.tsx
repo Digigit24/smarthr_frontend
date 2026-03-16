@@ -210,13 +210,10 @@ export default function ApplicationsPage() {
 
       {/* Table */}
       {isLoading ? (
-        <Card className="animate-pulse">
-          <CardContent className="p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-12 bg-muted rounded" />
-            ))}
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground mt-3">Loading applications...</p>
+        </div>
       ) : (data?.results?.length ?? 0) === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
