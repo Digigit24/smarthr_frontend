@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
-  Plus, Search, Briefcase, MapPin, Users, Clock, MoreHorizontal,
-  Send, XCircle, Bot, ListChecks, ChevronRight, Loader2,
+  Plus, Search, Briefcase, MapPin, Users, Clock,
+  Bot, ListChecks, ChevronRight, Loader2,
+  Eye, Pencil, Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
@@ -22,13 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Dialog,
   DialogContent,
@@ -67,16 +61,16 @@ type JobForm = z.infer<typeof jobSchema>
 function JobCard({
   job,
   onView,
-  onPublish,
-  onClose,
+  onEdit,
+  onDelete,
 }: {
   job: JobListItem
   onView: (job: JobListItem) => void
-  onPublish: (id: string) => void
-  onClose: (id: string) => void
+  onEdit: (job: JobListItem) => void
+  onDelete: (id: string) => void
 }) {
   return (
-    <Card className="hover:border-border/80 transition-colors cursor-pointer" onClick={() => onView(job)}>
+    <Card className="hover:border-border/80 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -103,38 +97,35 @@ function JobCard({
               </span>
             </div>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onView(job) }}>
-                View Details
-              </DropdownMenuItem>
-              {job.status === 'DRAFT' && (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPublish(job.id) }}>
-                  <Send className="mr-2 h-4 w-4" />
-                  Publish
-                </DropdownMenuItem>
-              )}
-              {job.status === 'OPEN' && (
-                <DropdownMenuItem
-                  onClick={(e) => { e.stopPropagation(); onClose(job.id) }}
-                  className="text-destructive"
-                >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Close Job
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-blue-500"
+              title="View"
+              onClick={() => onView(job)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-amber-500"
+              title="Edit"
+              onClick={() => onEdit(job)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              title="Delete"
+              onClick={() => onDelete(job.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
           <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
@@ -365,6 +356,8 @@ export default function JobsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [viewJobId, setViewJobId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
+  const [editJobId, setEditJobId] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
   const [voiceConfigOpen, setVoiceConfigOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
@@ -388,6 +381,35 @@ export default function JobsPage() {
     enabled: !!viewJob?.voice_agent_id,
   })
 
+  const { data: editJob, isLoading: editJobLoading } = useQuery({
+    queryKey: ['job-detail', editJobId],
+    queryFn: () => jobsService.get(editJobId!),
+    enabled: !!editJobId,
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: JobFormData }) => jobsService.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['jobs'] })
+      qc.invalidateQueries({ queryKey: ['job-detail'] })
+      setEditOpen(false)
+      setEditJobId(null)
+      toast.success('Job updated successfully')
+    },
+    onError: () => toast.error('Failed to update job'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => jobsService.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['jobs'] })
+      setViewOpen(false)
+      setViewJobId(null)
+      toast.success('Job deleted')
+    },
+    onError: () => toast.error('Failed to delete job'),
+  })
+
   const createMutation = useMutation({
     mutationFn: (data: JobFormData) => jobsService.create(data),
     onSuccess: () => {
@@ -398,27 +420,20 @@ export default function JobsPage() {
     onError: () => toast.error('Failed to create job'),
   })
 
-  const publishMutation = useMutation({
-    mutationFn: (id: string) => jobsService.publish(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['jobs'] })
-      toast.success('Job published')
-    },
-    onError: () => toast.error('Failed to publish job'),
-  })
-
-  const closeMutation = useMutation({
-    mutationFn: (id: string) => jobsService.close(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['jobs'] })
-      toast.success('Job closed')
-    },
-    onError: () => toast.error('Failed to close job'),
-  })
-
   const handleView = (job: JobListItem) => {
     setViewJobId(job.id)
     setViewOpen(true)
+  }
+
+  const handleEdit = (job: JobListItem) => {
+    setEditJobId(job.id)
+    setEditOpen(true)
+  }
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this job?')) {
+      deleteMutation.mutate(id)
+    }
   }
 
   return (
@@ -482,8 +497,8 @@ export default function JobsPage() {
               key={job.id}
               job={job}
               onView={handleView}
-              onPublish={publishMutation.mutate}
-              onClose={closeMutation.mutate}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           ))}
         </div>
@@ -517,6 +532,58 @@ export default function JobsPage() {
         />
       </SideDrawer>
 
+      {/* Edit Job Drawer */}
+      <SideDrawer
+        open={editOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open)
+          if (!open) setEditJobId(null)
+        }}
+        title={editJob?.title ? `Edit: ${editJob.title}` : 'Edit Job'}
+        mode="edit"
+        size="xl"
+        isLoading={updateMutation.isPending}
+        footerButtons={[
+          { label: 'Cancel', variant: 'outline', onClick: () => { setEditOpen(false); setEditJobId(null) } },
+          {
+            label: 'Save Changes',
+            loading: updateMutation.isPending,
+            onClick: () => {
+              document.getElementById('job-form')?.dispatchEvent(
+                new Event('submit', { cancelable: true, bubbles: true })
+              )
+            },
+          },
+        ]}
+        footerAlignment="right"
+      >
+        {editJobLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground mt-3">Loading job details...</p>
+          </div>
+        ) : editJob ? (
+          <JobFormComp
+            key={editJob.id}
+            defaultValues={{
+              title: editJob.title,
+              department: editJob.department,
+              location: editJob.location,
+              job_type: editJob.job_type,
+              experience_level: editJob.experience_level,
+              salary_min: editJob.salary_min || undefined,
+              salary_max: editJob.salary_max || undefined,
+              description: editJob.description,
+              requirements: editJob.requirements,
+              status: editJob.status,
+              closes_at: editJob.closes_at || undefined,
+            }}
+            onSubmit={(data) => updateMutation.mutate({ id: editJob.id, data: data as JobFormData })}
+            isLoading={updateMutation.isPending}
+          />
+        ) : null}
+      </SideDrawer>
+
       {/* View Job Drawer */}
       <SideDrawer
         open={viewOpen}
@@ -528,30 +595,27 @@ export default function JobsPage() {
         mode="view"
         size="xl"
         footerButtons={
-          viewJob?.status === 'DRAFT'
+          viewJob
             ? [
                 {
-                  label: 'Publish Job',
+                  label: 'Edit',
+                  variant: 'outline',
+                  icon: Pencil,
                   onClick: () => {
-                    publishMutation.mutate(viewJob.id)
                     setViewOpen(false)
+                    handleEdit({ id: viewJob.id } as JobListItem)
                   },
                 },
-              ]
-            : viewJob?.status === 'OPEN'
-            ? [
                 {
-                  label: 'Close Job',
+                  label: 'Delete',
                   variant: 'destructive',
-                  onClick: () => {
-                    closeMutation.mutate(viewJob.id)
-                    setViewOpen(false)
-                  },
+                  icon: Trash2,
+                  onClick: () => handleDelete(viewJob.id),
                 },
               ]
             : []
         }
-        footerAlignment="right"
+        footerAlignment="between"
       >
         {viewJobLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
