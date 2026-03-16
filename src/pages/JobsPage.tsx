@@ -610,6 +610,16 @@ export default function JobsPage() {
                   <p className="font-medium">{formatDate(viewJob.closes_at)}</p>
                 </div>
               )}
+              <div>
+                <p className="text-muted-foreground text-xs mb-0.5">Created</p>
+                <p className="font-medium">{formatDate(viewJob.created_at)}</p>
+              </div>
+              {viewJob.updated_at && viewJob.updated_at !== viewJob.created_at && (
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Last Updated</p>
+                  <p className="font-medium">{formatDate(viewJob.updated_at)}</p>
+                </div>
+              )}
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1.5">Description</p>
