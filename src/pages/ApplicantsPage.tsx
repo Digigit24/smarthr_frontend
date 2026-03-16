@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Users, Mail, Phone, Briefcase, MoreHorizontal, Trash2, Star, Loader2 } from 'lucide-react'
+import { Plus, Search, Users, Mail, Phone, Briefcase, Eye, Pencil, Trash2, Star, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -17,12 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { SideDrawer } from '@/components/SideDrawer'
 import { applicantsService } from '@/services/applicants'
 import type { ApplicantListItem, ApplicantFormData } from '@/types'
@@ -69,17 +63,16 @@ type ApplicantFormInput = z.infer<typeof applicantSchema>
 function ApplicantCard({
   applicant,
   onView,
+  onEdit,
   onDelete,
 }: {
   applicant: ApplicantListItem
   onView: (a: ApplicantListItem) => void
+  onEdit: (a: ApplicantListItem) => void
   onDelete: (id: string) => void
 }) {
   return (
-    <Card
-      className="hover:border-border/80 transition-colors cursor-pointer"
-      onClick={() => onView(applicant)}
-    >
+    <Card className="hover:border-border/80 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">
@@ -93,30 +86,35 @@ function ApplicantCard({
               <p className="text-[13px] text-muted-foreground">{applicant.current_role || '—'}</p>
             </div>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onView(applicant) }}>
-                View Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={(e) => { e.stopPropagation(); onDelete(applicant.id) }}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-blue-500"
+              title="View"
+              onClick={() => onView(applicant)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-amber-500"
+              title="Edit"
+              onClick={() => onEdit(applicant)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              title="Delete"
+              onClick={() => onDelete(applicant.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         <div className="mt-3 space-y-1.5">
           <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
@@ -309,6 +307,8 @@ export default function ApplicantsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [viewApplicantId, setViewApplicantId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
+  const [editApplicantId, setEditApplicantId] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['applicants', search, sourceFilter, ordering],
@@ -326,6 +326,24 @@ export default function ApplicantsPage() {
     enabled: !!viewApplicantId,
   })
 
+  const { data: editApplicant, isLoading: editApplicantLoading } = useQuery({
+    queryKey: ['applicant-detail', editApplicantId],
+    queryFn: () => applicantsService.get(editApplicantId!),
+    enabled: !!editApplicantId,
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: ApplicantFormData }) => applicantsService.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['applicants'] })
+      qc.invalidateQueries({ queryKey: ['applicant-detail'] })
+      setEditOpen(false)
+      setEditApplicantId(null)
+      toast.success('Applicant updated')
+    },
+    onError: () => toast.error('Failed to update applicant'),
+  })
+
   const createMutation = useMutation({
     mutationFn: (data: ApplicantFormData) => applicantsService.create(data),
     onSuccess: () => {
@@ -340,6 +358,8 @@ export default function ApplicantsPage() {
     mutationFn: (id: string) => applicantsService.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['applicants'] })
+      setViewOpen(false)
+      setViewApplicantId(null)
       toast.success('Applicant deleted')
     },
     onError: () => toast.error('Failed to delete applicant'),
@@ -350,13 +370,25 @@ export default function ApplicantsPage() {
     setViewOpen(true)
   }
 
-  const handleCreate = (data: ApplicantFormInput) => {
-    const payload: ApplicantFormData = {
-      ...data,
-      phone: data.phone || '',
-      skills: data.skills ? data.skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
+  const handleEdit = (applicant: ApplicantListItem) => {
+    setEditApplicantId(applicant.id)
+    setEditOpen(true)
+  }
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this applicant?')) {
+      deleteMutation.mutate(id)
     }
-    createMutation.mutate(payload)
+  }
+
+  const toPayload = (data: ApplicantFormInput): ApplicantFormData => ({
+    ...data,
+    phone: data.phone || '',
+    skills: data.skills ? data.skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
+  })
+
+  const handleCreate = (data: ApplicantFormInput) => {
+    createMutation.mutate(toPayload(data))
   }
 
   return (
@@ -430,7 +462,8 @@ export default function ApplicantsPage() {
               key={applicant.id}
               applicant={applicant}
               onView={handleView}
-              onDelete={deleteMutation.mutate}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           ))}
         </div>
@@ -460,6 +493,57 @@ export default function ApplicantsPage() {
         <ApplicantFormComp onSubmit={handleCreate} />
       </SideDrawer>
 
+      {/* Edit */}
+      <SideDrawer
+        open={editOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open)
+          if (!open) setEditApplicantId(null)
+        }}
+        title={editApplicant ? `Edit: ${editApplicant.full_name}` : 'Edit Applicant'}
+        mode="edit"
+        size="lg"
+        isLoading={updateMutation.isPending}
+        footerButtons={[
+          { label: 'Cancel', variant: 'outline', onClick: () => { setEditOpen(false); setEditApplicantId(null) } },
+          {
+            label: 'Save Changes',
+            loading: updateMutation.isPending,
+            onClick: () =>
+              document.getElementById('applicant-form')?.dispatchEvent(
+                new Event('submit', { cancelable: true, bubbles: true })
+              ),
+          },
+        ]}
+        footerAlignment="right"
+      >
+        {editApplicantLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground mt-3">Loading applicant details...</p>
+          </div>
+        ) : editApplicant ? (
+          <ApplicantFormComp
+            key={editApplicant.id}
+            defaultValues={{
+              first_name: editApplicant.first_name,
+              last_name: editApplicant.last_name,
+              email: editApplicant.email,
+              phone: editApplicant.phone || undefined,
+              source: editApplicant.source,
+              current_role: editApplicant.current_role || undefined,
+              current_company: editApplicant.current_company || undefined,
+              experience_years: editApplicant.experience_years,
+              skills: editApplicant.skills.join(', '),
+              linkedin_url: editApplicant.linkedin_url || undefined,
+              resume_url: editApplicant.resume_url || undefined,
+              notes: editApplicant.notes || undefined,
+            }}
+            onSubmit={(data) => updateMutation.mutate({ id: editApplicant.id, data: toPayload(data) })}
+          />
+        ) : null}
+      </SideDrawer>
+
       {/* View */}
       <SideDrawer
         open={viewOpen}
@@ -470,6 +554,28 @@ export default function ApplicantsPage() {
         title={viewApplicant?.full_name || 'Applicant'}
         mode="view"
         size="lg"
+        footerButtons={
+          viewApplicant
+            ? [
+                {
+                  label: 'Edit',
+                  variant: 'outline',
+                  icon: Pencil,
+                  onClick: () => {
+                    setViewOpen(false)
+                    handleEdit({ id: viewApplicant.id } as ApplicantListItem)
+                  },
+                },
+                {
+                  label: 'Delete',
+                  variant: 'destructive',
+                  icon: Trash2,
+                  onClick: () => handleDelete(viewApplicant.id),
+                },
+              ]
+            : []
+        }
+        footerAlignment="between"
       >
         {viewApplicantLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
