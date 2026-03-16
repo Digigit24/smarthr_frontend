@@ -124,19 +124,9 @@ export default function ActivitiesPage() {
           <h1 className="text-lg font-semibold">Activity Log</h1>
           <p className="text-xs text-muted-foreground">Audit trail for your tenant</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={autoRefresh ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setAutoRefresh((v) => !v)}
-          >
-            <RefreshCw className={cn('h-4 w-4 mr-2', autoRefresh && 'animate-spin')} />
-            Auto-refresh
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" onClick={() => refetch()}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Filters */}
@@ -178,20 +168,13 @@ export default function ActivitiesPage() {
             ))}
           </SelectContent>
         </Select>
-        {/* <Input
-          type="date"
-          className="w-36"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          title="From date"
-        />
         <Input
           type="date"
-          className="w-36"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          title="To date"
-        /> */}
+          className="w-40"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          title="Filter by date"
+        />
       </div>
 
       {isLoading ? (
