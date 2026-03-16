@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Calendar, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Plus, Search, Calendar, CheckCircle, XCircle, Loader2, Eye, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -109,6 +109,58 @@ export default function InterviewsPage() {
     onError: () => toast.error('Failed to complete interview'),
   })
 
+  const [editInterviewId, setEditInterviewId] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    interviewer_name: '',
+    interviewer_email: '',
+    meeting_link: '',
+    scheduled_at: '',
+    duration_minutes: 60,
+  })
+
+  const { data: editInterview } = useQuery({
+    queryKey: ['interview-detail', editInterviewId],
+    queryFn: () => interviewsService.get(editInterviewId!),
+    enabled: !!editInterviewId,
+  })
+
+  useEffect(() => {
+    if (editInterview) {
+      setEditForm({
+        interviewer_name: editInterview.interviewer_name || '',
+        interviewer_email: editInterview.interviewer_email || '',
+        meeting_link: editInterview.meeting_link || '',
+        scheduled_at: editInterview.scheduled_at ? editInterview.scheduled_at.slice(0, 16) : '',
+        duration_minutes: editInterview.duration_minutes || 60,
+      })
+    }
+  }, [editInterview])
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<InterviewFormData> }) =>
+      interviewsService.patch(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['interviews'] })
+      qc.invalidateQueries({ queryKey: ['interview-detail'] })
+      setEditOpen(false)
+      setEditInterviewId(null)
+      toast.success('Interview updated')
+    },
+    onError: () => toast.error('Failed to update interview'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => interviewsService.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['interviews'] })
+      setViewOpen(false)
+      setViewInterviewId(null)
+      toast.success('Interview deleted')
+    },
+    onError: () => toast.error('Failed to delete interview'),
+  })
+
   const {
     register: createRegister,
     handleSubmit: handleCreateSubmit,
@@ -128,6 +180,17 @@ export default function InterviewsPage() {
   const handleView = (iv: InterviewListItem) => {
     setViewInterviewId(iv.id)
     setViewOpen(true)
+  }
+
+  const handleEditClick = (iv: InterviewListItem) => {
+    setEditInterviewId(iv.id)
+    setEditOpen(true)
+  }
+
+  const handleDeleteClick = (iv: InterviewListItem) => {
+    if (window.confirm('Delete this interview? This cannot be undone.')) {
+      deleteMutation.mutate(iv.id)
+    }
   }
 
   return (
@@ -196,11 +259,7 @@ export default function InterviewsPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {data?.results.map((iv) => (
-            <Card
-              key={iv.id}
-              className="cursor-pointer hover:border-border/80 transition-colors"
-              onClick={() => handleView(iv)}
-            >
+            <Card key={iv.id} className="hover:border-border/80 transition-colors">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -212,7 +271,20 @@ export default function InterviewsPage() {
                     {iv.status}
                   </span>
                 </div>
-                <p className="text-[12px] text-muted-foreground mt-2">{iv.duration_minutes}min · {iv.meeting_link ? '🔗 Link' : 'No link'}</p>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-[12px] text-muted-foreground">{iv.duration_minutes}min · {iv.meeting_link ? '🔗 Link' : 'No link'}</p>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleView(iv)} title="View">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditClick(iv)} title="Edit">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-destructive" onClick={() => handleDeleteClick(iv)} title="Delete">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -301,11 +373,31 @@ export default function InterviewsPage() {
         footerButtons={
           viewInterview
             ? [
+                {
+                  label: 'Edit',
+                  variant: 'outline' as const,
+                  icon: Pencil,
+                  onClick: () => {
+                    setViewOpen(false)
+                    setEditInterviewId(viewInterview.id)
+                    setEditOpen(true)
+                  },
+                },
+                {
+                  label: 'Delete',
+                  variant: 'destructive' as const,
+                  icon: Trash2,
+                  onClick: () => {
+                    if (window.confirm('Delete this interview? This cannot be undone.')) {
+                      deleteMutation.mutate(viewInterview.id)
+                    }
+                  },
+                },
                 ...(viewInterview.status !== 'CANCELLED' && viewInterview.status !== 'COMPLETED'
                   ? [
                       {
-                        label: 'Cancel',
-                        variant: 'destructive' as const,
+                        label: 'Cancel Interview',
+                        variant: 'outline' as const,
                         icon: XCircle,
                         onClick: () => cancelMutation.mutate(viewInterview.id),
                       },
@@ -411,6 +503,88 @@ export default function InterviewsPage() {
               <Input type="number" min="1" max="5" {...completeRegister('rating')} />
             </div>
           </form>
+        )}
+      </SideDrawer>
+
+      {/* Edit Interview Drawer */}
+      <SideDrawer
+        open={editOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open)
+          if (!open) setEditInterviewId(null)
+        }}
+        title="Edit Interview"
+        mode="edit"
+        size="md"
+        footerButtons={[
+          { label: 'Cancel', variant: 'outline', onClick: () => { setEditOpen(false); setEditInterviewId(null) } },
+          {
+            label: 'Save Changes',
+            loading: updateMutation.isPending,
+            onClick: () => {
+              if (!editInterviewId) return
+              updateMutation.mutate({
+                id: editInterviewId,
+                data: {
+                  interviewer_name: editForm.interviewer_name,
+                  interviewer_email: editForm.interviewer_email,
+                  meeting_link: editForm.meeting_link,
+                  scheduled_at: editForm.scheduled_at,
+                  duration_minutes: editForm.duration_minutes,
+                },
+              })
+            },
+          },
+        ]}
+        footerAlignment="right"
+      >
+        {editInterview ? (
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Interviewer Name</Label>
+              <Input
+                value={editForm.interviewer_name}
+                onChange={(e) => setEditForm((f) => ({ ...f, interviewer_name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Interviewer Email</Label>
+              <Input
+                type="email"
+                value={editForm.interviewer_email}
+                onChange={(e) => setEditForm((f) => ({ ...f, interviewer_email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Scheduled At</Label>
+              <Input
+                type="datetime-local"
+                value={editForm.scheduled_at}
+                onChange={(e) => setEditForm((f) => ({ ...f, scheduled_at: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Duration (min)</Label>
+              <Input
+                type="number"
+                min="15"
+                value={editForm.duration_minutes}
+                onChange={(e) => setEditForm((f) => ({ ...f, duration_minutes: Number(e.target.value) }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Meeting Link</Label>
+              <Input
+                value={editForm.meeting_link}
+                onChange={(e) => setEditForm((f) => ({ ...f, meeting_link: e.target.value }))}
+                placeholder="https://meet.google.com/..."
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         )}
       </SideDrawer>
     </div>

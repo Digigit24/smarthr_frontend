@@ -1,7 +1,11 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Star, Search, Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Star, Search, Loader2, Eye, Pencil, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -31,11 +35,18 @@ function ScoreGauge({ score }: { score: string }) {
 }
 
 export default function ScorecardsPage() {
+  const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [recFilter, setRecFilter] = useState('')
   const [ordering, setOrdering] = useState('-overall_score')
   const [viewCardId, setViewCardId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
+  const [editCardId, setEditCardId] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    summary: '',
+    recommendation: '',
+  })
 
   const { data, isLoading } = useQuery({
     queryKey: ['scorecards', search, recFilter, ordering],
@@ -53,9 +64,59 @@ export default function ScorecardsPage() {
     enabled: !!viewCardId,
   })
 
+  const { data: editCard } = useQuery({
+    queryKey: ['scorecard-detail', editCardId],
+    queryFn: () => scorecardsService.get(editCardId!),
+    enabled: !!editCardId,
+  })
+
+  useEffect(() => {
+    if (editCard) {
+      setEditForm({
+        summary: editCard.summary || '',
+        recommendation: editCard.recommendation || '',
+      })
+    }
+  }, [editCard])
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      scorecardsService.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['scorecards'] })
+      qc.invalidateQueries({ queryKey: ['scorecard-detail'] })
+      setEditOpen(false)
+      setEditCardId(null)
+      toast.success('Scorecard updated')
+    },
+    onError: () => toast.error('Failed to update scorecard'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => scorecardsService.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['scorecards'] })
+      setViewOpen(false)
+      setViewCardId(null)
+      toast.success('Scorecard deleted')
+    },
+    onError: () => toast.error('Failed to delete scorecard'),
+  })
+
   const handleView = (sc: ScorecardListItem) => {
     setViewCardId(sc.id)
     setViewOpen(true)
+  }
+
+  const handleEdit = (sc: ScorecardListItem) => {
+    setEditCardId(sc.id)
+    setEditOpen(true)
+  }
+
+  const handleDelete = (sc: ScorecardListItem) => {
+    if (window.confirm('Delete this scorecard? This cannot be undone.')) {
+      deleteMutation.mutate(sc.id)
+    }
   }
 
   return (
@@ -118,11 +179,7 @@ export default function ScorecardsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data?.results.map((sc) => (
-            <Card
-              key={sc.id}
-              className="cursor-pointer hover:border-border/80 transition-colors"
-              onClick={() => handleView(sc)}
-            >
+            <Card key={sc.id} className="hover:border-border/80 transition-colors">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -143,7 +200,20 @@ export default function ScorecardsPage() {
                 {sc.summary && (
                   <p className="mt-2 text-[12px] text-muted-foreground line-clamp-2">{sc.summary}</p>
                 )}
-                <p className="text-[11px] text-muted-foreground mt-2">{formatDate(sc.created_at)}</p>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-[11px] text-muted-foreground">{formatDate(sc.created_at)}</p>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleView(sc)} title="View">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(sc)} title="Edit">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-destructive" onClick={() => handleDelete(sc)} title="Delete">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -159,6 +229,33 @@ export default function ScorecardsPage() {
         title="Scorecard Detail"
         mode="view"
         size="lg"
+        footerButtons={
+          viewCard
+            ? [
+                {
+                  label: 'Edit',
+                  variant: 'outline' as const,
+                  icon: Pencil,
+                  onClick: () => {
+                    setViewOpen(false)
+                    setEditCardId(viewCard.id)
+                    setEditOpen(true)
+                  },
+                },
+                {
+                  label: 'Delete',
+                  variant: 'destructive' as const,
+                  icon: Trash2,
+                  onClick: () => {
+                    if (window.confirm('Delete this scorecard? This cannot be undone.')) {
+                      deleteMutation.mutate(viewCard.id)
+                    }
+                  },
+                },
+              ]
+            : []
+        }
+        footerAlignment="between"
       >
         {viewCardLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -220,6 +317,67 @@ export default function ScorecardsPage() {
             ))}
           </div>
         ) : null}
+      </SideDrawer>
+
+      {/* Edit Scorecard Drawer */}
+      <SideDrawer
+        open={editOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open)
+          if (!open) setEditCardId(null)
+        }}
+        title="Edit Scorecard"
+        mode="edit"
+        size="md"
+        footerButtons={[
+          { label: 'Cancel', variant: 'outline', onClick: () => { setEditOpen(false); setEditCardId(null) } },
+          {
+            label: 'Save Changes',
+            loading: updateMutation.isPending,
+            onClick: () => {
+              if (!editCardId) return
+              updateMutation.mutate({
+                id: editCardId,
+                data: {
+                  summary: editForm.summary,
+                  recommendation: editForm.recommendation,
+                },
+              })
+            },
+          },
+        ]}
+        footerAlignment="right"
+      >
+        {editCard ? (
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Recommendation</Label>
+              <Select
+                value={editForm.recommendation}
+                onValueChange={(v) => setEditForm((f) => ({ ...f, recommendation: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['STRONG_YES', 'YES', 'MAYBE', 'NO', 'STRONG_NO'].map((r) => (
+                    <SelectItem key={r} value={r}>{r.replace(/_/g, ' ')}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Summary</Label>
+              <Textarea
+                rows={4}
+                value={editForm.summary}
+                onChange={(e) => setEditForm((f) => ({ ...f, summary: e.target.value }))}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
       </SideDrawer>
     </div>
   )

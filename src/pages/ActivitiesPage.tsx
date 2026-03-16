@@ -234,8 +234,8 @@ export default function ActivitiesPage() {
                         <span>·</span>
                         <span>{formatDateTime(activity.created_at)}</span>
                       </div>
-                      {(Object.keys(activity.before).length > 0 || Object.keys(activity.after).length > 0) && (
-                        <DiffDisplay before={activity.before} after={activity.after} />
+                      {(Object.keys(activity.before || {}).length > 0 || Object.keys(activity.after || {}).length > 0) && (
+                        <DiffDisplay before={activity.before || {}} after={activity.after || {}} />
                       )}
                     </div>
                   </CardContent>
