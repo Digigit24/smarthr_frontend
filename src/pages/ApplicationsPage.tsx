@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, FileText, Phone, Star, ChevronDown } from 'lucide-react'
+import { Search, FileText, Phone, Star, ChevronDown, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { SideDrawer } from '@/components/SideDrawer'
 import { applicationsService } from '@/services/applications'
-import type { ApplicationListItem, ApplicationDetail, ApplicationStatus } from '@/types'
+import type { ApplicationListItem, ApplicationStatus } from '@/types'
 import { formatDate, formatDateTime, formatDuration, cn } from '@/lib/utils'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -91,7 +91,7 @@ export default function ApplicationsPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [viewApp, setViewApp] = useState<ApplicationDetail | null>(null)
+  const [viewAppId, setViewAppId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [expandedCallId, setExpandedCallId] = useState<string | null>(null)
@@ -103,6 +103,12 @@ export default function ApplicationsPage() {
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
       }),
+  })
+
+  const { data: viewApp, isLoading: viewAppLoading } = useQuery({
+    queryKey: ['application-detail', viewAppId],
+    queryFn: () => applicationsService.get(viewAppId!),
+    enabled: !!viewAppId,
   })
 
   const changeStatusMutation = useMutation({
@@ -132,15 +138,10 @@ export default function ApplicationsPage() {
     onError: () => toast.error('Bulk action failed'),
   })
 
-  const handleView = async (app: ApplicationListItem) => {
-    try {
-      const detail = await applicationsService.get(app.id)
-      setViewApp(detail)
-      setViewOpen(true)
-      setExpandedCallId(null)
-    } catch {
-      toast.error('Failed to load application')
-    }
+  const handleView = (app: ApplicationListItem) => {
+    setViewAppId(app.id)
+    setViewOpen(true)
+    setExpandedCallId(null)
   }
 
   const toggleSelect = (id: string, e: React.MouseEvent) => {
@@ -304,7 +305,10 @@ export default function ApplicationsPage() {
       {/* Detail Drawer */}
       <SideDrawer
         open={viewOpen}
-        onOpenChange={setViewOpen}
+        onOpenChange={(open) => {
+          setViewOpen(open)
+          if (!open) setViewAppId(null)
+        }}
         title="Application Detail"
         mode="view"
         size="xl"
@@ -325,7 +329,12 @@ export default function ApplicationsPage() {
         }
         footerAlignment="right"
       >
-        {viewApp && (
+        {viewAppLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground mt-3">Loading application details...</p>
+          </div>
+        ) : viewApp ? (
           <div className="space-y-5">
             {/* Status + Score */}
             <div className="flex items-center gap-3">
@@ -490,8 +499,9 @@ export default function ApplicationsPage() {
               <Select
                 value={viewApp.status}
                 onValueChange={(status) => {
-                  changeStatusMutation.mutate({ id: viewApp.id, status })
-                  setViewApp((prev) => prev ? { ...prev, status: status as ApplicationStatus } : prev)
+                  changeStatusMutation.mutate({ id: viewApp.id, status }, {
+                    onSuccess: () => qc.invalidateQueries({ queryKey: ['application-detail', viewAppId] }),
+                  })
                 }}
               >
                 <SelectTrigger>
@@ -505,7 +515,7 @@ export default function ApplicationsPage() {
               </Select>
             </div>
           </div>
-        )}
+        ) : null}
       </SideDrawer>
     </div>
   )

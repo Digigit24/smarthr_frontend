@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Users, Mail, Phone, Briefcase, MoreHorizontal, Trash2, Star } from 'lucide-react'
+import { Plus, Search, Users, Mail, Phone, Briefcase, MoreHorizontal, Trash2, Star, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SideDrawer } from '@/components/SideDrawer'
 import { applicantsService } from '@/services/applicants'
-import type { ApplicantListItem, ApplicantDetail, ApplicantFormData } from '@/types'
+import type { ApplicantListItem, ApplicantFormData } from '@/types'
 import { formatDate, getInitials, cn } from '@/lib/utils'
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -305,12 +305,18 @@ export default function ApplicantsPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
-  const [viewApplicant, setViewApplicant] = useState<ApplicantDetail | null>(null)
+  const [viewApplicantId, setViewApplicantId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['applicants', search],
     queryFn: () => applicantsService.list(search ? { search } : undefined),
+  })
+
+  const { data: viewApplicant, isLoading: viewApplicantLoading } = useQuery({
+    queryKey: ['applicant-detail', viewApplicantId],
+    queryFn: () => applicantsService.get(viewApplicantId!),
+    enabled: !!viewApplicantId,
   })
 
   const createMutation = useMutation({
@@ -332,14 +338,9 @@ export default function ApplicantsPage() {
     onError: () => toast.error('Failed to delete applicant'),
   })
 
-  const handleView = async (applicant: ApplicantListItem) => {
-    try {
-      const detail = await applicantsService.get(applicant.id)
-      setViewApplicant(detail)
-      setViewOpen(true)
-    } catch {
-      toast.error('Failed to load applicant')
-    }
+  const handleView = (applicant: ApplicantListItem) => {
+    setViewApplicantId(applicant.id)
+    setViewOpen(true)
   }
 
   const handleCreate = (data: ApplicantFormInput) => {
@@ -430,12 +431,20 @@ export default function ApplicantsPage() {
       {/* View */}
       <SideDrawer
         open={viewOpen}
-        onOpenChange={setViewOpen}
+        onOpenChange={(open) => {
+          setViewOpen(open)
+          if (!open) setViewApplicantId(null)
+        }}
         title={viewApplicant?.full_name || 'Applicant'}
         mode="view"
         size="lg"
       >
-        {viewApplicant && (
+        {viewApplicantLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground mt-3">Loading applicant details...</p>
+          </div>
+        ) : viewApplicant ? (
           <div className="space-y-5">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-accent flex items-center justify-center">
@@ -501,7 +510,7 @@ export default function ApplicantsPage() {
               <ApplicantApplications applicantId={viewApplicant.id} />
             </div>
           </div>
-        )}
+        ) : null}
       </SideDrawer>
     </div>
   )

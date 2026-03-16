@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Phone, Search, RefreshCw, Play, FileText, MessageSquare, ChevronDown,
+  Phone, Search, RefreshCw, Play, FileText, MessageSquare, ChevronDown, Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -26,7 +26,7 @@ import { SideDrawer } from '@/components/SideDrawer'
 import { callsService } from '@/services/calls'
 import { callQueuesService } from '@/services/callQueues'
 import { applicationsService } from '@/services/applications'
-import type { CallRecordListItem, CallRecordDetail } from '@/types'
+import type { CallRecordListItem } from '@/types'
 import { formatDateTime, formatDuration, cn } from '@/lib/utils'
 
 const CALL_STATUS_COLORS: Record<string, string> = {
@@ -190,7 +190,7 @@ function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 export default function CallsPage() {
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState('')
-  const [viewCall, setViewCall] = useState<CallRecordDetail | null>(null)
+  const [viewCallId, setViewCallId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [showTranscript, setShowTranscript] = useState(false)
   const [triggerDialogOpen, setTriggerDialogOpen] = useState(false)
@@ -200,26 +200,26 @@ export default function CallsPage() {
     queryFn: () => callsService.list(statusFilter ? { status: statusFilter } : undefined),
   })
 
+  const { data: viewCall, isLoading: viewCallLoading } = useQuery({
+    queryKey: ['call-detail', viewCallId],
+    queryFn: () => callsService.get(viewCallId!),
+    enabled: !!viewCallId,
+  })
+
   const retryMutation = useMutation({
     mutationFn: (id: string) => callsService.retry(id),
     onSuccess: (newCall) => {
       qc.invalidateQueries({ queryKey: ['calls'] })
       toast.success('Call retried')
-      // Show new call detail
-      setViewCall(newCall)
+      setViewCallId(newCall.id)
     },
     onError: () => toast.error('Failed to retry call'),
   })
 
-  const handleView = async (call: CallRecordListItem) => {
-    try {
-      const detail = await callsService.get(call.id)
-      setViewCall(detail)
-      setViewOpen(true)
-      setShowTranscript(false)
-    } catch {
-      toast.error('Failed to load call')
-    }
+  const handleView = (call: CallRecordListItem) => {
+    setViewCallId(call.id)
+    setViewOpen(true)
+    setShowTranscript(false)
   }
 
   const transcriptMessages = viewCall?.transcript ? parseTranscript(viewCall.transcript) : []
@@ -332,7 +332,10 @@ export default function CallsPage() {
       {/* Call Detail Drawer */}
       <SideDrawer
         open={viewOpen}
-        onOpenChange={setViewOpen}
+        onOpenChange={(open) => {
+          setViewOpen(open)
+          if (!open) setViewCallId(null)
+        }}
         title="Call Detail"
         mode="view"
         size="xl"
@@ -350,7 +353,12 @@ export default function CallsPage() {
         }
         footerAlignment="right"
       >
-        {viewCall && (
+        {viewCallLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground mt-3">Loading call details...</p>
+          </div>
+        ) : viewCall ? (
           <div className="space-y-5">
             {/* Status */}
             <div className="flex items-center gap-2 flex-wrap">
@@ -503,7 +511,7 @@ export default function CallsPage() {
               </div>
             )}
           </div>
-        )}
+        ) : null}
       </SideDrawer>
 
       {/* Trigger Call Dialog */}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Search, ListChecks, MoreHorizontal, Play, Pause, Square,
-  RefreshCw, Phone, ChevronRight, Users, CheckCircle, XCircle, Clock,
+  RefreshCw, Phone, ChevronRight, Users, CheckCircle, XCircle, Clock, Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
@@ -381,7 +381,7 @@ function CreateQueueForm({
 
 function QueueDetailContent({ queue: initialQueue, onActionSuccess }: {
   queue: CallQueue
-  onActionSuccess: (updated: CallQueue) => void
+  onActionSuccess: () => void
 }) {
   const qc = useQueryClient()
   const [page, setPage] = useState(1)
@@ -606,7 +606,7 @@ export default function CallQueuesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
-  const [viewQueue, setViewQueue] = useState<CallQueue | null>(null)
+  const [viewQueueId, setViewQueueId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [defaultJobId, setDefaultJobId] = useState<string | undefined>()
   const [defaultVoiceAgentId, setDefaultVoiceAgentId] = useState<string | undefined>()
@@ -618,6 +618,12 @@ export default function CallQueuesPage() {
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
       }),
+  })
+
+  const { data: viewQueue, isLoading: viewQueueLoading } = useQuery({
+    queryKey: ['queue-detail', viewQueueId],
+    queryFn: () => callQueuesService.get(viewQueueId!),
+    enabled: !!viewQueueId,
   })
 
   const createMutation = useMutation({
@@ -687,14 +693,9 @@ export default function CallQueuesPage() {
     setCreateOpen(true)
   }
 
-  const handleView = async (queue: CallQueue) => {
-    try {
-      const detail = await callQueuesService.get(queue.id)
-      setViewQueue(detail)
-      setViewOpen(true)
-    } catch {
-      toast.error('Failed to load queue details')
-    }
+  const handleView = (queue: CallQueue) => {
+    setViewQueueId(queue.id)
+    setViewOpen(true)
   }
 
   const getViewFooterButtons = () => {
@@ -842,19 +843,27 @@ export default function CallQueuesPage() {
       {/* View / Detail Drawer */}
       <SideDrawer
         open={viewOpen}
-        onOpenChange={setViewOpen}
+        onOpenChange={(open) => {
+          setViewOpen(open)
+          if (!open) setViewQueueId(null)
+        }}
         title={viewQueue?.name || 'Queue Details'}
         mode="view"
         size="xl"
         footerButtons={getViewFooterButtons()}
         footerAlignment="right"
       >
-        {viewQueue && (
+        {viewQueueLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground mt-3">Loading queue details...</p>
+          </div>
+        ) : viewQueue ? (
           <QueueDetailContent
             queue={viewQueue}
-            onActionSuccess={(updated) => setViewQueue(updated)}
+            onActionSuccess={() => qc.invalidateQueries({ queryKey: ['queue-detail', viewQueueId] })}
           />
-        )}
+        ) : null}
       </SideDrawer>
     </div>
   )

@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Star } from 'lucide-react'
+import { Star, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { SideDrawer } from '@/components/SideDrawer'
 import { scorecardsService } from '@/services/scorecards'
-import type { ScorecardListItem, ScorecardDetail } from '@/types'
+import type { ScorecardListItem } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
 
 const REC_COLORS: Record<string, string> = {
@@ -23,7 +23,7 @@ function ScoreGauge({ score }: { score: string }) {
 }
 
 export default function ScorecardsPage() {
-  const [viewCard, setViewCard] = useState<ScorecardDetail | null>(null)
+  const [viewCardId, setViewCardId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
@@ -31,12 +31,15 @@ export default function ScorecardsPage() {
     queryFn: () => scorecardsService.list({ ordering: '-overall_score' }),
   })
 
-  const handleView = async (sc: ScorecardListItem) => {
-    try {
-      const detail = await scorecardsService.get(sc.id)
-      setViewCard(detail)
-      setViewOpen(true)
-    } catch {}
+  const { data: viewCard, isLoading: viewCardLoading } = useQuery({
+    queryKey: ['scorecard-detail', viewCardId],
+    queryFn: () => scorecardsService.get(viewCardId!),
+    enabled: !!viewCardId,
+  })
+
+  const handleView = (sc: ScorecardListItem) => {
+    setViewCardId(sc.id)
+    setViewOpen(true)
   }
 
   return (
@@ -96,12 +99,20 @@ export default function ScorecardsPage() {
 
       <SideDrawer
         open={viewOpen}
-        onOpenChange={setViewOpen}
+        onOpenChange={(open) => {
+          setViewOpen(open)
+          if (!open) setViewCardId(null)
+        }}
         title="Scorecard Detail"
         mode="view"
         size="lg"
       >
-        {viewCard && (
+        {viewCardLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground mt-3">Loading scorecard details...</p>
+          </div>
+        ) : viewCard ? (
           <div className="space-y-5">
             <div className="text-center py-4 rounded-lg bg-muted/40">
               <p className="text-xs text-muted-foreground mb-1">Overall Score</p>
@@ -155,7 +166,7 @@ export default function ScorecardsPage() {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
       </SideDrawer>
     </div>
   )

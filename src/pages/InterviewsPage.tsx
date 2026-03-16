@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Calendar, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, Search, Calendar, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select'
 import { SideDrawer } from '@/components/SideDrawer'
 import { interviewsService } from '@/services/interviews'
-import type { InterviewListItem, InterviewDetail, InterviewFormData, InterviewType } from '@/types'
+import type { InterviewListItem, InterviewFormData, InterviewType } from '@/types'
 import { formatDateTime, cn } from '@/lib/utils'
 
 const IV_STATUS_COLORS: Record<string, string> = {
@@ -55,7 +55,7 @@ export default function InterviewsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
-  const [viewInterview, setViewInterview] = useState<InterviewDetail | null>(null)
+  const [viewInterviewId, setViewInterviewId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
 
@@ -67,6 +67,12 @@ export default function InterviewsPage() {
         ...(statusFilter && { status: statusFilter }),
         ordering: 'scheduled_at',
       }),
+  })
+
+  const { data: viewInterview, isLoading: viewInterviewLoading } = useQuery({
+    queryKey: ['interview-detail', viewInterviewId],
+    queryFn: () => interviewsService.get(viewInterviewId!),
+    enabled: !!viewInterviewId,
   })
 
   const createMutation = useMutation({
@@ -117,14 +123,9 @@ export default function InterviewsPage() {
     handleSubmit: handleCompleteSubmit,
   } = useForm<CompleteData>({ resolver: zodResolver(completeSchema) })
 
-  const handleView = async (iv: InterviewListItem) => {
-    try {
-      const detail = await interviewsService.get(iv.id)
-      setViewInterview(detail)
-      setViewOpen(true)
-    } catch {
-      toast.error('Failed to load interview')
-    }
+  const handleView = (iv: InterviewListItem) => {
+    setViewInterviewId(iv.id)
+    setViewOpen(true)
   }
 
   return (
@@ -275,7 +276,10 @@ export default function InterviewsPage() {
       {/* View Interview Drawer */}
       <SideDrawer
         open={viewOpen}
-        onOpenChange={setViewOpen}
+        onOpenChange={(open) => {
+          setViewOpen(open)
+          if (!open) setViewInterviewId(null)
+        }}
         title="Interview Details"
         mode="view"
         size="lg"
@@ -306,7 +310,12 @@ export default function InterviewsPage() {
         }
         footerAlignment="between"
       >
-        {viewInterview && (
+        {viewInterviewLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground mt-3">Loading interview details...</p>
+          </div>
+        ) : viewInterview ? (
           <div className="space-y-4 text-sm">
             <div className="flex items-center gap-2">
               <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-medium', IV_STATUS_COLORS[viewInterview.status])}>
@@ -342,7 +351,7 @@ export default function InterviewsPage() {
               </div>
             )}
           </div>
-        )}
+        ) : null}
       </SideDrawer>
 
       {/* Complete Interview Drawer */}
