@@ -12,13 +12,23 @@ export const api: AxiosInstance = axios.create({
 
 // Request interceptor — attach Bearer token and tenant ID from the zustand store
 api.interceptors.request.use((config) => {
-  // Read from the zustand store (always up-to-date, not a stale localStorage read)
   const { accessToken, user } = useAuthStore.getState()
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`
-  }
-  if (user?.tenant_id) {
-    config.headers['X-Tenant-ID'] = user.tenant_id
+
+    // Extract tenant_id from user store, or decode it from the JWT as fallback
+    let tenantId = user?.tenant_id
+    if (!tenantId) {
+      try {
+        const payload = JSON.parse(atob(accessToken.split('.')[1]))
+        tenantId = payload.tenant_id
+      } catch {
+        // ignore decode errors
+      }
+    }
+    if (tenantId) {
+      config.headers['X-Tenant-ID'] = tenantId
+    }
   }
   return config
 })
