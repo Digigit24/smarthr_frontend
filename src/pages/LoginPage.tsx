@@ -33,7 +33,12 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     try {
       const result = await authApi.login(data.email, data.password)
-      setAuth(result.user, result.tokens.access, result.tokens.refresh)
+      const user = {
+        ...result.user,
+        tenant_id: result.user.tenant_id || result.user.tenant,
+        tenant_slug: result.user.tenant_slug || result.user.tenant_name,
+      }
+      setAuth(user, result.tokens.access, result.tokens.refresh)
       navigate('/')
     } catch (err: unknown) {
       const msg =
