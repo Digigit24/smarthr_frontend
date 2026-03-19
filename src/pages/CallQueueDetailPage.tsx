@@ -366,8 +366,8 @@ export default function CallQueueDetailPage() {
             <div className="sm:hidden divide-y divide-border">
               {itemsData?.results.map((item: CallQueueItem) => {
                 const itemCfg = ITEM_STATUS_CONFIG[item.status] || ITEM_STATUS_CONFIG.PENDING
-                const appName = item.application?.applicant_name || 'Unknown Applicant'
-                const appEmail = item.application?.applicant_email || ''
+                const appName = item.application?.applicant_name || item.application?.applicant_email || 'Unknown Applicant'
+                const appEmail = item.application?.applicant_name ? (item.application?.applicant_email || '') : ''
                 return (
                   <div key={item.id} className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
