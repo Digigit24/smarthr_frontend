@@ -1,20 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search, FileText, Phone, Star, ChevronDown, Loader2,
-  Plus, Eye, Pencil, Trash2,
+  Plus, Eye, Pencil, Trash2, LayoutList, Columns3,
+  GripVertical, Clock, User, Briefcase,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -22,13 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { SideDrawer } from '@/components/SideDrawer'
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { applicationsService } from '@/services/applications'
-import { jobsService } from '@/services/jobs'
-import { applicantsService } from '@/services/applicants'
-import type { ApplicationListItem, ApplicationStatus, ApplicationFormData } from '@/types'
-import { formatDate, formatDateTime, formatDuration, cn } from '@/lib/utils'
+import type { ApplicationListItem, ApplicationStatus } from '@/types'
+import { formatDate, getInitials, cn } from '@/lib/utils'
 
 const STATUS_COLORS: Record<string, string> = {
   APPLIED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -43,24 +36,30 @@ const STATUS_COLORS: Record<string, string> = {
   WITHDRAWN: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
 }
 
-const CALL_STATUS_COLORS: Record<string, string> = {
-  QUEUED: 'bg-gray-100 text-gray-700',
-  INITIATED: 'bg-blue-100 text-blue-700',
-  RINGING: 'bg-amber-100 text-amber-700',
-  IN_PROGRESS: 'bg-indigo-100 text-indigo-700',
-  COMPLETED: 'bg-emerald-100 text-emerald-700',
-  FAILED: 'bg-red-100 text-red-700',
-  NO_ANSWER: 'bg-orange-100 text-orange-700',
-  BUSY: 'bg-yellow-100 text-yellow-700',
+const STATUS_BORDER_COLORS: Record<string, string> = {
+  APPLIED: 'border-blue-300 dark:border-blue-700',
+  AI_SCREENING: 'border-amber-300 dark:border-amber-700',
+  AI_COMPLETED: 'border-purple-300 dark:border-purple-700',
+  SHORTLISTED: 'border-cyan-300 dark:border-cyan-700',
+  INTERVIEW_SCHEDULED: 'border-indigo-300 dark:border-indigo-700',
+  INTERVIEWED: 'border-emerald-300 dark:border-emerald-700',
+  OFFER: 'border-teal-300 dark:border-teal-700',
+  HIRED: 'border-green-300 dark:border-green-700',
+  REJECTED: 'border-red-300 dark:border-red-700',
+  WITHDRAWN: 'border-gray-300 dark:border-gray-700',
 }
 
-const INTERVIEW_STATUS_COLORS: Record<string, string> = {
-  SCHEDULED: 'bg-blue-100 text-blue-700',
-  CONFIRMED: 'bg-cyan-100 text-cyan-700',
-  IN_PROGRESS: 'bg-indigo-100 text-indigo-700',
-  COMPLETED: 'bg-emerald-100 text-emerald-700',
-  CANCELLED: 'bg-red-100 text-red-700',
-  NO_SHOW: 'bg-orange-100 text-orange-700',
+const STATUS_DOT_COLORS: Record<string, string> = {
+  APPLIED: 'bg-blue-500',
+  AI_SCREENING: 'bg-amber-500',
+  AI_COMPLETED: 'bg-purple-500',
+  SHORTLISTED: 'bg-cyan-500',
+  INTERVIEW_SCHEDULED: 'bg-indigo-500',
+  INTERVIEWED: 'bg-emerald-500',
+  OFFER: 'bg-teal-500',
+  HIRED: 'bg-green-500',
+  REJECTED: 'bg-red-500',
+  WITHDRAWN: 'bg-gray-400',
 }
 
 const ALL_STATUSES: ApplicationStatus[] = [
@@ -68,14 +67,20 @@ const ALL_STATUSES: ApplicationStatus[] = [
   'INTERVIEW_SCHEDULED', 'INTERVIEWED', 'OFFER', 'HIRED', 'REJECTED', 'WITHDRAWN',
 ]
 
-const applicationSchema = z.object({
-  job: z.string().min(1, 'Job is required'),
-  applicant: z.string().min(1, 'Applicant is required'),
-  status: z.enum(['APPLIED', 'AI_SCREENING', 'AI_COMPLETED', 'SHORTLISTED', 'INTERVIEW_SCHEDULED', 'INTERVIEWED', 'OFFER', 'HIRED', 'REJECTED', 'WITHDRAWN']),
-  notes: z.string().optional(),
-})
+const AVATAR_GRADIENTS = [
+  'from-blue-500 to-indigo-600',
+  'from-violet-500 to-purple-600',
+  'from-emerald-500 to-teal-600',
+  'from-amber-500 to-orange-600',
+  'from-rose-500 to-pink-600',
+  'from-cyan-500 to-blue-600',
+]
 
-type ApplicationForm = z.infer<typeof applicationSchema>
+function getAvatarGradient(name: string) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length]
+}
 
 function ScoreBar({ score }: { score: string | null }) {
   if (!score) return <span className="text-muted-foreground text-[13px]">—</span>
@@ -91,111 +96,178 @@ function ScoreBar({ score }: { score: string | null }) {
   )
 }
 
-function ScoreDimensionBar({ label, value }: { label: string; value: string }) {
-  const num = parseFloat(value)
-  const pct = Math.min(100, num)
-  const color = pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500'
+function ScoreBadge({ score }: { score: string | null }) {
+  if (!score) return null
+  const val = parseFloat(score)
+  const color = val >= 70
+    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+    : val >= 40
+      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+      : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
   return (
-    <div>
-      <div className="flex justify-between text-[12px] mb-1">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-medium">{num.toFixed(1)}</span>
-      </div>
-      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
-      </div>
+    <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold', color)}>
+      <Star className="h-2.5 w-2.5 fill-current" />
+      {val.toFixed(0)}
+    </span>
+  )
+}
+
+/* ──────────────────────────── Kanban Board ──────────────────────────── */
+
+function KanbanBoard({
+  applications,
+  onView,
+  onChangeStatus,
+  onTriggerCall,
+  onDelete,
+}: {
+  applications: ApplicationListItem[]
+  onView: (app: ApplicationListItem) => void
+  onChangeStatus: (id: string, status: string) => void
+  onTriggerCall: (id: string) => void
+  onDelete: (id: string) => void
+}) {
+  const columns = ALL_STATUSES.map((status) => ({
+    status,
+    items: applications.filter((a) => a.status === status),
+  }))
+
+  const [dragItem, setDragItem] = useState<string | null>(null)
+
+  const handleDragStart = (e: React.DragEvent, appId: string) => {
+    setDragItem(appId)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', appId)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = (e: React.DragEvent, targetStatus: string) => {
+    e.preventDefault()
+    const appId = e.dataTransfer.getData('text/plain')
+    if (appId && dragItem) {
+      const app = applications.find((a) => a.id === appId)
+      if (app && app.status !== targetStatus) {
+        onChangeStatus(appId, targetStatus)
+      }
+    }
+    setDragItem(null)
+  }
+
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-4 -mx-6 px-6">
+      {columns.map(({ status, items }) => (
+        <div
+          key={status}
+          className="flex-shrink-0 w-[280px]"
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, status)}
+        >
+          {/* Column Header */}
+          <div className={cn('flex items-center gap-2 px-3 py-2 rounded-t-lg border-t-2', STATUS_BORDER_COLORS[status], 'bg-muted/30')}>
+            <span className={cn('w-2 h-2 rounded-full', STATUS_DOT_COLORS[status])} />
+            <span className="text-xs font-semibold truncate">{status.replace(/_/g, ' ')}</span>
+            <span className="ml-auto text-[10px] font-medium bg-muted rounded-full px-1.5 py-0.5">
+              {items.length}
+            </span>
+          </div>
+
+          {/* Column Body */}
+          <div className={cn(
+            'min-h-[200px] max-h-[calc(100vh-340px)] overflow-y-auto rounded-b-lg border border-t-0 bg-muted/10 p-2 space-y-2',
+            dragItem && 'bg-muted/20'
+          )}>
+            {items.length === 0 ? (
+              <div className="flex items-center justify-center h-24 text-[11px] text-muted-foreground">
+                No applications
+              </div>
+            ) : (
+              items.map((app) => (
+                <div
+                  key={app.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, app.id)}
+                  className={cn(
+                    'rounded-lg border bg-card p-3 cursor-grab active:cursor-grabbing hover:shadow-sm transition-all group',
+                    dragItem === app.id && 'opacity-50'
+                  )}
+                >
+                  {/* Drag handle + name row */}
+                  <div className="flex items-start gap-2">
+                    <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 mt-0.5 shrink-0 group-hover:text-muted-foreground/70" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className={cn('w-6 h-6 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0', getAvatarGradient(app.applicant_name))}>
+                          <span className="text-[9px] font-bold text-white">{getInitials(app.applicant_name)}</span>
+                        </div>
+                        <p className="text-[12px] font-semibold truncate">{app.applicant_name}</p>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5 ml-8">{app.applicant_email}</p>
+                    </div>
+                  </div>
+
+                  {/* Job + meta */}
+                  <div className="mt-2 ml-5.5 space-y-1">
+                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <Briefcase className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{app.job_title}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-2.5 w-2.5" />
+                        {formatDate(app.created_at)}
+                      </span>
+                      <ScoreBadge score={app.score} />
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-blue-500"
+                      title="View"
+                      onClick={(e) => { e.stopPropagation(); onView(app) }}
+                    >
+                      <Eye className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-violet-500"
+                      title="Trigger AI Call"
+                      onClick={(e) => { e.stopPropagation(); onTriggerCall(app.id) }}
+                    >
+                      <Phone className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      title="Delete"
+                      onClick={(e) => { e.stopPropagation(); onDelete(app.id) }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
 
-function ApplicationFormComp({
-  defaultValues,
-  onSubmit,
-  isLoading,
-}: {
-  defaultValues?: Partial<ApplicationForm>
-  onSubmit: (data: ApplicationForm) => void
-  isLoading?: boolean
-}) {
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<ApplicationForm>({
-    resolver: zodResolver(applicationSchema),
-    defaultValues: {
-      status: 'APPLIED',
-      ...defaultValues,
-    },
-  })
-
-  const { data: jobsData } = useQuery({
-    queryKey: ['jobs-list-for-select'],
-    queryFn: () => jobsService.list({ ordering: 'title' }),
-  })
-
-  const { data: applicantsData } = useQuery({
-    queryKey: ['applicants-list-for-select'],
-    queryFn: () => applicantsService.list({ ordering: 'first_name' }),
-  })
-
-  return (
-    <form id="application-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label>Job *</Label>
-        <Select value={watch('job') || ''} onValueChange={(v) => setValue('job', v, { shouldValidate: true })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a job..." />
-          </SelectTrigger>
-          <SelectContent>
-            {jobsData?.results?.map((job) => (
-              <SelectItem key={job.id} value={job.id}>{job.title} — {job.department}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.job && <p className="text-xs text-destructive">{errors.job.message}</p>}
-      </div>
-
-      <div className="space-y-1.5">
-        <Label>Applicant *</Label>
-        <Select value={watch('applicant') || ''} onValueChange={(v) => setValue('applicant', v, { shouldValidate: true })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select an applicant..." />
-          </SelectTrigger>
-          <SelectContent>
-            {applicantsData?.results?.map((a) => (
-              <SelectItem key={a.id} value={a.id}>{a.full_name} ({a.email})</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.applicant && <p className="text-xs text-destructive">{errors.applicant.message}</p>}
-      </div>
-
-      <div className="space-y-1.5">
-        <Label>Status</Label>
-        <Select value={watch('status')} onValueChange={(v) => setValue('status', v as ApplicationForm['status'])}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ALL_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label>Notes</Label>
-        <Textarea rows={3} placeholder="Optional notes about this application..." {...register('notes')} />
-      </div>
-    </form>
-  )
-}
+/* ────────────────────────── Main Page ────────────────────────── */
 
 export default function ApplicationsPage() {
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
@@ -204,20 +276,14 @@ export default function ApplicationsPage() {
   const [dateFilter, setDateFilter] = useState(searchParams.get('filter') || '')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table')
 
-  // Clear URL params after reading them so they don't persist on refresh
   useEffect(() => {
     if (searchParams.has('status') || searchParams.has('filter')) {
       setSearchParams({}, { replace: true })
     }
   }, [])
-  const [viewAppId, setViewAppId] = useState<string | null>(null)
-  const [viewOpen, setViewOpen] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [expandedCallId, setExpandedCallId] = useState<string | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [editAppId, setEditAppId] = useState<string | null>(null)
-  const [editOpen, setEditOpen] = useState(false)
 
   const todayStr = new Date().toISOString().split('T')[0]
 
@@ -232,52 +298,6 @@ export default function ApplicationsPage() {
         ...(dateTo && !dateFilter && { created_at_lte: dateTo }),
         ordering,
       }),
-  })
-
-  const { data: viewApp, isLoading: viewAppLoading } = useQuery({
-    queryKey: ['application-detail', viewAppId],
-    queryFn: () => applicationsService.get(viewAppId!),
-    enabled: !!viewAppId,
-  })
-
-  const { data: editApp, isLoading: editAppLoading } = useQuery({
-    queryKey: ['application-detail', editAppId],
-    queryFn: () => applicationsService.get(editAppId!),
-    enabled: !!editAppId,
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (data: ApplicationFormData) => applicationsService.create(data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['applications'] })
-      setCreateOpen(false)
-      toast.success('Application created successfully')
-    },
-    onError: () => toast.error('Failed to create application'),
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: ApplicationFormData }) =>
-      applicationsService.update(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['applications'] })
-      qc.invalidateQueries({ queryKey: ['application-detail'] })
-      setEditOpen(false)
-      setEditAppId(null)
-      toast.success('Application updated successfully')
-    },
-    onError: () => toast.error('Failed to update application'),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => applicationsService.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['applications'] })
-      setViewOpen(false)
-      setViewAppId(null)
-      toast.success('Application deleted')
-    },
-    onError: () => toast.error('Failed to delete application'),
   })
 
   const changeStatusMutation = useMutation({
@@ -296,6 +316,15 @@ export default function ApplicationsPage() {
     onError: () => toast.error('Failed to trigger AI call'),
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => applicationsService.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['applications'] })
+      toast.success('Application deleted')
+    },
+    onError: () => toast.error('Failed to delete application'),
+  })
+
   const bulkMutation = useMutation({
     mutationFn: ({ ids, status }: { ids: string[]; status: string }) =>
       applicationsService.bulkAction(ids, 'change_status', status),
@@ -308,14 +337,7 @@ export default function ApplicationsPage() {
   })
 
   const handleView = (app: ApplicationListItem) => {
-    setViewAppId(app.id)
-    setViewOpen(true)
-    setExpandedCallId(null)
-  }
-
-  const handleEdit = (app: ApplicationListItem | { id: string }) => {
-    setEditAppId(app.id)
-    setEditOpen(true)
+    navigate(`/applications/${app.id}`)
   }
 
   const handleDelete = (id: string) => {
@@ -333,8 +355,18 @@ export default function ApplicationsPage() {
     })
   }
 
+  const toggleSelectAll = () => {
+    if (!data?.results) return
+    if (selectedIds.size === data.results.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(data.results.map((a) => a.id)))
+    }
+  }
+
   return (
     <div className="p-6 space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold">Applications</h1>
@@ -360,14 +392,14 @@ export default function ApplicationsPage() {
               </Select>
             </>
           )}
-          <Button onClick={() => setCreateOpen(true)}>
+          <Button onClick={() => navigate('/applications/new')}>
             <Plus className="h-4 w-4 mr-2" />
             New Application
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters + View Toggle */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -420,9 +452,37 @@ export default function ApplicationsPage() {
           onToChange={(v) => { setDateTo(v); setDateFilter('') }}
           onClear={() => { setDateFrom(''); setDateTo('') }}
         />
+
+        {/* View Toggle */}
+        <div className="flex items-center border rounded-lg overflow-hidden ml-auto">
+          <button
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors',
+              viewMode === 'table'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background text-muted-foreground hover:bg-muted'
+            )}
+            onClick={() => setViewMode('table')}
+          >
+            <LayoutList className="h-3.5 w-3.5" />
+            Table
+          </button>
+          <button
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors',
+              viewMode === 'kanban'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background text-muted-foreground hover:bg-muted'
+            )}
+            onClick={() => setViewMode('kanban')}
+          >
+            <Columns3 className="h-3.5 w-3.5" />
+            Kanban
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
+      {/* Content */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -432,425 +492,144 @@ export default function ApplicationsPage() {
         <div className="text-center py-16 text-muted-foreground">
           <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
           <p className="font-medium">No applications found</p>
-          <p className="text-sm mt-1">Create your first application</p>
+          <p className="text-sm mt-1">Create your first application to get started</p>
         </div>
+      ) : viewMode === 'kanban' ? (
+        <KanbanBoard
+          applications={data!.results}
+          onView={handleView}
+          onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
+          onTriggerCall={(id) => triggerCallMutation.mutate(id)}
+          onDelete={handleDelete}
+        />
       ) : (
-        <div className="rounded-lg border overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="w-8 px-3 py-2.5 text-left" />
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Applicant</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Job</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Status</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Score</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Applied</th>
-                <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {data?.results.map((app) => (
-                <tr
-                  key={app.id}
-                  className="hover:bg-muted/30 transition-colors cursor-pointer"
-                  onClick={() => handleView(app)}
-                >
-                  <td className="px-3 py-3" onClick={(e) => toggleSelect(app.id, e)}>
+        /* ── Table View ── */
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="w-10 px-3 py-2.5 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(app.id)}
-                      onChange={() => {}}
                       className="rounded border-border cursor-pointer"
+                      checked={data!.results.length > 0 && selectedIds.size === data!.results.length}
+                      onChange={toggleSelectAll}
                     />
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-[13px]">{app.applicant_name}</p>
-                    <p className="text-[12px] text-muted-foreground">{app.applicant_email}</p>
-                  </td>
-                  <td className="px-4 py-3 text-[13px] text-muted-foreground max-w-[160px] truncate">
-                    {app.job_title}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={cn('inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium', STATUS_COLORS[app.status])}>
-                      {app.status.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <ScoreBar score={app.score} />
-                  </td>
-                  <td className="px-4 py-3 text-[13px] text-muted-foreground">
-                    {formatDate(app.created_at)}
-                  </td>
-                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-0.5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-blue-500"
-                        title="View"
-                        onClick={() => handleView(app)}
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-amber-500"
-                        title="Edit"
-                        onClick={() => handleEdit(app)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        title="Delete"
-                        onClick={() => handleDelete(app.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        title="Trigger AI Call"
-                        onClick={() => triggerCallMutation.mutate(app.id)}
-                      >
-                        <Phone className="h-3.5 w-3.5" />
-                      </Button>
-                      <Select
-                        value={app.status}
-                        onValueChange={(status) => changeStatusMutation.mutate({ id: app.id, status })}
-                      >
-                        <SelectTrigger className="h-7 w-7 p-0 border-0 shadow-none [&>svg]:hidden hover:bg-accent rounded">
-                          <ChevronDown className="h-3.5 w-3.5 mx-auto" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ALL_STATUSES.map((s) => (
-                            <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </td>
+                  </th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Applicant</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Job</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Status</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Score</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Applied</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Updated</th>
+                  <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {data?.results.map((app) => (
+                  <tr
+                    key={app.id}
+                    className="group hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => handleView(app)}
+                  >
+                    <td className="px-3 py-3" onClick={(e) => toggleSelect(app.id, e)}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(app.id)}
+                        onChange={() => {}}
+                        className="rounded border-border cursor-pointer"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn('w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0', getAvatarGradient(app.applicant_name))}>
+                          <span className="text-[10px] font-bold text-white">{getInitials(app.applicant_name)}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-[13px]">{app.applicant_name}</p>
+                          <p className="text-[11px] text-muted-foreground">{app.applicant_email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-[13px] text-muted-foreground max-w-[180px]">
+                      <span className="truncate block">{app.job_title}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium', STATUS_COLORS[app.status])}>
+                        <span className={cn('w-1.5 h-1.5 rounded-full', STATUS_DOT_COLORS[app.status])} />
+                        {app.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <ScoreBar score={app.score} />
+                    </td>
+                    <td className="px-4 py-3 text-[13px] text-muted-foreground whitespace-nowrap">
+                      {formatDate(app.created_at)}
+                    </td>
+                    <td className="px-4 py-3 text-[13px] text-muted-foreground whitespace-nowrap">
+                      {formatDate(app.updated_at)}
+                    </td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-blue-500"
+                          title="View"
+                          onClick={() => handleView(app)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-amber-500"
+                          title="Edit"
+                          onClick={() => navigate(`/applications/${app.id}/edit`)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          title="Delete"
+                          onClick={() => handleDelete(app.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-violet-500"
+                          title="Trigger AI Call"
+                          onClick={() => triggerCallMutation.mutate(app.id)}
+                        >
+                          <Phone className="h-3.5 w-3.5" />
+                        </Button>
+                        <Select
+                          value={app.status}
+                          onValueChange={(status) => changeStatusMutation.mutate({ id: app.id, status })}
+                        >
+                          <SelectTrigger className="h-7 w-7 p-0 border-0 shadow-none [&>svg]:hidden hover:bg-accent rounded">
+                            <ChevronDown className="h-3.5 w-3.5 mx-auto" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ALL_STATUSES.map((s) => (
+                              <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
-
-      {/* Create Application Drawer */}
-      <SideDrawer
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Create Application"
-        mode="create"
-        size="xl"
-        isLoading={createMutation.isPending}
-        footerButtons={[
-          { label: 'Cancel', variant: 'outline', onClick: () => setCreateOpen(false) },
-          {
-            label: 'Create Application',
-            loading: createMutation.isPending,
-            onClick: () => {
-              document.getElementById('application-form')?.dispatchEvent(
-                new Event('submit', { cancelable: true, bubbles: true })
-              )
-            },
-          },
-        ]}
-        footerAlignment="right"
-      >
-        <ApplicationFormComp
-          onSubmit={(data) => createMutation.mutate(data as ApplicationFormData)}
-          isLoading={createMutation.isPending}
-        />
-      </SideDrawer>
-
-      {/* Edit Application Drawer */}
-      <SideDrawer
-        open={editOpen}
-        onOpenChange={(open) => {
-          setEditOpen(open)
-          if (!open) setEditAppId(null)
-        }}
-        title={editApp ? `Edit: ${editApp.applicant.first_name} ${editApp.applicant.last_name}` : 'Edit Application'}
-        mode="edit"
-        size="xl"
-        isLoading={updateMutation.isPending}
-        footerButtons={[
-          { label: 'Cancel', variant: 'outline', onClick: () => { setEditOpen(false); setEditAppId(null) } },
-          {
-            label: 'Save Changes',
-            loading: updateMutation.isPending,
-            onClick: () => {
-              document.getElementById('application-form')?.dispatchEvent(
-                new Event('submit', { cancelable: true, bubbles: true })
-              )
-            },
-          },
-        ]}
-        footerAlignment="right"
-      >
-        {editAppLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground mt-3">Loading application details...</p>
-          </div>
-        ) : editApp ? (
-          <ApplicationFormComp
-            key={editApp.id}
-            defaultValues={{
-              job: editApp.job_id,
-              applicant: editApp.applicant_id,
-              status: editApp.status,
-              notes: editApp.notes || undefined,
-            }}
-            onSubmit={(data) => updateMutation.mutate({ id: editApp.id, data: data as ApplicationFormData })}
-            isLoading={updateMutation.isPending}
-          />
-        ) : null}
-      </SideDrawer>
-
-      {/* Detail Drawer */}
-      <SideDrawer
-        open={viewOpen}
-        onOpenChange={(open) => {
-          setViewOpen(open)
-          if (!open) setViewAppId(null)
-        }}
-        title="Application Detail"
-        mode="view"
-        size="xl"
-        footerButtons={
-          viewApp
-            ? [
-                {
-                  label: 'Edit',
-                  variant: 'outline',
-                  icon: Pencil,
-                  onClick: () => {
-                    setViewOpen(false)
-                    handleEdit({ id: viewApp.id })
-                  },
-                },
-                {
-                  label: 'Trigger AI Call',
-                  variant: 'outline',
-                  icon: Phone,
-                  onClick: () => {
-                    triggerCallMutation.mutate(viewApp.id)
-                  },
-                },
-                {
-                  label: 'Delete',
-                  variant: 'destructive',
-                  icon: Trash2,
-                  onClick: () => handleDelete(viewApp.id),
-                },
-              ]
-            : []
-        }
-        footerAlignment="between"
-      >
-        {viewAppLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground mt-3">Loading application details...</p>
-          </div>
-        ) : viewApp ? (
-          <div className="space-y-5">
-            {/* Status + Score */}
-            <div className="flex items-center gap-3">
-              <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-medium', STATUS_COLORS[viewApp.status])}>
-                {viewApp.status.replace(/_/g, ' ')}
-              </span>
-              {viewApp.score && (
-                <div className="flex items-center gap-1.5">
-                  <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                  <span className="font-semibold text-sm">{parseFloat(viewApp.score).toFixed(1)}</span>
-                  <span className="text-xs text-muted-foreground">/ 100</span>
-                </div>
-              )}
-            </div>
-
-            {/* Rejection reason */}
-            {viewApp.status === 'REJECTED' && viewApp.rejection_reason && (
-              <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
-                <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-0.5 uppercase tracking-wide">Rejection Reason</p>
-                <p className="text-[13px]">{viewApp.rejection_reason}</p>
-              </div>
-            )}
-
-            {/* Notes */}
-            {viewApp.notes && (
-              <div className="rounded-lg border p-4 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Notes</p>
-                <p className="text-[13px] whitespace-pre-wrap">{viewApp.notes}</p>
-              </div>
-            )}
-
-            {/* Applicant */}
-            <div className="rounded-lg border p-4 space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Applicant</p>
-              <p className="font-semibold">{viewApp.applicant.first_name} {viewApp.applicant.last_name}</p>
-              <p className="text-[13px] text-muted-foreground">{viewApp.applicant.email}</p>
-              <p className="text-[13px] text-muted-foreground">{viewApp.applicant.current_role} @ {viewApp.applicant.current_company}</p>
-              {viewApp.applicant.skills?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {viewApp.applicant.skills.slice(0, 6).map((s) => (
-                    <span key={s} className="px-1.5 py-0.5 bg-muted rounded text-[11px]">{s}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Job */}
-            <div className="rounded-lg border p-4 space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Job</p>
-              <p className="font-semibold">{viewApp.job.title}</p>
-              <p className="text-[13px] text-muted-foreground">{viewApp.job.department} · {viewApp.job.location}</p>
-            </div>
-
-            {/* Call Records */}
-            {viewApp.call_records?.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Call Records ({viewApp.call_records.length})</p>
-                {viewApp.call_records.map((cr) => (
-                  <div key={cr.id} className="rounded-lg border p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', CALL_STATUS_COLORS[cr.status])}>
-                        {cr.status.replace(/_/g, ' ')}
-                      </span>
-                      <span className="text-[12px] text-muted-foreground">{formatDuration(cr.duration)}</span>
-                    </div>
-                    {cr.started_at && (
-                      <p className="text-[12px] text-muted-foreground">{formatDateTime(cr.started_at)}</p>
-                    )}
-                    {cr.summary && <p className="text-[13px]">{cr.summary}</p>}
-                    {cr.recording_url && (
-                      <div>
-                        <p className="text-[11px] text-muted-foreground mb-1">Recording</p>
-                        <audio controls src={cr.recording_url} className="w-full h-8" />
-                      </div>
-                    )}
-                    {cr.recording_url === '' && (
-                      <button
-                        className="text-[12px] text-blue-500 hover:underline"
-                        onClick={() => setExpandedCallId(expandedCallId === cr.id ? null : cr.id)}
-                      >
-                        {expandedCallId === cr.id ? 'Hide transcript' : 'Show transcript'}
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Scorecards */}
-            {viewApp.scorecards?.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">AI Scorecard</p>
-                {viewApp.scorecards.map((sc) => (
-                  <div key={sc.id} className="rounded-lg border p-4 space-y-3">
-                    <div className="space-y-2">
-                      {[
-                        { label: 'Communication', value: sc.communication_score },
-                        { label: 'Knowledge', value: sc.knowledge_score },
-                        { label: 'Confidence', value: sc.confidence_score },
-                        { label: 'Relevance', value: sc.relevance_score },
-                      ].map((item) => (
-                        <ScoreDimensionBar key={item.label} label={item.label} value={item.value} />
-                      ))}
-                    </div>
-                    <div className="pt-2 border-t border-border/60 flex items-center justify-between">
-                      <div>
-                        <p className="text-[11px] text-muted-foreground">Overall Score</p>
-                        <p className="text-xl font-bold">{parseFloat(sc.overall_score).toFixed(1)} <span className="text-sm font-normal text-muted-foreground">/ 100</span></p>
-                      </div>
-                      <Badge variant="outline">{sc.recommendation}</Badge>
-                    </div>
-                    {sc.summary && <p className="text-[13px]">{sc.summary}</p>}
-                    <div className="flex gap-4">
-                      {sc.strengths?.length > 0 && (
-                        <div className="flex-1">
-                          <p className="text-[11px] font-medium text-emerald-600 mb-1">Strengths</p>
-                          <div className="flex flex-wrap gap-1">
-                            {sc.strengths.map((s, i) => (
-                              <span key={i} className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded text-[12px]">{s}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {sc.weaknesses?.length > 0 && (
-                        <div className="flex-1">
-                          <p className="text-[11px] font-medium text-red-500 mb-1">To Improve</p>
-                          <div className="flex flex-wrap gap-1">
-                            {sc.weaknesses.map((w, i) => (
-                              <span key={i} className="px-2 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-[12px]">{w}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Interviews */}
-            {viewApp.interviews?.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Interviews ({viewApp.interviews.length})</p>
-                {viewApp.interviews.map((iv) => (
-                  <div key={iv.id} className="rounded-lg border p-3 text-[13px] space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{iv.interview_type.replace(/_/g, ' ')}</span>
-                      <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', INTERVIEW_STATUS_COLORS[iv.status] || 'bg-gray-100 text-gray-700')}>
-                        {iv.status}
-                      </span>
-                    </div>
-                    <p className="text-muted-foreground">{formatDateTime(iv.scheduled_at)} · {iv.duration_minutes}min</p>
-                    <p className="text-muted-foreground">{iv.interviewer_name} &lt;{iv.interviewer_email}&gt;</p>
-                    {iv.meeting_link && (
-                      <a href={iv.meeting_link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-[12px]">
-                        Join Meeting
-                      </a>
-                    )}
-                    {iv.feedback && (
-                      <p className="text-[13px] italic text-muted-foreground mt-1">"{iv.feedback}"</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Change Status */}
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Change Status</p>
-              <Select
-                value={viewApp.status}
-                onValueChange={(status) => {
-                  changeStatusMutation.mutate({ id: viewApp.id, status }, {
-                    onSuccess: () => qc.invalidateQueries({ queryKey: ['application-detail', viewAppId] }),
-                  })
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ALL_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        ) : null}
-      </SideDrawer>
     </div>
   )
 }
