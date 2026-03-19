@@ -249,16 +249,14 @@ export default function InterviewsPage() {
             ))}
           </SelectContent>
         </Select>
+        <DateRangeFilter
+          fromDate={dateFrom}
+          toDate={dateTo}
+          onFromChange={setDateFrom}
+          onToChange={setDateTo}
+          onClear={() => { setDateFrom(''); setDateTo('') }}
+        />
       </div>
-
-      {/* Date Range */}
-      <DateRangeFilter
-        fromDate={dateFrom}
-        toDate={dateTo}
-        onFromChange={setDateFrom}
-        onToChange={setDateTo}
-        onClear={() => { setDateFrom(''); setDateTo('') }}
-      />
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">

@@ -355,16 +355,14 @@ export default function CallsPage() {
             Today only ✕
           </Badge>
         )}
+        <DateRangeFilter
+          fromDate={dateFrom}
+          toDate={dateTo}
+          onFromChange={(v) => { setDateFrom(v); setDateFilter('') }}
+          onToChange={(v) => { setDateTo(v); setDateFilter('') }}
+          onClear={() => { setDateFrom(''); setDateTo('') }}
+        />
       </div>
-
-      {/* Date Range */}
-      <DateRangeFilter
-        fromDate={dateFrom}
-        toDate={dateTo}
-        onFromChange={(v) => { setDateFrom(v); setDateFilter('') }}
-        onToChange={(v) => { setDateTo(v); setDateFilter('') }}
-        onClear={() => { setDateFrom(''); setDateTo('') }}
-      />
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">

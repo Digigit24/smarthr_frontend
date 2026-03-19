@@ -387,16 +387,14 @@ export default function JobsPage() {
             <SelectItem value="application_count">Least applications</SelectItem>
           </SelectContent>
         </Select>
+        <DateRangeFilter
+          fromDate={dateFrom}
+          toDate={dateTo}
+          onFromChange={setDateFrom}
+          onToChange={setDateTo}
+          onClear={() => { setDateFrom(''); setDateTo('') }}
+        />
       </div>
-
-      {/* Date Range Filter */}
-      <DateRangeFilter
-        fromDate={dateFrom}
-        toDate={dateTo}
-        onFromChange={setDateFrom}
-        onToChange={setDateTo}
-        onClear={() => { setDateFrom(''); setDateTo('') }}
-      />
 
       {/* Job Grid */}
       {isLoading ? (

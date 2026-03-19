@@ -413,16 +413,14 @@ export default function ApplicationsPage() {
             Today only ✕
           </Badge>
         )}
+        <DateRangeFilter
+          fromDate={dateFrom}
+          toDate={dateTo}
+          onFromChange={(v) => { setDateFrom(v); setDateFilter('') }}
+          onToChange={(v) => { setDateTo(v); setDateFilter('') }}
+          onClear={() => { setDateFrom(''); setDateTo('') }}
+        />
       </div>
-
-      {/* Date Range */}
-      <DateRangeFilter
-        fromDate={dateFrom}
-        toDate={dateTo}
-        onFromChange={(v) => { setDateFrom(v); setDateFilter('') }}
-        onToChange={(v) => { setDateTo(v); setDateFilter('') }}
-        onClear={() => { setDateFrom(''); setDateTo('') }}
-      />
 
       {/* Table */}
       {isLoading ? (

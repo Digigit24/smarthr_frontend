@@ -1,7 +1,6 @@
-import { Calendar } from 'lucide-react'
+import { X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 
 export function DateRangeFilter({
   fromDate,
@@ -19,35 +18,32 @@ export function DateRangeFilter({
   const hasFilter = fromDate || toDate
 
   return (
-    <div className="flex items-end gap-2 flex-wrap">
-      <div className="space-y-1">
-        <Label className="text-[11px] text-muted-foreground">From</Label>
-        <Input
-          type="date"
-          value={fromDate}
-          onChange={(e) => onFromChange(e.target.value)}
-          className="h-9 w-36 text-xs"
-        />
-      </div>
-      <div className="space-y-1">
-        <Label className="text-[11px] text-muted-foreground">To</Label>
-        <Input
-          type="date"
-          value={toDate}
-          onChange={(e) => onToChange(e.target.value)}
-          className="h-9 w-36 text-xs"
-        />
-      </div>
+    <>
+      <Input
+        type="date"
+        value={fromDate}
+        onChange={(e) => onFromChange(e.target.value)}
+        placeholder="From"
+        className="h-9 w-[calc(50%-6px)] sm:w-36 text-xs"
+      />
+      <Input
+        type="date"
+        value={toDate}
+        onChange={(e) => onToChange(e.target.value)}
+        placeholder="To"
+        className="h-9 w-[calc(50%-6px)] sm:w-36 text-xs"
+      />
       {hasFilter && (
         <Button
           variant="ghost"
-          size="sm"
-          className="h-9 text-xs text-muted-foreground hover:text-destructive"
+          size="icon"
+          className="h-9 w-9 text-muted-foreground hover:text-destructive shrink-0"
           onClick={onClear}
+          title="Clear dates"
         >
-          Clear
+          <X className="h-3.5 w-3.5" />
         </Button>
       )}
-    </div>
+    </>
   )
 }
