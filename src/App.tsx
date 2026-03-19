@@ -35,7 +35,9 @@ import InterviewDetailPage from '@/pages/InterviewDetailPage'
 import InterviewCreatePage from '@/pages/InterviewCreatePage'
 import InterviewEditPage from '@/pages/InterviewEditPage'
 import NotificationsPage from '@/pages/NotificationsPage'
+import NotificationDetailPage from '@/pages/NotificationDetailPage'
 import ActivitiesPage from '@/pages/ActivitiesPage'
+import ActivityDetailPage from '@/pages/ActivityDetailPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -92,6 +94,8 @@ function AppLayout() {
     : location.pathname === '/interviews/new' ? 'Schedule Interview'
     : location.pathname.match(/\/interviews\/[^/]+\/edit/) ? 'Edit Interview'
     : location.pathname.match(/\/interviews\/[^/]+/) ? 'Interview Details'
+    : location.pathname.match(/\/notifications\/[^/]+/) ? 'Notification Details'
+    : location.pathname.match(/\/activities\/[^/]+/) ? 'Activity Details'
     : 'SmartHR-In')
 
   const { data: notificationsData } = useQuery({
@@ -144,7 +148,9 @@ function AppLayout() {
             <Route path="/interviews/:id" element={<InterviewDetailPage />} />
             <Route path="/interviews/:id/edit" element={<InterviewEditPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/notifications/:id" element={<NotificationDetailPage />} />
             <Route path="/activities" element={<ActivitiesPage />} />
+            <Route path="/activities/:id" element={<ActivityDetailPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
