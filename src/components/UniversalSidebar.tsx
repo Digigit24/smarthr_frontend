@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Briefcase, Users, FileText, GitBranch, Phone,
   ListChecks, Star, Calendar, Bell, Activity, PanelLeftClose, PanelLeft,
-  ChevronDown, X, LogOut, Settings, Shield, ChevronRight, UserCircle,
+  ChevronDown, X, UserCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/authStore'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 
 interface NavItem {
@@ -145,21 +144,6 @@ function SidebarItem({ item, collapsed, depth = 0, onNavigate }: SidebarItemProp
   )
 }
 
-function GradientAvatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
-  const hash = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-  const gradients = [
-    'from-violet-500 to-purple-600', 'from-blue-500 to-cyan-500', 'from-emerald-500 to-teal-500',
-    'from-orange-500 to-red-500', 'from-pink-500 to-rose-500', 'from-indigo-500 to-blue-600',
-  ]
-  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
-  const sizes = { sm: 'h-7 w-7 text-[10px]', md: 'h-9 w-9 text-xs' }
-  return (
-    <div className={cn('rounded-full bg-gradient-to-br flex items-center justify-center text-white font-semibold shrink-0', gradients[hash % gradients.length], sizes[size])}>
-      {initials}
-    </div>
-  )
-}
-
 interface UniversalSidebarProps {
   mobileOpen: boolean
   onMobileClose: () => void
@@ -167,17 +151,6 @@ interface UniversalSidebarProps {
 
 export function UniversalSidebar({ mobileOpen, onMobileClose }: UniversalSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
-  const navigate = useNavigate()
-  const { user, clearAuth } = useAuthStore()
-
-  const displayName = user
-    ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email
-    : 'User'
-
-  const handleLogout = () => {
-    clearAuth()
-    navigate('/login')
-  }
 
   return (
     <>
@@ -214,14 +187,6 @@ export function UniversalSidebar({ mobileOpen, onMobileClose }: UniversalSidebar
           </button>
         </div>
         <SidebarContent collapsed={false} onNavigate={onMobileClose} />
-        <ProfileSection
-          collapsed={false}
-          displayName={displayName}
-          email={user?.email || ''}
-          isAdmin={user?.is_super_admin || false}
-          onLogout={handleLogout}
-          onNavigate={onMobileClose}
-        />
       </div>
 
       {/* Desktop Sidebar */}
@@ -247,13 +212,6 @@ export function UniversalSidebar({ mobileOpen, onMobileClose }: UniversalSidebar
           </div>
         </div>
         <SidebarContent collapsed={collapsed} />
-        <ProfileSection
-          collapsed={collapsed}
-          displayName={displayName}
-          email={user?.email || ''}
-          isAdmin={user?.is_super_admin || false}
-          onLogout={handleLogout}
-        />
         <CollapseButton collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       </aside>
     </>
@@ -281,70 +239,6 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
           ))}
         </div>
       ))}
-    </div>
-  )
-}
-
-function ProfileSection({
-  collapsed,
-  displayName,
-  email,
-  isAdmin,
-  onLogout,
-  onNavigate,
-}: {
-  collapsed: boolean
-  displayName: string
-  email: string
-  isAdmin: boolean
-  onLogout: () => void
-  onNavigate?: () => void
-}) {
-  const navigate = useNavigate()
-
-  if (collapsed) {
-    return (
-      <div className="shrink-0 p-2 border-t border-border/40">
-        <button
-          onClick={() => { navigate('/profile'); onNavigate?.() }}
-          className="w-full flex items-center justify-center p-1.5 rounded-lg hover:bg-accent transition-colors"
-        >
-          <GradientAvatar name={displayName} size="sm" />
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="shrink-0 border-t border-border/40 p-3 space-y-2">
-      <button
-        onClick={() => { navigate('/profile'); onNavigate?.() }}
-        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-accent/60 transition-colors group text-left"
-      >
-        <GradientAvatar name={displayName} size="md" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{displayName}</p>
-          <div className="flex items-center gap-1">
-            {isAdmin && <Shield className="h-3 w-3 text-amber-500 shrink-0" />}
-            <p className="text-[11px] text-muted-foreground truncate">{email}</p>
-          </div>
-        </div>
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-      </button>
-      <div className="flex gap-1">
-        <button
-          onClick={() => { navigate('/settings'); onNavigate?.() }}
-          className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
-        >
-          <Settings className="h-3.5 w-3.5" /> Settings
-        </button>
-        <button
-          onClick={onLogout}
-          className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-md text-[11px] text-muted-foreground hover:text-destructive hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
-        >
-          <LogOut className="h-3.5 w-3.5" /> Logout
-        </button>
-      </div>
     </div>
   )
 }
