@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Briefcase, Users, FileText, GitBranch, Phone,
   ListChecks, Star, Calendar, Bell, Activity, PanelLeftClose, PanelLeft,
-  ChevronDown, X, LogOut, Settings, Shield, ChevronRight,
+  ChevronDown, X, LogOut, Settings, Shield, ChevronRight, UserCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
@@ -47,6 +47,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { label: 'Notifications', icon: Bell, href: '/notifications' },
       { label: 'Activity Log', icon: Activity, href: '/activities' },
+      { label: 'My Profile', icon: UserCircle, href: '/profile' },
     ],
   },
 ]
