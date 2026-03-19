@@ -1,11 +1,11 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://smart-hr.celiyo.com'
-const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'https://smart-hr.celiyo.com'
+const BASE_URL = (import.meta.env.VITE_API_URL || 'https://smart-hr.celiyo.com').replace(/\/+$/, '')
+const AUTH_URL = (import.meta.env.VITE_AUTH_URL || 'https://smart-hr.celiyo.com').replace(/\/+$/, '')
 
-// const BASE_URL = import.meta.env.VITE_API_URL ||  'http://127.0.0.1:8000/'
-// const AUTH_URL = import.meta.env.VITE_AUTH_URL || ' http://127.0.0.1:8000/'
+// const BASE_URL = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
+// const AUTH_URL = (import.meta.env.VITE_AUTH_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
 
 // ─── Axios instance ───────────────────────────────────────────────────────────
 export const api: AxiosInstance = axios.create({
