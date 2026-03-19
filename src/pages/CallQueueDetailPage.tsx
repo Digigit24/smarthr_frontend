@@ -362,12 +362,15 @@ export default function CallQueueDetailPage() {
           </div>
         ) : (
           <>
+            {/* Debug: check raw API response - remove after fixing */}
+            {console.log('Queue items raw data:', JSON.stringify(itemsData?.results?.[0], null, 2))}
             {/* Mobile cards */}
             <div className="sm:hidden divide-y divide-border">
               {itemsData?.results.map((item: CallQueueItem) => {
                 const itemCfg = ITEM_STATUS_CONFIG[item.status] || ITEM_STATUS_CONFIG.PENDING
-                const appName = item.application?.applicant_name || item.application?.applicant_email || 'Unknown Applicant'
-                const appEmail = item.application?.applicant_name ? (item.application?.applicant_email || '') : ''
+                const app = item.application
+                const appName = app?.applicant_name || app?.applicant_email || app?.job_title || `Applicant #${item.position}`
+                const appEmail = app?.applicant_name ? (app?.applicant_email || '') : ''
                 return (
                   <div key={item.id} className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
@@ -422,8 +425,9 @@ export default function CallQueueDetailPage() {
                 <tbody className="divide-y divide-border">
                   {itemsData?.results.map((item: CallQueueItem) => {
                     const itemCfg = ITEM_STATUS_CONFIG[item.status] || ITEM_STATUS_CONFIG.PENDING
-                    const appName = item.application?.applicant_name || 'Unknown Applicant'
-                    const appEmail = item.application?.applicant_email || ''
+                    const app = item.application
+                    const appName = app?.applicant_name || app?.applicant_email || app?.job_title || `Applicant #${item.position}`
+                    const appEmail = app?.applicant_name ? (app?.applicant_email || '') : ''
                     return (
                       <tr key={item.id} className="hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-3 text-muted-foreground text-xs">{item.position}</td>
