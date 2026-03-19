@@ -41,6 +41,14 @@ export default function LoginPage() {
     try {
       const result = await authApi.login(data.email, data.password)
       setAuth(result.user, result.tokens.access, result.tokens.refresh)
+
+      // Verify the token was actually stored before navigating
+      const stored = useAuthStore.getState().accessToken
+      if (!stored) {
+        toast.error('Authentication failed — token was not stored.')
+        return
+      }
+
       navigate('/')
     } catch (err: unknown) {
       const msg =
