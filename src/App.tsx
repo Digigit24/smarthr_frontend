@@ -38,6 +38,7 @@ import NotificationsPage from '@/pages/NotificationsPage'
 import NotificationDetailPage from '@/pages/NotificationDetailPage'
 import ActivitiesPage from '@/pages/ActivitiesPage'
 import ActivityDetailPage from '@/pages/ActivityDetailPage'
+import ProfilePage from '@/pages/ProfilePage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -151,6 +152,7 @@ function AppLayout() {
             <Route path="/notifications/:id" element={<NotificationDetailPage />} />
             <Route path="/activities" element={<ActivitiesPage />} />
             <Route path="/activities/:id" element={<ActivityDetailPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
