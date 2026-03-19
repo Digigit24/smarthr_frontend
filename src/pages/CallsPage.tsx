@@ -221,7 +221,7 @@ export default function CallsPage() {
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
         ...(providerFilter && { provider: providerFilter }),
-        ...(dateFilter === 'today' && { created_at__date: todayStr }),
+        ...(dateFilter === 'today' && { created_at_gte: todayStr, created_at_lte: todayStr }),
       }),
   })
 

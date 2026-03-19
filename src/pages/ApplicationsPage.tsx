@@ -224,7 +224,7 @@ export default function ApplicationsPage() {
       applicationsService.list({
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
-        ...(dateFilter === 'today' && { created_at__date: todayStr }),
+        ...(dateFilter === 'today' && { created_at_gte: todayStr, created_at_lte: todayStr }),
         ordering,
       }),
   })
