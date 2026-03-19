@@ -15,7 +15,9 @@ export const api: AxiosInstance = axios.create({
 
 // Request interceptor — attach Bearer token and tenant ID from the zustand store
 api.interceptors.request.use((config) => {
-  const { accessToken, user } = useAuthStore.getState()
+  const { accessToken: storeToken, user } = useAuthStore.getState()
+  // Fallback to localStorage in case zustand hasn't hydrated yet
+  const accessToken = storeToken || localStorage.getItem('access_token')
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`
 
@@ -58,7 +60,17 @@ api.interceptors.response.use(
 export const authApi = {
   login: async (email: string, password: string) => {
     const res = await axios.post(`${AUTH_URL}/api/auth/login/`, { email, password })
-    return res.data
+    const data = res.data
+
+    // Normalize response: backend may return tokens at top-level (access/refresh)
+    // or nested under a `tokens` key
+    const accessToken = data.tokens?.access || data.access
+    const refreshToken = data.tokens?.refresh || data.refresh
+
+    return {
+      user: data.user,
+      tokens: { access: accessToken, refresh: refreshToken },
+    }
   },
 }
 
