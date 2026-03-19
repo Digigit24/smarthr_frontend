@@ -15,6 +15,8 @@ import JobCreatePage from '@/pages/JobCreatePage'
 import JobEditPage from '@/pages/JobEditPage'
 import ApplicationDetailPage from '@/pages/ApplicationDetailPage'
 import ApplicantsPage from '@/pages/ApplicantsPage'
+import ApplicantDetailPage from '@/pages/ApplicantDetailPage'
+import ApplicantCreatePage from '@/pages/ApplicantCreatePage'
 import ApplicationsPage from '@/pages/ApplicationsPage'
 import PipelinePage from '@/pages/PipelinePage'
 import CallsPage from '@/pages/CallsPage'
@@ -64,7 +66,10 @@ function AppLayout() {
     || (location.pathname === '/jobs/new' ? 'Create Job'
     : location.pathname.match(/\/jobs\/[^/]+\/edit/) ? 'Edit Job'
     : location.pathname.match(/\/jobs\/[^/]+\/applications\//) ? 'Application Details'
-    : location.pathname.startsWith('/jobs/') ? 'Job Details' : 'SmartHR-In')
+    : location.pathname.startsWith('/jobs/') ? 'Job Details'
+    : location.pathname === '/applicants/new' ? 'Add Applicant'
+    : location.pathname.match(/\/applicants\/[^/]+/) ? 'Applicant Details'
+    : 'SmartHR-In')
 
   const { data: notificationsData } = useQuery({
     queryKey: ['notifications', 'unread'],
@@ -95,6 +100,8 @@ function AppLayout() {
             <Route path="/jobs/:id/edit" element={<JobEditPage />} />
             <Route path="/jobs/:id/applications/:appId" element={<ApplicationDetailPage />} />
             <Route path="/applicants" element={<ApplicantsPage />} />
+            <Route path="/applicants/new" element={<ApplicantCreatePage />} />
+            <Route path="/applicants/:id" element={<ApplicantDetailPage />} />
             <Route path="/applications" element={<ApplicationsPage />} />
             <Route path="/pipeline" element={<PipelinePage />} />
             <Route path="/calls" element={<CallsPage />} />
