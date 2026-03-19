@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import {
   Briefcase,
   Users,
@@ -9,6 +10,7 @@ import {
   BarChart2,
   Calendar,
   Loader2,
+  ArrowRight,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -35,18 +37,32 @@ function StatCard({
   icon: Icon,
   description,
   color = 'text-foreground',
+  onClick,
 }: {
   title: string
   value: string | number
   icon: React.ComponentType<{ className?: string }>
   description?: string
   color?: string
+  onClick?: () => void
 }) {
   return (
-    <Card>
+    <Card
+      className={
+        onClick
+          ? 'cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:border-primary/30 group'
+          : ''
+      }
+      onClick={onClick}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className={`h-4 w-4 ${color}`} />
+        <div className="flex items-center gap-1">
+          <Icon className={`h-4 w-4 ${color}`} />
+          {onClick && (
+            <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0" />
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <div className={`text-2xl font-bold ${color}`}>{value}</div>
@@ -83,6 +99,8 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
+
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['analytics-dashboard'],
     queryFn: () => analyticsService.dashboard(),
@@ -128,6 +146,7 @@ export default function DashboardPage() {
           icon={Briefcase}
           description="Active job postings"
           color="text-blue-500"
+          onClick={() => navigate('/jobs')}
         />
         <StatCard
           title="Total Applications"
@@ -135,6 +154,7 @@ export default function DashboardPage() {
           icon={Users}
           description={`${metrics?.applications_today ?? 0} today`}
           color="text-indigo-500"
+          onClick={() => navigate('/applications')}
         />
         <StatCard
           title="Calls Completed"
@@ -142,6 +162,7 @@ export default function DashboardPage() {
           icon={Phone}
           description={`${metrics?.calls_today ?? 0} today`}
           color="text-violet-500"
+          onClick={() => navigate('/calls')}
         />
         <StatCard
           title="Avg Score"
@@ -149,6 +170,7 @@ export default function DashboardPage() {
           icon={TrendingUp}
           description="Out of 10.0"
           color="text-amber-500"
+          onClick={() => navigate('/scorecards')}
         />
         <StatCard
           title="Applications Today"
@@ -156,6 +178,7 @@ export default function DashboardPage() {
           icon={Users}
           description="Received today"
           color="text-orange-500"
+          onClick={() => navigate('/applications?filter=today')}
         />
         <StatCard
           title="Calls Today"
@@ -163,18 +186,21 @@ export default function DashboardPage() {
           icon={Phone}
           description="Completed today"
           color="text-rose-500"
+          onClick={() => navigate('/calls?filter=today')}
         />
         <StatCard
           title="Shortlisted"
           value={metrics?.shortlisted_count ?? 0}
           icon={UserCheck}
           color="text-cyan-500"
+          onClick={() => navigate('/applications?status=SHORTLISTED')}
         />
         <StatCard
           title="Offers Sent"
           value={metrics?.offers_count ?? 0}
           icon={Gift}
           color="text-teal-500"
+          onClick={() => navigate('/applications?status=OFFER')}
         />
         <StatCard
           title="Conversion Rate"
@@ -182,6 +208,7 @@ export default function DashboardPage() {
           icon={BarChart2}
           description="Applications → Hired"
           color="text-green-500"
+          onClick={() => navigate('/pipeline')}
         />
         <StatCard
           title="Interviews"
@@ -191,6 +218,7 @@ export default function DashboardPage() {
           icon={Calendar}
           description="Scheduled"
           color="text-pink-500"
+          onClick={() => navigate('/interviews')}
         />
       </div>
 

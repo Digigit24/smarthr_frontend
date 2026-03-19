@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search, FileText, Phone, Star, ChevronDown, Loader2,
@@ -195,9 +196,18 @@ function ApplicationFormComp({
 
 export default function ApplicationsPage() {
   const qc = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '')
   const [ordering, setOrdering] = useState('-created_at')
+  const [dateFilter, setDateFilter] = useState(searchParams.get('filter') || '')
+
+  // Clear URL params after reading them so they don't persist on refresh
+  useEffect(() => {
+    if (searchParams.has('status') || searchParams.has('filter')) {
+      setSearchParams({}, { replace: true })
+    }
+  }, [])
   const [viewAppId, setViewAppId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -206,12 +216,15 @@ export default function ApplicationsPage() {
   const [editAppId, setEditAppId] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
 
+  const todayStr = new Date().toISOString().split('T')[0]
+
   const { data, isLoading } = useQuery({
-    queryKey: ['applications', search, statusFilter, ordering],
+    queryKey: ['applications', search, statusFilter, ordering, dateFilter],
     queryFn: () =>
       applicationsService.list({
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
+        ...(dateFilter === 'today' && { created_at__date: todayStr }),
         ordering,
       }),
   })
@@ -386,6 +399,15 @@ export default function ApplicationsPage() {
             <SelectItem value="applicant_name">Name A–Z</SelectItem>
           </SelectContent>
         </Select>
+        {dateFilter === 'today' && (
+          <Badge
+            variant="secondary"
+            className="cursor-pointer hover:bg-destructive/10"
+            onClick={() => setDateFilter('')}
+          >
+            Today only ✕
+          </Badge>
+        )}
       </div>
 
       {/* Table */}

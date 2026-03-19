@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Phone, Search, RefreshCw, Play, FileText, MessageSquare, ChevronDown, Loader2,
@@ -191,9 +192,18 @@ function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 
 export default function CallsPage() {
   const qc = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '')
   const [providerFilter, setProviderFilter] = useState('')
+  const [dateFilter, setDateFilter] = useState(searchParams.get('filter') || '')
+
+  // Clear URL params after reading them
+  useEffect(() => {
+    if (searchParams.has('status') || searchParams.has('filter')) {
+      setSearchParams({}, { replace: true })
+    }
+  }, [])
   const [viewCallId, setViewCallId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [editCallId, setEditCallId] = useState<string | null>(null)
@@ -202,13 +212,16 @@ export default function CallsPage() {
   const [showTranscript, setShowTranscript] = useState(false)
   const [triggerDialogOpen, setTriggerDialogOpen] = useState(false)
 
+  const todayStr = new Date().toISOString().split('T')[0]
+
   const { data, isLoading } = useQuery({
-    queryKey: ['calls', search, statusFilter, providerFilter],
+    queryKey: ['calls', search, statusFilter, providerFilter, dateFilter],
     queryFn: () =>
       callsService.list({
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
         ...(providerFilter && { provider: providerFilter }),
+        ...(dateFilter === 'today' && { created_at__date: todayStr }),
       }),
   })
 
@@ -328,6 +341,15 @@ export default function CallsPage() {
             <SelectItem value="BOLNA">Bolna</SelectItem>
           </SelectContent>
         </Select>
+        {dateFilter === 'today' && (
+          <Badge
+            variant="secondary"
+            className="cursor-pointer hover:bg-destructive/10"
+            onClick={() => setDateFilter('')}
+          >
+            Today only ✕
+          </Badge>
+        )}
       </div>
 
       {isLoading ? (
