@@ -1,11 +1,19 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, FileText, Phone, Star, ChevronDown, Loader2 } from 'lucide-react'
+import {
+  Search, FileText, Phone, Star, ChevronDown, Loader2,
+  Plus, Eye, Pencil, Trash2,
+} from 'lucide-react'
 import { toast } from 'sonner'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -15,7 +23,9 @@ import {
 } from '@/components/ui/select'
 import { SideDrawer } from '@/components/SideDrawer'
 import { applicationsService } from '@/services/applications'
-import type { ApplicationListItem, ApplicationStatus } from '@/types'
+import { jobsService } from '@/services/jobs'
+import { applicantsService } from '@/services/applicants'
+import type { ApplicationListItem, ApplicationStatus, ApplicationFormData } from '@/types'
 import { formatDate, formatDateTime, formatDuration, cn } from '@/lib/utils'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -56,6 +66,15 @@ const ALL_STATUSES: ApplicationStatus[] = [
   'INTERVIEW_SCHEDULED', 'INTERVIEWED', 'OFFER', 'HIRED', 'REJECTED', 'WITHDRAWN',
 ]
 
+const applicationSchema = z.object({
+  job: z.string().min(1, 'Job is required'),
+  applicant: z.string().min(1, 'Applicant is required'),
+  status: z.enum(['APPLIED', 'AI_SCREENING', 'AI_COMPLETED', 'SHORTLISTED', 'INTERVIEW_SCHEDULED', 'INTERVIEWED', 'OFFER', 'HIRED', 'REJECTED', 'WITHDRAWN']),
+  notes: z.string().optional(),
+})
+
+type ApplicationForm = z.infer<typeof applicationSchema>
+
 function ScoreBar({ score }: { score: string | null }) {
   if (!score) return <span className="text-muted-foreground text-[13px]">—</span>
   const val = parseFloat(score)
@@ -87,6 +106,93 @@ function ScoreDimensionBar({ label, value }: { label: string; value: string }) {
   )
 }
 
+function ApplicationFormComp({
+  defaultValues,
+  onSubmit,
+  isLoading,
+}: {
+  defaultValues?: Partial<ApplicationForm>
+  onSubmit: (data: ApplicationForm) => void
+  isLoading?: boolean
+}) {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<ApplicationForm>({
+    resolver: zodResolver(applicationSchema),
+    defaultValues: {
+      status: 'APPLIED',
+      ...defaultValues,
+    },
+  })
+
+  const { data: jobsData } = useQuery({
+    queryKey: ['jobs-list-for-select'],
+    queryFn: () => jobsService.list({ ordering: 'title' }),
+  })
+
+  const { data: applicantsData } = useQuery({
+    queryKey: ['applicants-list-for-select'],
+    queryFn: () => applicantsService.list({ ordering: 'first_name' }),
+  })
+
+  return (
+    <form id="application-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Job *</Label>
+        <Select value={watch('job') || ''} onValueChange={(v) => setValue('job', v, { shouldValidate: true })}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a job..." />
+          </SelectTrigger>
+          <SelectContent>
+            {jobsData?.results?.map((job) => (
+              <SelectItem key={job.id} value={job.id}>{job.title} — {job.department}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.job && <p className="text-xs text-destructive">{errors.job.message}</p>}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Applicant *</Label>
+        <Select value={watch('applicant') || ''} onValueChange={(v) => setValue('applicant', v, { shouldValidate: true })}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select an applicant..." />
+          </SelectTrigger>
+          <SelectContent>
+            {applicantsData?.results?.map((a) => (
+              <SelectItem key={a.id} value={a.id}>{a.full_name} ({a.email})</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.applicant && <p className="text-xs text-destructive">{errors.applicant.message}</p>}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Status</Label>
+        <Select value={watch('status')} onValueChange={(v) => setValue('status', v as ApplicationForm['status'])}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ALL_STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Notes</Label>
+        <Textarea rows={3} placeholder="Optional notes about this application..." {...register('notes')} />
+      </div>
+    </form>
+  )
+}
+
 export default function ApplicationsPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
@@ -96,6 +202,9 @@ export default function ApplicationsPage() {
   const [viewOpen, setViewOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [expandedCallId, setExpandedCallId] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editAppId, setEditAppId] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['applications', search, statusFilter, ordering],
@@ -111,6 +220,46 @@ export default function ApplicationsPage() {
     queryKey: ['application-detail', viewAppId],
     queryFn: () => applicationsService.get(viewAppId!),
     enabled: !!viewAppId,
+  })
+
+  const { data: editApp, isLoading: editAppLoading } = useQuery({
+    queryKey: ['application-detail', editAppId],
+    queryFn: () => applicationsService.get(editAppId!),
+    enabled: !!editAppId,
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (data: ApplicationFormData) => applicationsService.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['applications'] })
+      setCreateOpen(false)
+      toast.success('Application created successfully')
+    },
+    onError: () => toast.error('Failed to create application'),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: ApplicationFormData }) =>
+      applicationsService.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['applications'] })
+      qc.invalidateQueries({ queryKey: ['application-detail'] })
+      setEditOpen(false)
+      setEditAppId(null)
+      toast.success('Application updated successfully')
+    },
+    onError: () => toast.error('Failed to update application'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => applicationsService.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['applications'] })
+      setViewOpen(false)
+      setViewAppId(null)
+      toast.success('Application deleted')
+    },
+    onError: () => toast.error('Failed to delete application'),
   })
 
   const changeStatusMutation = useMutation({
@@ -146,6 +295,17 @@ export default function ApplicationsPage() {
     setExpandedCallId(null)
   }
 
+  const handleEdit = (app: ApplicationListItem | { id: string }) => {
+    setEditAppId(app.id)
+    setEditOpen(true)
+  }
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this application?')) {
+      deleteMutation.mutate(id)
+    }
+  }
+
   const toggleSelect = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     setSelectedIds((prev) => {
@@ -162,25 +322,31 @@ export default function ApplicationsPage() {
           <h1 className="text-lg font-semibold">Applications</h1>
           <p className="text-xs text-muted-foreground">{data?.count ?? 0} total</p>
         </div>
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
-            <Select
-              onValueChange={(status) =>
-                bulkMutation.mutate({ ids: Array.from(selectedIds), status })
-              }
-            >
-              <SelectTrigger className="w-44 h-9">
-                <SelectValue placeholder="Change status..." />
-              </SelectTrigger>
-              <SelectContent>
-                {ALL_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <>
+              <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
+              <Select
+                onValueChange={(status) =>
+                  bulkMutation.mutate({ ids: Array.from(selectedIds), status })
+                }
+              >
+                <SelectTrigger className="w-44 h-9">
+                  <SelectValue placeholder="Change status..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALL_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Application
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -232,6 +398,7 @@ export default function ApplicationsPage() {
         <div className="text-center py-16 text-muted-foreground">
           <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
           <p className="font-medium">No applications found</p>
+          <p className="text-sm mt-1">Create your first application</p>
         </div>
       ) : (
         <div className="rounded-lg border overflow-x-auto">
@@ -281,7 +448,34 @@ export default function ApplicationsPage() {
                     {formatDate(app.created_at)}
                   </td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-blue-500"
+                        title="View"
+                        onClick={() => handleView(app)}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-amber-500"
+                        title="Edit"
+                        onClick={() => handleEdit(app)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        title="Delete"
+                        onClick={() => handleDelete(app.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -313,6 +507,79 @@ export default function ApplicationsPage() {
         </div>
       )}
 
+      {/* Create Application Drawer */}
+      <SideDrawer
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="Create Application"
+        mode="create"
+        size="xl"
+        isLoading={createMutation.isPending}
+        footerButtons={[
+          { label: 'Cancel', variant: 'outline', onClick: () => setCreateOpen(false) },
+          {
+            label: 'Create Application',
+            loading: createMutation.isPending,
+            onClick: () => {
+              document.getElementById('application-form')?.dispatchEvent(
+                new Event('submit', { cancelable: true, bubbles: true })
+              )
+            },
+          },
+        ]}
+        footerAlignment="right"
+      >
+        <ApplicationFormComp
+          onSubmit={(data) => createMutation.mutate(data as ApplicationFormData)}
+          isLoading={createMutation.isPending}
+        />
+      </SideDrawer>
+
+      {/* Edit Application Drawer */}
+      <SideDrawer
+        open={editOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open)
+          if (!open) setEditAppId(null)
+        }}
+        title={editApp ? `Edit: ${editApp.applicant.first_name} ${editApp.applicant.last_name}` : 'Edit Application'}
+        mode="edit"
+        size="xl"
+        isLoading={updateMutation.isPending}
+        footerButtons={[
+          { label: 'Cancel', variant: 'outline', onClick: () => { setEditOpen(false); setEditAppId(null) } },
+          {
+            label: 'Save Changes',
+            loading: updateMutation.isPending,
+            onClick: () => {
+              document.getElementById('application-form')?.dispatchEvent(
+                new Event('submit', { cancelable: true, bubbles: true })
+              )
+            },
+          },
+        ]}
+        footerAlignment="right"
+      >
+        {editAppLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground mt-3">Loading application details...</p>
+          </div>
+        ) : editApp ? (
+          <ApplicationFormComp
+            key={editApp.id}
+            defaultValues={{
+              job: editApp.job_id,
+              applicant: editApp.applicant_id,
+              status: editApp.status,
+              notes: editApp.notes || undefined,
+            }}
+            onSubmit={(data) => updateMutation.mutate({ id: editApp.id, data: data as ApplicationFormData })}
+            isLoading={updateMutation.isPending}
+          />
+        ) : null}
+      </SideDrawer>
+
       {/* Detail Drawer */}
       <SideDrawer
         open={viewOpen}
@@ -327,18 +594,32 @@ export default function ApplicationsPage() {
           viewApp
             ? [
                 {
+                  label: 'Edit',
+                  variant: 'outline',
+                  icon: Pencil,
+                  onClick: () => {
+                    setViewOpen(false)
+                    handleEdit({ id: viewApp.id })
+                  },
+                },
+                {
                   label: 'Trigger AI Call',
                   variant: 'outline',
                   icon: Phone,
                   onClick: () => {
                     triggerCallMutation.mutate(viewApp.id)
-                    toast.success('AI call triggered')
                   },
+                },
+                {
+                  label: 'Delete',
+                  variant: 'destructive',
+                  icon: Trash2,
+                  onClick: () => handleDelete(viewApp.id),
                 },
               ]
             : []
         }
-        footerAlignment="right"
+        footerAlignment="between"
       >
         {viewAppLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -366,6 +647,14 @@ export default function ApplicationsPage() {
               <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
                 <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-0.5 uppercase tracking-wide">Rejection Reason</p>
                 <p className="text-[13px]">{viewApp.rejection_reason}</p>
+              </div>
+            )}
+
+            {/* Notes */}
+            {viewApp.notes && (
+              <div className="rounded-lg border p-4 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Notes</p>
+                <p className="text-[13px] whitespace-pre-wrap">{viewApp.notes}</p>
               </div>
             )}
 

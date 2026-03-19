@@ -1,5 +1,5 @@
 import { get, post, put, patch, del } from './api'
-import type { ApplicationListItem, ApplicationDetail, PaginatedResponse } from '@/types'
+import type { ApplicationListItem, ApplicationDetail, ApplicationFormData, PaginatedResponse } from '@/types'
 
 export const applicationsService = {
   list: (params?: Record<string, string>) =>
@@ -7,12 +7,12 @@ export const applicationsService = {
 
   get: (id: string) => get<ApplicationDetail>(`/applications/${id}/`),
 
-  create: (data: Record<string, unknown>) => post<ApplicationDetail>('/applications/', data),
+  create: (data: ApplicationFormData) => post<ApplicationDetail>('/applications/', data),
 
-  update: (id: string, data: Record<string, unknown>) =>
+  update: (id: string, data: ApplicationFormData) =>
     put<ApplicationDetail>(`/applications/${id}/`, data),
 
-  patch: (id: string, data: Record<string, unknown>) =>
+  patch: (id: string, data: Partial<ApplicationFormData>) =>
     patch<ApplicationDetail>(`/applications/${id}/`, data),
 
   delete: (id: string) => del(`/applications/${id}/`),

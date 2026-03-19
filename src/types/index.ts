@@ -325,6 +325,13 @@ export interface ApplicationDetail {
   updated_at: string
 }
 
+export interface ApplicationFormData {
+  job: string
+  applicant: string
+  status: ApplicationStatus
+  notes?: string
+}
+
 // ─── Call Records ─────────────────────────────────────────────────────────────
 export interface CallRecordListItem {
   id: string
