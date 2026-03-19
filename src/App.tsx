@@ -11,6 +11,7 @@ import LoginPage from '@/pages/LoginPage'
 import DashboardPage from '@/pages/DashboardPage'
 import JobsPage from '@/pages/JobsPage'
 import JobDetailPage from '@/pages/JobDetailPage'
+import JobCreatePage from '@/pages/JobCreatePage'
 import JobEditPage from '@/pages/JobEditPage'
 import ApplicationDetailPage from '@/pages/ApplicationDetailPage'
 import ApplicantsPage from '@/pages/ApplicantsPage'
@@ -60,7 +61,8 @@ function AppLayout() {
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
   const pageTitle = PAGE_TITLES[location.pathname]
-    || (location.pathname.match(/\/jobs\/[^/]+\/edit/) ? 'Edit Job'
+    || (location.pathname === '/jobs/new' ? 'Create Job'
+    : location.pathname.match(/\/jobs\/[^/]+\/edit/) ? 'Edit Job'
     : location.pathname.match(/\/jobs\/[^/]+\/applications\//) ? 'Application Details'
     : location.pathname.startsWith('/jobs/') ? 'Job Details' : 'SmartHR-In')
 
@@ -88,6 +90,7 @@ function AppLayout() {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/jobs" element={<JobsPage />} />
+            <Route path="/jobs/new" element={<JobCreatePage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/jobs/:id/edit" element={<JobEditPage />} />
             <Route path="/jobs/:id/applications/:appId" element={<ApplicationDetailPage />} />

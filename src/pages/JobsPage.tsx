@@ -6,14 +6,9 @@ import {
   Loader2, Eye, Pencil, Trash2, ArrowUpRight, Award, Calendar,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -21,10 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { SideDrawer } from '@/components/SideDrawer'
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { jobsService } from '@/services/jobs'
-import type { JobListItem, JobFormData } from '@/types'
+import type { JobListItem } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
 
 const JOB_STATUS_COLORS: Record<string, string> = {
@@ -55,21 +49,6 @@ const JOB_STATUS_ICON_BG: Record<string, string> = {
   CLOSED: 'bg-red-50 dark:bg-red-900/20',
 }
 
-const jobSchema = z.object({
-  title: z.string().min(1, 'Title required'),
-  department: z.string().min(1, 'Department required'),
-  location: z.string().min(1, 'Location required'),
-  job_type: z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP']),
-  experience_level: z.enum(['ENTRY', 'MID', 'SENIOR', 'LEAD']),
-  salary_min: z.string().optional(),
-  salary_max: z.string().optional(),
-  description: z.string().min(1, 'Description required'),
-  requirements: z.string().min(1, 'Requirements required'),
-  status: z.enum(['DRAFT', 'OPEN', 'PAUSED', 'CLOSED']),
-  closes_at: z.string().optional(),
-})
-
-type JobForm = z.infer<typeof jobSchema>
 
 function JobCard({
   job,
@@ -167,112 +146,6 @@ function JobCard({
   )
 }
 
-function JobFormComp({
-  defaultValues,
-  onSubmit,
-  isLoading,
-}: {
-  defaultValues?: Partial<JobForm>
-  onSubmit: (data: JobForm) => void
-  isLoading?: boolean
-}) {
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<JobForm>({
-    resolver: zodResolver(jobSchema),
-    defaultValues: {
-      status: 'DRAFT',
-      job_type: 'FULL_TIME',
-      experience_level: 'MID',
-      ...defaultValues,
-    },
-  })
-
-  return (
-    <form id="job-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="col-span-2 space-y-1.5">
-          <Label>Job Title *</Label>
-          <Input placeholder="e.g. Senior Python Developer" {...register('title')} />
-          {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
-        </div>
-        <div className="space-y-1.5">
-          <Label>Department *</Label>
-          <Input placeholder="e.g. Engineering" {...register('department')} />
-          {errors.department && <p className="text-xs text-destructive">{errors.department.message}</p>}
-        </div>
-        <div className="space-y-1.5">
-          <Label>Location *</Label>
-          <Input placeholder="e.g. Remote" {...register('location')} />
-          {errors.location && <p className="text-xs text-destructive">{errors.location.message}</p>}
-        </div>
-        <div className="space-y-1.5">
-          <Label>Job Type</Label>
-          <Select value={watch('job_type')} onValueChange={(v) => setValue('job_type', v as JobForm['job_type'])}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="FULL_TIME">Full Time</SelectItem>
-              <SelectItem value="PART_TIME">Part Time</SelectItem>
-              <SelectItem value="CONTRACT">Contract</SelectItem>
-              <SelectItem value="INTERNSHIP">Internship</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Experience Level</Label>
-          <Select value={watch('experience_level')} onValueChange={(v) => setValue('experience_level', v as JobForm['experience_level'])}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ENTRY">Entry</SelectItem>
-              <SelectItem value="MID">Mid</SelectItem>
-              <SelectItem value="SENIOR">Senior</SelectItem>
-              <SelectItem value="LEAD">Lead</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Min Salary</Label>
-          <Input placeholder="e.g. 80000" {...register('salary_min')} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Max Salary</Label>
-          <Input placeholder="e.g. 120000" {...register('salary_max')} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Status</Label>
-          <Select value={watch('status')} onValueChange={(v) => setValue('status', v as JobForm['status'])}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="DRAFT">Draft</SelectItem>
-              <SelectItem value="OPEN">Open</SelectItem>
-              <SelectItem value="PAUSED">Paused</SelectItem>
-              <SelectItem value="CLOSED">Closed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Closes At</Label>
-          <Input type="datetime-local" {...register('closes_at')} />
-        </div>
-        <div className="col-span-2 space-y-1.5">
-          <Label>Description *</Label>
-          <Textarea rows={4} placeholder="Job description..." {...register('description')} />
-          {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
-        </div>
-        <div className="col-span-2 space-y-1.5">
-          <Label>Requirements *</Label>
-          <Textarea rows={3} placeholder="Required skills and experience..." {...register('requirements')} />
-          {errors.requirements && <p className="text-xs text-destructive">{errors.requirements.message}</p>}
-        </div>
-      </div>
-    </form>
-  )
-}
-
 export default function JobsPage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
@@ -281,7 +154,6 @@ export default function JobsPage() {
   const [jobTypeFilter, setJobTypeFilter] = useState('')
   const [expLevelFilter, setExpLevelFilter] = useState('')
   const [ordering, setOrdering] = useState('-created_at')
-  const [createOpen, setCreateOpen] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
@@ -308,16 +180,6 @@ export default function JobsPage() {
     onError: () => toast.error('Failed to delete job'),
   })
 
-  const createMutation = useMutation({
-    mutationFn: (data: JobFormData) => jobsService.create(data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['jobs'] })
-      setCreateOpen(false)
-      toast.success('Job created successfully')
-    },
-    onError: () => toast.error('Failed to create job'),
-  })
-
   const handleView = (job: JobListItem) => navigate(`/jobs/${job.id}`)
   const handleEdit = (job: JobListItem) => navigate(`/jobs/${job.id}/edit`)
   const handleDelete = (id: string) => {
@@ -334,7 +196,7 @@ export default function JobsPage() {
           <h1 className="text-lg font-semibold">Jobs</h1>
           <p className="text-xs text-muted-foreground">{data?.count ?? 0} total jobs</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button onClick={() => navigate('/jobs/new')}>
           <Plus className="h-4 w-4 mr-2" />
           New Job
         </Button>
@@ -416,33 +278,6 @@ export default function JobsPage() {
         </div>
       )}
 
-      {/* Create Job Drawer */}
-      <SideDrawer
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Create Job"
-        mode="create"
-        size="xl"
-        isLoading={createMutation.isPending}
-        footerButtons={[
-          { label: 'Cancel', variant: 'outline', onClick: () => setCreateOpen(false) },
-          {
-            label: 'Create Job',
-            loading: createMutation.isPending,
-            onClick: () => {
-              document.getElementById('job-form')?.dispatchEvent(
-                new Event('submit', { cancelable: true, bubbles: true })
-              )
-            },
-          },
-        ]}
-        footerAlignment="right"
-      >
-        <JobFormComp
-          onSubmit={(data) => createMutation.mutate(data as JobFormData)}
-          isLoading={createMutation.isPending}
-        />
-      </SideDrawer>
     </div>
   )
 }
