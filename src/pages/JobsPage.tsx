@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus, Search, Briefcase, MapPin, Users, Clock,
-  Loader2, Eye, Pencil, Trash2,
+  Loader2, Eye, Pencil, Trash2, ArrowRight, Award,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
@@ -31,6 +31,13 @@ const JOB_STATUS_COLORS: Record<string, string> = {
   OPEN: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
   PAUSED: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   CLOSED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+}
+
+const JOB_STATUS_DOT: Record<string, string> = {
+  DRAFT: 'bg-gray-400',
+  OPEN: 'bg-emerald-500',
+  PAUSED: 'bg-amber-500',
+  CLOSED: 'bg-red-500',
 }
 
 const jobSchema = z.object({
@@ -61,70 +68,86 @@ function JobCard({
   onDelete: (id: string) => void
 }) {
   return (
-    <Card className="hover:border-border/80 transition-colors cursor-pointer" onClick={() => onView(job)}>
+    <Card
+      className="group hover:shadow-md hover:border-primary/20 transition-all duration-200 cursor-pointer overflow-hidden"
+      onClick={() => onView(job)}
+    >
+      {/* Colored top bar */}
+      <div className={cn('h-1', JOB_STATUS_DOT[job.status])} />
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+              {job.title}
+            </h3>
+            <div className="flex items-center gap-2 mt-1.5">
               <span
                 className={cn(
-                  'inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium',
+                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium',
                   JOB_STATUS_COLORS[job.status]
                 )}
               >
+                <span className={cn('h-1.5 w-1.5 rounded-full', JOB_STATUS_DOT[job.status])} />
                 {job.status}
               </span>
-              <span className="text-[11px] text-muted-foreground">{job.job_type.replace('_', ' ')}</span>
-            </div>
-            <h3 className="font-semibold text-sm text-foreground truncate">{job.title}</h3>
-            <div className="flex items-center gap-3 mt-1.5 text-[13px] text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Briefcase className="h-3.5 w-3.5" />
-                {job.department}
+              <span className="text-[11px] text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                {job.job_type.replace(/_/g, ' ')}
               </span>
-              <span className="flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5" />
-                {job.location}
+              <span className="text-[11px] text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                {job.experience_level}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-blue-500"
+              className="h-7 w-7 text-muted-foreground hover:text-blue-500"
               title="View"
               onClick={() => onView(job)}
             >
-              <Eye className="h-4 w-4" />
+              <Eye className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-amber-500"
+              className="h-7 w-7 text-muted-foreground hover:text-amber-500"
               title="Edit"
               onClick={() => onEdit(job)}
             >
-              <Pencil className="h-4 w-4" />
+              <Pencil className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
               title="Delete"
               onClick={() => onDelete(job.id)}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
-          <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
-            <Users className="h-3.5 w-3.5" />
-            {job.application_count} applications
+
+        <div className="flex items-center gap-3 mt-3 text-[13px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Briefcase className="h-3.5 w-3.5" />
+            {job.department}
           </span>
-          <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" />
+          <span className="flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" />
+            {job.location}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+          <span className="flex items-center gap-1.5 text-[13px]">
+            <Users className="h-3.5 w-3.5 text-blue-500" />
+            <span className="font-medium text-foreground">{job.application_count}</span>
+            <span className="text-muted-foreground">applications</span>
+          </span>
+          <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
+            <Clock className="h-3 w-3" />
             {formatDate(job.created_at)}
           </span>
         </div>
@@ -248,8 +271,6 @@ export default function JobsPage() {
   const [expLevelFilter, setExpLevelFilter] = useState('')
   const [ordering, setOrdering] = useState('-created_at')
   const [createOpen, setCreateOpen] = useState(false)
-  const [editJobId, setEditJobId] = useState<string | null>(null)
-  const [editOpen, setEditOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['jobs', search, statusFilter, jobTypeFilter, expLevelFilter, ordering],
@@ -261,24 +282,6 @@ export default function JobsPage() {
         ...(expLevelFilter && { experience_level: expLevelFilter }),
         ordering,
       }),
-  })
-
-  const { data: editJob, isLoading: editJobLoading } = useQuery({
-    queryKey: ['job-detail', editJobId],
-    queryFn: () => jobsService.get(editJobId!),
-    enabled: !!editJobId,
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: JobFormData }) => jobsService.update(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['jobs'] })
-      qc.invalidateQueries({ queryKey: ['job-detail'] })
-      setEditOpen(false)
-      setEditJobId(null)
-      toast.success('Job updated successfully')
-    },
-    onError: () => toast.error('Failed to update job'),
   })
 
   const deleteMutation = useMutation({
@@ -305,8 +308,7 @@ export default function JobsPage() {
   }
 
   const handleEdit = (job: JobListItem) => {
-    setEditJobId(job.id)
-    setEditOpen(true)
+    navigate(`/jobs/${job.id}/edit`)
   }
 
   const handleDelete = (id: string) => {
@@ -455,58 +457,6 @@ export default function JobsPage() {
           onSubmit={(data) => createMutation.mutate(data as JobFormData)}
           isLoading={createMutation.isPending}
         />
-      </SideDrawer>
-
-      {/* Edit Job Drawer */}
-      <SideDrawer
-        open={editOpen}
-        onOpenChange={(open) => {
-          setEditOpen(open)
-          if (!open) setEditJobId(null)
-        }}
-        title={editJob?.title ? `Edit: ${editJob.title}` : 'Edit Job'}
-        mode="edit"
-        size="xl"
-        isLoading={updateMutation.isPending}
-        footerButtons={[
-          { label: 'Cancel', variant: 'outline', onClick: () => { setEditOpen(false); setEditJobId(null) } },
-          {
-            label: 'Save Changes',
-            loading: updateMutation.isPending,
-            onClick: () => {
-              document.getElementById('job-form')?.dispatchEvent(
-                new Event('submit', { cancelable: true, bubbles: true })
-              )
-            },
-          },
-        ]}
-        footerAlignment="right"
-      >
-        {editJobLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground mt-3">Loading job details...</p>
-          </div>
-        ) : editJob ? (
-          <JobFormComp
-            key={editJob.id}
-            defaultValues={{
-              title: editJob.title,
-              department: editJob.department,
-              location: editJob.location,
-              job_type: editJob.job_type,
-              experience_level: editJob.experience_level,
-              salary_min: editJob.salary_min || undefined,
-              salary_max: editJob.salary_max || undefined,
-              description: editJob.description,
-              requirements: editJob.requirements,
-              status: editJob.status,
-              closes_at: editJob.closes_at || undefined,
-            }}
-            onSubmit={(data) => updateMutation.mutate({ id: editJob.id, data: data as JobFormData })}
-            isLoading={updateMutation.isPending}
-          />
-        ) : null}
       </SideDrawer>
     </div>
   )
