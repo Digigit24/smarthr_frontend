@@ -473,6 +473,8 @@ export interface InterviewListItem {
   interviewer_email: string
   status: InterviewStatus
   meeting_link: string
+  applicant_name: string
+  applicant_email: string
   created_at: string
 }
 
@@ -492,6 +494,8 @@ export interface InterviewDetail {
   calendar_event_id: string
   feedback: string
   rating: number | null
+  applicant_name: string
+  applicant_email: string
   created_at: string
   updated_at: string
 }

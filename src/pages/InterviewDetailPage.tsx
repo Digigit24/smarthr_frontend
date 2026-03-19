@@ -235,21 +235,47 @@ export default function InterviewDetailPage() {
             </div>
           </div>
 
-          {/* Interviewer */}
+          {/* Candidate & Interviewer */}
           <div className="rounded-xl border bg-card p-4 sm:p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="h-7 w-7 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
-                <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Candidate */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-7 w-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                    <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="font-semibold text-sm">Candidate</h3>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                  <GradientAvatar name={interview.applicant_name || interview.applicant_email || 'A'} />
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm">{interview.applicant_name || 'Unknown'}</p>
+                    {interview.applicant_email && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                        <Mail className="h-3 w-3" />
+                        <span className="truncate">{interview.applicant_email}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <h3 className="font-semibold text-sm">Interviewer</h3>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-              <GradientAvatar name={interview.interviewer_name || interview.interviewer_email} />
-              <div className="min-w-0">
-                <p className="font-medium text-sm">{interview.interviewer_name || 'No name'}</p>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                  <Mail className="h-3 w-3" />
-                  <span className="truncate">{interview.interviewer_email}</span>
+              {/* Interviewer */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-7 w-7 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
+                    <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h3 className="font-semibold text-sm">Interviewer</h3>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                  <GradientAvatar name={interview.interviewer_name || interview.interviewer_email} />
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm">{interview.interviewer_name || 'No name'}</p>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                      <Mail className="h-3 w-3" />
+                      <span className="truncate">{interview.interviewer_email}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -357,6 +383,10 @@ export default function InterviewDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Duration</span>
                 <span className="font-medium">{interview.duration_minutes}m</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground flex items-center gap-1.5"><User className="h-3.5 w-3.5" /> Candidate</span>
+                <span className="font-medium truncate ml-2">{interview.applicant_name || '—'}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground flex items-center gap-1.5"><User className="h-3.5 w-3.5" /> Interviewer</span>

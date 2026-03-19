@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Search, Calendar, Loader2, Trash2, Clock, User, Video,
-  MessageSquare, Star, CheckCircle, ExternalLink,
+  MessageSquare, Star, CheckCircle, ExternalLink, UserCheck, Briefcase,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -92,12 +92,23 @@ function InterviewCard({ iv }: { iv: InterviewListItem }) {
           <p className="text-sm font-medium">{formatDateTime(iv.scheduled_at)}</p>
         </div>
 
-        {/* Interviewer */}
-        <div className="flex items-center gap-2.5 mb-3 p-2.5 rounded-lg bg-muted/30">
-          <GradientAvatar name={iv.interviewer_name || iv.interviewer_email} />
+        {/* Applicant (whose interview) */}
+        <div className="flex items-center gap-2.5 mb-2 p-2.5 rounded-lg bg-muted/30">
+          <GradientAvatar name={iv.applicant_name || iv.applicant_email || 'A'} />
           <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Candidate</p>
+            <p className="text-sm font-medium truncate">{iv.applicant_name || iv.applicant_email || 'Unknown'}</p>
+          </div>
+        </div>
+
+        {/* Interviewer (who takes the interview) */}
+        <div className="flex items-center gap-2.5 mb-3 p-2.5 rounded-lg bg-muted/30">
+          <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Interviewer</p>
             <p className="text-sm font-medium truncate">{iv.interviewer_name || 'No name'}</p>
-            <p className="text-xs text-muted-foreground truncate">{iv.interviewer_email}</p>
           </div>
         </div>
 
@@ -126,11 +137,12 @@ export default function InterviewsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [interviewerFilter, setInterviewerFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
   const { data, isLoading } = useQuery({
-    queryKey: ['interviews', search, statusFilter, typeFilter, dateFrom, dateTo],
+    queryKey: ['interviews', search, statusFilter, typeFilter, interviewerFilter, dateFrom, dateTo],
     queryFn: () =>
       interviewsService.list({
         ...(search && { search }),
@@ -151,8 +163,12 @@ export default function InterviewsPage() {
     onError: () => toast.error('Failed to delete interview'),
   })
 
-  // Status counts
-  const allInterviews = data?.results || []
+  // Client-side interviewer filter + status counts
+  const rawInterviews = data?.results || []
+  const uniqueInterviewers = [...new Set(rawInterviews.map((iv) => iv.interviewer_name).filter(Boolean))].sort()
+  const allInterviews = interviewerFilter
+    ? rawInterviews.filter((iv) => iv.interviewer_name === interviewerFilter)
+    : rawInterviews
   const statusCounts = allInterviews.reduce((acc, iv) => { acc[iv.status] = (acc[iv.status] || 0) + 1; return acc }, {} as Record<string, number>)
 
   return (
@@ -231,6 +247,19 @@ export default function InterviewsPage() {
               ))}
             </SelectContent>
           </Select>
+          {uniqueInterviewers.length > 0 && (
+            <Select value={interviewerFilter || 'ALL'} onValueChange={(v) => setInterviewerFilter(v === 'ALL' ? '' : v)}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="All interviewers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All interviewers</SelectItem>
+                {uniqueInterviewers.map((name) => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <DateRangeFilter
             fromDate={dateFrom}
             toDate={dateTo}
@@ -247,7 +276,7 @@ export default function InterviewsPage() {
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground mt-3">Loading interviews...</p>
         </div>
-      ) : (data?.results?.length ?? 0) === 0 ? (
+      ) : allInterviews.length === 0 ? (
         <div className="text-center py-20">
           <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
             <Calendar className="h-8 w-8 text-muted-foreground/40" />
@@ -260,7 +289,7 @@ export default function InterviewsPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {data?.results.map((iv) => (
+          {allInterviews.map((iv) => (
             <InterviewCard key={iv.id} iv={iv} />
           ))}
         </div>
