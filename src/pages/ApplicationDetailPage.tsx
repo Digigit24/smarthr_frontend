@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Loader2, Phone, Star, User, Briefcase, MapPin, Mail,
   Clock, FileText, Tag, Award, MessageSquare, Calendar, ExternalLink,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, Mic, Activity, TrendingUp, Shield, Zap,
+  CheckCircle2, XCircle, AlertCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -19,19 +20,19 @@ import {
 } from '@/components/ui/select'
 import { applicationsService } from '@/services/applications'
 import type { ApplicationStatus } from '@/types'
-import { formatDate, formatDateTime, formatDuration, cn } from '@/lib/utils'
+import { formatDate, formatDateTime, formatDuration, getInitials, cn } from '@/lib/utils'
 
-const STATUS_COLORS: Record<string, string> = {
-  APPLIED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  AI_SCREENING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  AI_COMPLETED: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  SHORTLISTED: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
-  INTERVIEW_SCHEDULED: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
-  INTERVIEWED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  OFFER: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
-  HIRED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  REJECTED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  WITHDRAWN: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+const STATUS_CONFIG: Record<string, { bg: string; dot: string; gradient: string }> = {
+  APPLIED: { bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500', gradient: 'from-blue-500 to-blue-600' },
+  AI_SCREENING: { bg: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500', gradient: 'from-amber-500 to-orange-500' },
+  AI_COMPLETED: { bg: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400', dot: 'bg-purple-500', gradient: 'from-purple-500 to-violet-600' },
+  SHORTLISTED: { bg: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400', dot: 'bg-cyan-500', gradient: 'from-cyan-500 to-blue-500' },
+  INTERVIEW_SCHEDULED: { bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400', dot: 'bg-indigo-500', gradient: 'from-indigo-500 to-purple-500' },
+  INTERVIEWED: { bg: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
+  OFFER: { bg: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400', dot: 'bg-teal-500', gradient: 'from-teal-500 to-emerald-500' },
+  HIRED: { bg: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', dot: 'bg-green-500', gradient: 'from-green-500 to-emerald-600' },
+  REJECTED: { bg: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500', gradient: 'from-red-500 to-rose-600' },
+  WITHDRAWN: { bg: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400', dot: 'bg-gray-400', gradient: 'from-gray-400 to-gray-500' },
 }
 
 const CALL_STATUS_COLORS: Record<string, string> = {
@@ -54,23 +55,78 @@ const INTERVIEW_STATUS_COLORS: Record<string, string> = {
   NO_SHOW: 'bg-orange-100 text-orange-700',
 }
 
+const RECOMMENDATION_CONFIG: Record<string, { color: string; icon: typeof CheckCircle2 }> = {
+  STRONG_YES: { color: 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400', icon: CheckCircle2 },
+  YES: { color: 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400', icon: CheckCircle2 },
+  MAYBE: { color: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400', icon: AlertCircle },
+  NO: { color: 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400', icon: XCircle },
+  STRONG_NO: { color: 'text-red-700 bg-red-100 border-red-300 dark:bg-red-900/30 dark:border-red-700 dark:text-red-400', icon: XCircle },
+}
+
 const ALL_STATUSES: ApplicationStatus[] = [
   'APPLIED', 'AI_SCREENING', 'AI_COMPLETED', 'SHORTLISTED',
   'INTERVIEW_SCHEDULED', 'INTERVIEWED', 'OFFER', 'HIRED', 'REJECTED', 'WITHDRAWN',
 ]
 
-function ScoreDimensionBar({ label, value }: { label: string; value: string }) {
+const AVATAR_GRADIENTS = [
+  'from-blue-500 to-indigo-600',
+  'from-violet-500 to-purple-600',
+  'from-emerald-500 to-teal-600',
+  'from-amber-500 to-orange-600',
+  'from-rose-500 to-pink-600',
+  'from-cyan-500 to-blue-600',
+]
+
+function getAvatarGradient(name: string) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length]
+}
+
+/* ── Score ring for sidebar ── */
+function ScoreRing({ score }: { score: string }) {
+  const val = parseFloat(score)
+  const circumference = 2 * Math.PI * 40
+  const offset = circumference - (val / 100) * circumference
+  const color = val >= 70 ? '#10b981' : val >= 40 ? '#f59e0b' : '#ef4444'
+  return (
+    <div className="relative w-28 h-28 mx-auto">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/30" />
+        <circle
+          cx="50" cy="50" r="40" fill="none"
+          stroke={color}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-1000"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-bold">{val.toFixed(0)}</span>
+        <span className="text-[10px] text-muted-foreground -mt-0.5">/ 100</span>
+      </div>
+    </div>
+  )
+}
+
+/* ── Score dimension bar ── */
+function ScoreDimensionBar({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Activity }) {
   const num = parseFloat(value)
   const pct = Math.min(100, num)
   const color = pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500'
   return (
-    <div>
-      <div className="flex justify-between text-[12px] mb-1">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-medium">{num.toFixed(1)}</span>
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+          <Icon className="h-3 w-3" />
+          {label}
+        </span>
+        <span className="text-[12px] font-semibold">{num.toFixed(1)}</span>
       </div>
       <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+        <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -103,6 +159,7 @@ export default function ApplicationDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['application-detail', appId] })
       qc.invalidateQueries({ queryKey: ['job-applications'] })
+      qc.invalidateQueries({ queryKey: ['applications'] })
       toast.success('Status updated')
     },
     onError: () => toast.error('Failed to update status'),
@@ -138,82 +195,142 @@ export default function ApplicationDetailPage() {
     )
   }
 
+  const statusConf = STATUS_CONFIG[app.status] || STATUS_CONFIG.APPLIED
+  const fullName = `${app.applicant.first_name} ${app.applicant.last_name}`
+
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <Button variant="ghost" size="icon" className="mt-0.5 shrink-0" onClick={goBack}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-semibold">
-                {app.applicant.first_name} {app.applicant.last_name}
-              </h1>
-              <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-medium', STATUS_COLORS[app.status])}>
-                {app.status.replace(/_/g, ' ')}
-              </span>
-              {app.score && (
-                <div className="flex items-center gap-1 ml-1">
-                  <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                  <span className="font-semibold text-sm">{parseFloat(app.score).toFixed(1)}</span>
+    <div className="p-6 space-y-6">
+      {/* ── Hero Header Card ── */}
+      <Card className="overflow-hidden">
+        <div className={cn('h-1.5 bg-gradient-to-r', statusConf.gradient)} />
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <Button variant="ghost" size="icon" className="mt-1 shrink-0" onClick={goBack}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div className={cn('w-14 h-14 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0 shadow-md', getAvatarGradient(fullName))}>
+                <span className="text-lg font-bold text-white">{getInitials(fullName)}</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+                  <h1 className="text-xl font-semibold">{fullName}</h1>
+                  <span className={cn('inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium', statusConf.bg)}>
+                    <span className={cn('w-1.5 h-1.5 rounded-full', statusConf.dot)} />
+                    {app.status.replace(/_/g, ' ')}
+                  </span>
+                  {app.score && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-full text-[11px] font-semibold">
+                      <Star className="h-3 w-3 fill-current" />
+                      {parseFloat(app.score).toFixed(1)}
+                    </span>
+                  )}
                 </div>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                  <span className="flex items-center gap-1">
+                    <Briefcase className="h-3.5 w-3.5" />
+                    {app.job.title}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {app.job.department} · {app.job.location}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Applied {formatDate(app.created_at)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => triggerCallMutation.mutate(app.id)}
+                disabled={triggerCallMutation.isPending}
+              >
+                <Phone className="h-3.5 w-3.5 mr-1.5" />
+                AI Call
+              </Button>
+              {jobId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/applicants/${app.applicant_id}`)}
+                >
+                  <User className="h-3.5 w-3.5 mr-1.5" />
+                  Profile
+                </Button>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Applied for <span className="font-medium text-foreground">{app.job.title}</span> · {app.job.department} · {formatDate(app.created_at)}
-            </p>
           </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => triggerCallMutation.mutate(app.id)}
-            disabled={triggerCallMutation.isPending}
-          >
-            <Phone className="h-3.5 w-3.5 mr-1.5" />
-            Trigger AI Call
-          </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Rejection reason banner */}
       {app.status === 'REJECTED' && app.rejection_reason && (
-        <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
-          <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1 uppercase tracking-wide">Rejection Reason</p>
-          <p className="text-sm">{app.rejection_reason}</p>
+        <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 flex items-start gap-3">
+          <XCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-0.5 uppercase tracking-wide">Rejection Reason</p>
+            <p className="text-sm text-red-800 dark:text-red-300">{app.rejection_reason}</p>
+          </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Main Info */}
+        {/* ── Left Column ── */}
         <div className="lg:col-span-2 space-y-6">
+
           {/* Applicant Info */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <User className="h-4 w-4 text-blue-500" />
+                <div className="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <User className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                </div>
                 Applicant Information
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <InfoRow icon={User} label="Full Name" value={`${app.applicant.first_name} ${app.applicant.last_name}`} />
-                <InfoRow icon={Mail} label="Email" value={app.applicant.email} />
-                {app.applicant.phone && <InfoRow icon={Phone} label="Phone" value={app.applicant.phone} />}
-                <InfoRow icon={Tag} label="Source" value={app.applicant.source.replace(/_/g, ' ')} />
-                {app.applicant.current_role && <InfoRow icon={Briefcase} label="Current Role" value={app.applicant.current_role} />}
-                {app.applicant.current_company && <InfoRow icon={Briefcase} label="Current Company" value={app.applicant.current_company} />}
-                {app.applicant.experience_years > 0 && <InfoRow icon={Clock} label="Experience" value={`${app.applicant.experience_years} year${app.applicant.experience_years !== 1 ? 's' : ''}`} />}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-6 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Full Name</p>
+                  <p className="font-medium">{fullName}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Email</p>
+                  <p className="font-medium">{app.applicant.email}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Phone</p>
+                  <p className="font-medium">{app.applicant.phone || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Source</p>
+                  <p className="font-medium">{app.applicant.source.replace(/_/g, ' ')}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Current Role</p>
+                  <p className="font-medium">{app.applicant.current_role || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Company</p>
+                  <p className="font-medium">{app.applicant.current_company || '—'}</p>
+                </div>
+                {app.applicant.experience_years > 0 && (
+                  <div>
+                    <p className="text-muted-foreground text-xs mb-0.5">Experience</p>
+                    <p className="font-medium">{app.applicant.experience_years} year{app.applicant.experience_years !== 1 ? 's' : ''}</p>
+                  </div>
+                )}
               </div>
               {app.applicant.skills?.length > 0 && (
                 <div className="mt-4 pt-4 border-t">
                   <p className="text-xs text-muted-foreground mb-2 font-medium">Skills</p>
                   <div className="flex flex-wrap gap-1.5">
                     {app.applicant.skills.map((s) => (
-                      <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
+                      <span key={s} className="px-2.5 py-1 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 rounded-md text-[12px] font-medium">{s}</span>
                     ))}
                   </div>
                 </div>
@@ -225,93 +342,209 @@ export default function ApplicationDetailPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-indigo-500" />
+                <div className="w-6 h-6 rounded-md bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <Briefcase className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                </div>
                 Job Details
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <InfoRow icon={Briefcase} label="Title" value={app.job.title} />
-                <InfoRow icon={Briefcase} label="Department" value={app.job.department} />
-                <InfoRow icon={MapPin} label="Location" value={app.job.location} />
-                <InfoRow icon={Tag} label="Job Type" value={app.job.job_type.replace(/_/g, ' ')} />
-                <InfoRow icon={Award} label="Experience Level" value={app.job.experience_level} />
-                <div className="flex items-start gap-2.5">
-                  <Tag className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Status</p>
-                    <span className={cn('inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium mt-0.5', {
-                      'bg-emerald-100 text-emerald-700': app.job.status === 'OPEN',
-                      'bg-gray-100 text-gray-700': app.job.status === 'DRAFT',
-                      'bg-amber-100 text-amber-700': app.job.status === 'PAUSED',
-                      'bg-red-100 text-red-700': app.job.status === 'CLOSED',
-                    })}>
-                      {app.job.status}
-                    </span>
-                  </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-6 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Title</p>
+                  <p className="font-medium">{app.job.title}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Department</p>
+                  <p className="font-medium">{app.job.department}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Location</p>
+                  <p className="font-medium">{app.job.location}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Job Type</p>
+                  <p className="font-medium">{app.job.job_type.replace(/_/g, ' ')}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Experience Level</p>
+                  <p className="font-medium">{app.job.experience_level}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs mb-0.5">Job Status</p>
+                  <span className={cn('inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium', {
+                    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400': app.job.status === 'OPEN',
+                    'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300': app.job.status === 'DRAFT',
+                    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': app.job.status === 'PAUSED',
+                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': app.job.status === 'CLOSED',
+                  })}>
+                    {app.job.status}
+                  </span>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* AI Scorecard */}
+          {app.scorecards?.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <Award className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  AI Scorecard
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {app.scorecards.map((sc) => {
+                  const recConf = RECOMMENDATION_CONFIG[sc.recommendation]
+                  const RecIcon = recConf?.icon || AlertCircle
+                  return (
+                    <div key={sc.id} className="space-y-4">
+                      {/* Score dimensions */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <ScoreDimensionBar label="Communication" value={sc.communication_score} icon={MessageSquare} />
+                        <ScoreDimensionBar label="Knowledge" value={sc.knowledge_score} icon={TrendingUp} />
+                        <ScoreDimensionBar label="Confidence" value={sc.confidence_score} icon={Shield} />
+                        <ScoreDimensionBar label="Relevance" value={sc.relevance_score} icon={Zap} />
+                      </div>
+
+                      {/* Overall + Recommendation */}
+                      <div className="flex items-center justify-between pt-4 border-t">
+                        <div className="flex items-center gap-4">
+                          <ScoreRing score={sc.overall_score} />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Overall Assessment</p>
+                            <p className="text-lg font-bold mt-0.5">
+                              {parseFloat(sc.overall_score).toFixed(1)}
+                              <span className="text-sm font-normal text-muted-foreground ml-1">/ 100</span>
+                            </p>
+                          </div>
+                        </div>
+                        {recConf && (
+                          <div className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium', recConf.color)}>
+                            <RecIcon className="h-4 w-4" />
+                            {sc.recommendation.replace(/_/g, ' ')}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Summary */}
+                      {sc.summary && (
+                        <div className="pt-3 border-t">
+                          <p className="text-xs text-muted-foreground mb-1.5 font-medium">Summary</p>
+                          <p className="text-sm leading-relaxed">{sc.summary}</p>
+                        </div>
+                      )}
+
+                      {/* Strengths & Weaknesses */}
+                      {(sc.strengths?.length > 0 || sc.weaknesses?.length > 0) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t">
+                          {sc.strengths?.length > 0 && (
+                            <div className="rounded-lg bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 p-3">
+                              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Strengths
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {sc.strengths.map((s, i) => (
+                                  <span key={i} className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-md text-[11px] font-medium">{s}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {sc.weaknesses?.length > 0 && (
+                            <div className="rounded-lg bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 p-3">
+                              <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-1.5">
+                                <AlertCircle className="h-3.5 w-3.5" />
+                                Areas to Improve
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {sc.weaknesses.map((w, i) => (
+                                  <span key={i} className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-md text-[11px] font-medium">{w}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Call Records */}
           {app.call_records?.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-violet-500" />
-                  Call Records ({app.call_records.length})
+                  <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                    <Phone className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  Call Records
+                  <span className="ml-auto text-xs font-normal text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                    {app.call_records.length}
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {app.call_records.map((cr) => (
-                  <div key={cr.id} className="rounded-lg border p-4 space-y-2.5 hover:border-border/80 transition-colors">
+                  <div key={cr.id} className="rounded-lg border p-4 space-y-3 hover:shadow-sm transition-shadow">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', CALL_STATUS_COLORS[cr.status])}>
                           {cr.status.replace(/_/g, ' ')}
                         </span>
-                        <Badge variant="outline" className="text-[11px]">{cr.provider}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{cr.provider}</Badge>
                       </div>
-                      <span className="text-xs text-muted-foreground">{formatDuration(cr.duration)}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {formatDuration(cr.duration)}
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                       <div>
-                        <p className="text-muted-foreground">Phone</p>
+                        <p className="text-muted-foreground mb-0.5">Phone</p>
                         <p className="font-medium">{cr.phone}</p>
                       </div>
                       {cr.started_at && (
                         <div>
-                          <p className="text-muted-foreground">Started</p>
+                          <p className="text-muted-foreground mb-0.5">Started</p>
                           <p className="font-medium">{formatDateTime(cr.started_at)}</p>
                         </div>
                       )}
                       {cr.ended_at && (
                         <div>
-                          <p className="text-muted-foreground">Ended</p>
+                          <p className="text-muted-foreground mb-0.5">Ended</p>
                           <p className="font-medium">{formatDateTime(cr.ended_at)}</p>
                         </div>
                       )}
                       <div>
-                        <p className="text-muted-foreground">Created</p>
+                        <p className="text-muted-foreground mb-0.5">Created</p>
                         <p className="font-medium">{formatDateTime(cr.created_at)}</p>
                       </div>
                     </div>
                     {cr.summary && (
-                      <div className="pt-2 border-t">
-                        <p className="text-xs text-muted-foreground mb-1">Summary</p>
-                        <p className="text-sm">{cr.summary}</p>
+                      <div className="pt-3 border-t">
+                        <p className="text-xs text-muted-foreground mb-1 font-medium">Summary</p>
+                        <p className="text-sm leading-relaxed">{cr.summary}</p>
                       </div>
                     )}
                     {cr.recording_url && (
-                      <div className="pt-2 border-t">
-                        <p className="text-xs text-muted-foreground mb-1">Recording</p>
+                      <div className="pt-3 border-t">
+                        <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                          <Mic className="h-3 w-3" />
+                          Recording
+                        </p>
                         <audio controls src={cr.recording_url} className="w-full h-8" />
                       </div>
                     )}
                     {!cr.recording_url && (
                       <button
-                        className="flex items-center gap-1 text-xs text-blue-500 hover:underline"
+                        className="flex items-center gap-1 text-xs text-blue-500 hover:underline pt-1"
                         onClick={() => setExpandedCallId(expandedCallId === cr.id ? null : cr.id)}
                       >
                         {expandedCallId === cr.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -319,72 +552,10 @@ export default function ApplicationDetailPage() {
                       </button>
                     )}
                     {expandedCallId === cr.id && (
-                      <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
+                      <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5 font-mono">
                         Provider Call ID: {cr.provider_call_id}
                       </div>
                     )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Scorecards */}
-          {app.scorecards?.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Award className="h-4 w-4 text-amber-500" />
-                  AI Scorecard
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {app.scorecards.map((sc) => (
-                  <div key={sc.id} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <ScoreDimensionBar label="Communication" value={sc.communication_score} />
-                      <ScoreDimensionBar label="Knowledge" value={sc.knowledge_score} />
-                      <ScoreDimensionBar label="Confidence" value={sc.confidence_score} />
-                      <ScoreDimensionBar label="Relevance" value={sc.relevance_score} />
-                    </div>
-                    <div className="flex items-center justify-between pt-3 border-t">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Overall Score</p>
-                        <p className="text-2xl font-bold">
-                          {parseFloat(sc.overall_score).toFixed(1)}
-                          <span className="text-sm font-normal text-muted-foreground ml-1">/ 100</span>
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="text-sm">{sc.recommendation}</Badge>
-                    </div>
-                    {sc.summary && (
-                      <div className="pt-3 border-t">
-                        <p className="text-xs text-muted-foreground mb-1">Summary</p>
-                        <p className="text-sm">{sc.summary}</p>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {sc.strengths?.length > 0 && (
-                        <div>
-                          <p className="text-xs font-medium text-emerald-600 mb-1.5">Strengths</p>
-                          <div className="flex flex-wrap gap-1">
-                            {sc.strengths.map((s, i) => (
-                              <span key={i} className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded text-xs">{s}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {sc.weaknesses?.length > 0 && (
-                        <div>
-                          <p className="text-xs font-medium text-red-500 mb-1.5">Areas to Improve</p>
-                          <div className="flex flex-wrap gap-1">
-                            {sc.weaknesses.map((w, i) => (
-                              <span key={i} className="px-2 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-xs">{w}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 ))}
               </CardContent>
@@ -396,53 +567,63 @@ export default function ApplicationDetailPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-pink-500" />
-                  Interviews ({app.interviews.length})
+                  <div className="w-6 h-6 rounded-md bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                    <Calendar className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
+                  </div>
+                  Interviews
+                  <span className="ml-auto text-xs font-normal text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                    {app.interviews.length}
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {app.interviews.map((iv) => (
-                  <div key={iv.id} className="rounded-lg border p-4 space-y-2">
+                  <div key={iv.id} className="rounded-lg border p-4 space-y-3 hover:shadow-sm transition-shadow">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm">{iv.interview_type.replace(/_/g, ' ')}</span>
+                      <span className="font-semibold text-sm">{iv.interview_type.replace(/_/g, ' ')}</span>
                       <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', INTERVIEW_STATUS_COLORS[iv.status] || 'bg-gray-100 text-gray-700')}>
                         {iv.status}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
-                        <p className="text-muted-foreground">Scheduled</p>
+                        <p className="text-muted-foreground mb-0.5">Scheduled</p>
                         <p className="font-medium">{formatDateTime(iv.scheduled_at)}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Duration</p>
+                        <p className="text-muted-foreground mb-0.5">Duration</p>
                         <p className="font-medium">{iv.duration_minutes} minutes</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Interviewer</p>
+                        <p className="text-muted-foreground mb-0.5">Interviewer</p>
                         <p className="font-medium">{iv.interviewer_name}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Email</p>
+                        <p className="text-muted-foreground mb-0.5">Email</p>
                         <p className="font-medium">{iv.interviewer_email}</p>
                       </div>
                     </div>
                     {iv.meeting_link && (
-                      <a href={iv.meeting_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-500 hover:underline">
+                      <a href={iv.meeting_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-600 hover:underline">
                         <ExternalLink className="h-3 w-3" />
                         Join Meeting
                       </a>
                     )}
                     {iv.feedback && (
-                      <div className="pt-2 border-t">
-                        <p className="text-xs text-muted-foreground mb-1">Feedback</p>
-                        <p className="text-sm italic">"{iv.feedback}"</p>
+                      <div className="pt-3 border-t">
+                        <p className="text-xs text-muted-foreground mb-1 font-medium">Feedback</p>
+                        <p className="text-sm italic leading-relaxed text-muted-foreground">"{iv.feedback}"</p>
                       </div>
                     )}
                     {iv.rating && (
-                      <div className="flex items-center gap-1 text-xs">
-                        <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                        <span className="font-medium">{iv.rating}/5</span>
+                      <div className="flex items-center gap-1 text-xs pt-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={cn('h-3.5 w-3.5', i < iv.rating! ? 'text-amber-500 fill-amber-500' : 'text-muted')}
+                          />
+                        ))}
+                        <span className="font-medium ml-1">{iv.rating}/5</span>
                       </div>
                     )}
                   </div>
@@ -452,14 +633,37 @@ export default function ApplicationDetailPage() {
           )}
         </div>
 
-        {/* Right Column - Sidebar */}
+        {/* ── Right Column — Sidebar ── */}
         <div className="space-y-6">
+
+          {/* Score Ring */}
+          {app.score && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <Star className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  Candidate Score
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-2 pb-5">
+                <ScoreRing score={app.score} />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Status & Actions */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Status & Actions</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+                  <Activity className="h-3.5 w-3.5 text-primary" />
+                </div>
+                Status & Actions
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <div className="space-y-1.5">
                 <p className="text-xs font-medium text-muted-foreground">Change Status</p>
                 <Select
@@ -491,30 +695,26 @@ export default function ApplicationDetailPage() {
           {/* Application Meta */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Application Info</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                  <FileText className="h-3.5 w-3.5 text-gray-600 dark:text-gray-400" />
+                </div>
+                Application Info
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div>
-                <p className="text-xs text-muted-foreground">Application ID</p>
-                <p className="font-mono text-xs mt-0.5 break-all">{app.id}</p>
+                <p className="text-xs text-muted-foreground mb-0.5">Application ID</p>
+                <p className="font-mono text-[11px] break-all text-muted-foreground">{app.id}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Applied On</p>
+                <p className="text-xs text-muted-foreground mb-0.5">Applied On</p>
                 <p className="font-medium">{formatDateTime(app.created_at)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Last Updated</p>
+                <p className="text-xs text-muted-foreground mb-0.5">Last Updated</p>
                 <p className="font-medium">{formatDateTime(app.updated_at)}</p>
               </div>
-              {app.score && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Score</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                    <span className="text-lg font-bold">{parseFloat(app.score).toFixed(1)}</span>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -523,12 +723,14 @@ export default function ApplicationDetailPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
+                  <div className="w-6 h-6 rounded-md bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+                    <MessageSquare className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                  </div>
                   Notes
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{app.notes}</p>
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">{app.notes}</p>
               </CardContent>
             </Card>
           )}
@@ -537,13 +739,18 @@ export default function ApplicationDetailPage() {
           {app.metadata && Object.keys(app.metadata).length > 0 && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Metadata</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    <Tag className="h-3.5 w-3.5 text-gray-600 dark:text-gray-400" />
+                  </div>
+                  Metadata
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2.5 text-sm">
                   {Object.entries(app.metadata).map(([key, value]) => (
                     <div key={key}>
-                      <p className="text-xs text-muted-foreground">{key}</p>
+                      <p className="text-xs text-muted-foreground mb-0.5">{key}</p>
                       <p className="font-medium">{String(value)}</p>
                     </div>
                   ))}
@@ -552,26 +759,6 @@ export default function ApplicationDetailPage() {
             </Card>
           )}
         </div>
-      </div>
-    </div>
-  )
-}
-
-function InfoRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  value: string
-}) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm font-medium">{value}</p>
       </div>
     </div>
   )
