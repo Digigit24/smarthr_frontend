@@ -25,6 +25,8 @@ import CallsPage from '@/pages/CallsPage'
 import CallDetailPage from '@/pages/CallDetailPage'
 import CallEditPage from '@/pages/CallEditPage'
 import CallQueuesPage from '@/pages/CallQueuesPage'
+import CallQueueDetailPage from '@/pages/CallQueueDetailPage'
+import CallQueueCreatePage from '@/pages/CallQueueCreatePage'
 import ScorecardsPage from '@/pages/ScorecardsPage'
 import InterviewsPage from '@/pages/InterviewsPage'
 import NotificationsPage from '@/pages/NotificationsPage'
@@ -78,6 +80,8 @@ function AppLayout() {
     : location.pathname.match(/\/applications\/[^/]+/) ? 'Application Details'
     : location.pathname.match(/\/calls\/[^/]+\/edit/) ? 'Edit Call'
     : location.pathname.match(/\/calls\/[^/]+/) ? 'Call Details'
+    : location.pathname === '/call-queues/new' ? 'Create Call Queue'
+    : location.pathname.match(/\/call-queues\/[^/]+/) ? 'Queue Details'
     : 'SmartHR-In')
 
   const { data: notificationsData } = useQuery({
@@ -120,6 +124,8 @@ function AppLayout() {
             <Route path="/calls/:id" element={<CallDetailPage />} />
             <Route path="/calls/:id/edit" element={<CallEditPage />} />
             <Route path="/call-queues" element={<CallQueuesPage />} />
+            <Route path="/call-queues/new" element={<CallQueueCreatePage />} />
+            <Route path="/call-queues/:id" element={<CallQueueDetailPage />} />
             <Route path="/scorecards" element={<ScorecardsPage />} />
             <Route path="/interviews" element={<InterviewsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
