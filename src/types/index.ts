@@ -431,23 +431,21 @@ export interface CallQueue {
 
 export interface CallQueueItem {
   id: string
-  application: {
-    id: string
-    applicant_name: string
-    applicant_email: string
-    job_title: string
-  }
+  queue_id: string
+  application_id: string
+  applicant_name: string
+  applicant_email: string
+  applicant_phone: string
+  job_title: string
   position: number
   status: CallQueueItemStatus
   attempts: number
   score: number | null
+  call_record_id: string | null
+  last_attempt_at: string | null
   error_message: string
   completed_at: string | null
-  call_record: {
-    id: string
-    status: string
-    duration: number
-  } | null
+  created_at: string
 }
 
 // ─── Scorecards ──────────────────────────────────────────────────────────────

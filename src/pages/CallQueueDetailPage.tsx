@@ -362,15 +362,12 @@ export default function CallQueueDetailPage() {
           </div>
         ) : (
           <>
-            {/* Debug: check raw API response - remove after fixing */}
-            {console.log('Queue items raw data:', JSON.stringify(itemsData?.results?.[0], null, 2))}
             {/* Mobile cards */}
             <div className="sm:hidden divide-y divide-border">
               {itemsData?.results.map((item: CallQueueItem) => {
                 const itemCfg = ITEM_STATUS_CONFIG[item.status] || ITEM_STATUS_CONFIG.PENDING
-                const app = item.application
-                const appName = app?.applicant_name || app?.applicant_email || app?.job_title || `Applicant #${item.position}`
-                const appEmail = app?.applicant_name ? (app?.applicant_email || '') : ''
+                const appName = item.applicant_name || item.applicant_email || `Applicant #${item.position}`
+                const appEmail = item.applicant_name ? (item.applicant_email || '') : ''
                 return (
                   <div key={item.id} className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
@@ -379,6 +376,7 @@ export default function CallQueueDetailPage() {
                         <div className="min-w-0">
                           <p className="font-medium text-sm truncate">{appName}</p>
                           {appEmail && <p className="text-xs text-muted-foreground truncate">{appEmail}</p>}
+                          {item.job_title && <p className="text-xs text-muted-foreground truncate">{item.job_title}</p>}
                         </div>
                       </div>
                       <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0', itemCfg.color, item.status === 'CALLING' && 'animate-pulse')}>
@@ -388,11 +386,12 @@ export default function CallQueueDetailPage() {
                     </div>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span>#{item.position}</span>
+                      {item.applicant_phone && <span>{item.applicant_phone}</span>}
                       <span>Attempts: {item.attempts}</span>
                       {item.score != null && (
                         <span className="font-medium text-foreground">Score: {Number(item.score).toFixed(1)}</span>
                       )}
-                      {item.call_record && (
+                      {item.call_record_id && (
                         <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400">
                           <Phone className="h-3 w-3" /> Call
                         </span>
@@ -425,9 +424,8 @@ export default function CallQueueDetailPage() {
                 <tbody className="divide-y divide-border">
                   {itemsData?.results.map((item: CallQueueItem) => {
                     const itemCfg = ITEM_STATUS_CONFIG[item.status] || ITEM_STATUS_CONFIG.PENDING
-                    const app = item.application
-                    const appName = app?.applicant_name || app?.applicant_email || app?.job_title || `Applicant #${item.position}`
-                    const appEmail = app?.applicant_name ? (app?.applicant_email || '') : ''
+                    const appName = item.applicant_name || item.applicant_email || `Applicant #${item.position}`
+                    const appEmail = item.applicant_name ? (item.applicant_email || '') : ''
                     return (
                       <tr key={item.id} className="hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-3 text-muted-foreground text-xs">{item.position}</td>
@@ -437,6 +435,7 @@ export default function CallQueueDetailPage() {
                             <div className="min-w-0">
                               <p className="font-medium text-sm truncate">{appName}</p>
                               {appEmail && <p className="text-xs text-muted-foreground truncate">{appEmail}</p>}
+                              {item.job_title && <p className="text-xs text-muted-foreground truncate">{item.job_title}</p>}
                             </div>
                           </div>
                         </td>
@@ -456,7 +455,7 @@ export default function CallQueueDetailPage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">{item.completed_at ? formatDateTime(item.completed_at) : '—'}</span>
-                            {item.call_record && (
+                            {item.call_record_id && (
                               <span className="h-6 w-6 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
                                 <Phone className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                               </span>
