@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { X, CalendarDays } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -19,20 +19,34 @@ export function DateRangeFilter({
 
   return (
     <>
-      <Input
-        type="date"
-        value={fromDate}
-        onChange={(e) => onFromChange(e.target.value)}
-        placeholder="From"
-        className="h-9 w-[calc(50%-6px)] sm:w-36 text-xs"
-      />
-      <Input
-        type="date"
-        value={toDate}
-        onChange={(e) => onToChange(e.target.value)}
-        placeholder="To"
-        className="h-9 w-[calc(50%-6px)] sm:w-36 text-xs"
-      />
+      <div className="relative">
+        {!fromDate && (
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] text-muted-foreground pointer-events-none z-10">
+            <CalendarDays className="h-3 w-3" />
+            From
+          </span>
+        )}
+        <Input
+          type="date"
+          value={fromDate}
+          onChange={(e) => onFromChange(e.target.value)}
+          className={`h-9 w-[calc(50%-6px)] sm:w-36 text-xs ${!fromDate ? '[&::-webkit-datetime-edit]:invisible' : ''}`}
+        />
+      </div>
+      <div className="relative">
+        {!toDate && (
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] text-muted-foreground pointer-events-none z-10">
+            <CalendarDays className="h-3 w-3" />
+            To
+          </span>
+        )}
+        <Input
+          type="date"
+          value={toDate}
+          onChange={(e) => onToChange(e.target.value)}
+          className={`h-9 w-[calc(50%-6px)] sm:w-36 text-xs ${!toDate ? '[&::-webkit-datetime-edit]:invisible' : ''}`}
+        />
+      </div>
       {hasFilter && (
         <Button
           variant="ghost"
