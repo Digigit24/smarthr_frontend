@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SideDrawer } from '@/components/SideDrawer'
+import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { interviewsService } from '@/services/interviews'
 import type { InterviewListItem, InterviewFormData, InterviewType } from '@/types'
 import { formatDateTime, cn } from '@/lib/utils'
@@ -55,18 +56,22 @@ export default function InterviewsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [viewInterviewId, setViewInterviewId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['interviews', search, statusFilter, typeFilter],
+    queryKey: ['interviews', search, statusFilter, typeFilter, dateFrom, dateTo],
     queryFn: () =>
       interviewsService.list({
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
         ...(typeFilter && { interview_type: typeFilter }),
+        ...(dateFrom && { scheduled_at_gte: dateFrom }),
+        ...(dateTo && { scheduled_at_lte: dateTo }),
         ordering: 'scheduled_at',
       }),
   })
@@ -245,6 +250,15 @@ export default function InterviewsPage() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Date Range */}
+      <DateRangeFilter
+        fromDate={dateFrom}
+        toDate={dateTo}
+        onFromChange={setDateFrom}
+        onToChange={setDateTo}
+        onClear={() => { setDateFrom(''); setDateTo('') }}
+      />
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">

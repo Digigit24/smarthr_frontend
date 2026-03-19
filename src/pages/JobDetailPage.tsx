@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { jobsService } from '@/services/jobs'
 import { applicationsService } from '@/services/applications'
 import { callQueuesService } from '@/services/callQueues'
@@ -178,6 +179,8 @@ export default function JobDetailPage() {
 
   const [appStatusFilter, setAppStatusFilter] = useState('')
   const [appSearch, setAppSearch] = useState('')
+  const [appDateFrom, setAppDateFrom] = useState('')
+  const [appDateTo, setAppDateTo] = useState('')
   const [voiceConfigOpen, setVoiceConfigOpen] = useState(false)
 
   // Fetch job detail
@@ -196,11 +199,13 @@ export default function JobDetailPage() {
 
   // Fetch applications for this job
   const { data: applicationsData, isLoading: appsLoading } = useQuery({
-    queryKey: ['job-applications', id, appStatusFilter, appSearch],
+    queryKey: ['job-applications', id, appStatusFilter, appSearch, appDateFrom, appDateTo],
     queryFn: () =>
       jobsService.applications(id!, {
         ...(appStatusFilter && { status: appStatusFilter }),
         ...(appSearch && { search: appSearch }),
+        ...(appDateFrom && { created_at_gte: appDateFrom }),
+        ...(appDateTo && { created_at_lte: appDateTo }),
       }),
     enabled: !!id,
   })
@@ -496,6 +501,13 @@ export default function JobDetailPage() {
                 ))}
               </SelectContent>
             </Select>
+            <DateRangeFilter
+              fromDate={appDateFrom}
+              toDate={appDateTo}
+              onFromChange={setAppDateFrom}
+              onToChange={setAppDateTo}
+              onClear={() => { setAppDateFrom(''); setAppDateTo('') }}
+            />
           </div>
 
           {/* Applications Table */}

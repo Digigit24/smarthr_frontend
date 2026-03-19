@@ -202,11 +202,11 @@ export default function ApplicationDetailPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InfoRow icon={User} label="Full Name" value={`${app.applicant.first_name} ${app.applicant.last_name}`} />
                 <InfoRow icon={Mail} label="Email" value={app.applicant.email} />
-                <InfoRow icon={Phone} label="Phone" value={app.applicant.phone || '—'} />
+                {app.applicant.phone && <InfoRow icon={Phone} label="Phone" value={app.applicant.phone} />}
                 <InfoRow icon={Tag} label="Source" value={app.applicant.source.replace(/_/g, ' ')} />
-                <InfoRow icon={Briefcase} label="Current Role" value={app.applicant.current_role || '—'} />
-                <InfoRow icon={Briefcase} label="Current Company" value={app.applicant.current_company || '—'} />
-                <InfoRow icon={Clock} label="Experience" value={`${app.applicant.experience_years} year${app.applicant.experience_years !== 1 ? 's' : ''}`} />
+                {app.applicant.current_role && <InfoRow icon={Briefcase} label="Current Role" value={app.applicant.current_role} />}
+                {app.applicant.current_company && <InfoRow icon={Briefcase} label="Current Company" value={app.applicant.current_company} />}
+                {app.applicant.experience_years > 0 && <InfoRow icon={Clock} label="Experience" value={`${app.applicant.experience_years} year${app.applicant.experience_years !== 1 ? 's' : ''}`} />}
               </div>
               {app.applicant.skills?.length > 0 && (
                 <div className="mt-4 pt-4 border-t">

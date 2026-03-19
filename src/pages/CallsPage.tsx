@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { SideDrawer } from '@/components/SideDrawer'
+import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { callsService } from '@/services/calls'
 import { callQueuesService } from '@/services/callQueues'
 import { applicationsService } from '@/services/applications'
@@ -197,6 +198,8 @@ export default function CallsPage() {
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '')
   const [providerFilter, setProviderFilter] = useState('')
   const [dateFilter, setDateFilter] = useState(searchParams.get('filter') || '')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   // Clear URL params after reading them
   useEffect(() => {
@@ -215,13 +218,15 @@ export default function CallsPage() {
   const todayStr = new Date().toISOString().split('T')[0]
 
   const { data, isLoading } = useQuery({
-    queryKey: ['calls', search, statusFilter, providerFilter, dateFilter],
+    queryKey: ['calls', search, statusFilter, providerFilter, dateFilter, dateFrom, dateTo],
     queryFn: () =>
       callsService.list({
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
         ...(providerFilter && { provider: providerFilter }),
         ...(dateFilter === 'today' && { created_at_gte: todayStr, created_at_lte: todayStr }),
+        ...(dateFrom && !dateFilter && { created_at_gte: dateFrom }),
+        ...(dateTo && !dateFilter && { created_at_lte: dateTo }),
       }),
   })
 
@@ -351,6 +356,15 @@ export default function CallsPage() {
           </Badge>
         )}
       </div>
+
+      {/* Date Range */}
+      <DateRangeFilter
+        fromDate={dateFrom}
+        toDate={dateTo}
+        onFromChange={(v) => { setDateFrom(v); setDateFilter('') }}
+        onToChange={(v) => { setDateTo(v); setDateFilter('') }}
+        onClear={() => { setDateFrom(''); setDateTo('') }}
+      />
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">

@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SideDrawer } from '@/components/SideDrawer'
+import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { scorecardsService } from '@/services/scorecards'
 import type { ScorecardListItem } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
@@ -39,6 +40,8 @@ export default function ScorecardsPage() {
   const [search, setSearch] = useState('')
   const [recFilter, setRecFilter] = useState('')
   const [ordering, setOrdering] = useState('-overall_score')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [viewCardId, setViewCardId] = useState<string | null>(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [editCardId, setEditCardId] = useState<string | null>(null)
@@ -49,11 +52,13 @@ export default function ScorecardsPage() {
   })
 
   const { data, isLoading } = useQuery({
-    queryKey: ['scorecards', search, recFilter, ordering],
+    queryKey: ['scorecards', search, recFilter, ordering, dateFrom, dateTo],
     queryFn: () =>
       scorecardsService.list({
         ...(search && { search }),
         ...(recFilter && { recommendation: recFilter }),
+        ...(dateFrom && { created_at_gte: dateFrom }),
+        ...(dateTo && { created_at_lte: dateTo }),
         ordering,
       }),
   })
@@ -165,6 +170,15 @@ export default function ScorecardsPage() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Date Range */}
+      <DateRangeFilter
+        fromDate={dateFrom}
+        toDate={dateTo}
+        onFromChange={setDateFrom}
+        onToChange={setDateTo}
+        onClear={() => { setDateFrom(''); setDateTo('') }}
+      />
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">

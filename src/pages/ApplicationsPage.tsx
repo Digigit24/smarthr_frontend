@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SideDrawer } from '@/components/SideDrawer'
+import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { applicationsService } from '@/services/applications'
 import { jobsService } from '@/services/jobs'
 import { applicantsService } from '@/services/applicants'
@@ -201,6 +202,8 @@ export default function ApplicationsPage() {
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '')
   const [ordering, setOrdering] = useState('-created_at')
   const [dateFilter, setDateFilter] = useState(searchParams.get('filter') || '')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   // Clear URL params after reading them so they don't persist on refresh
   useEffect(() => {
@@ -219,12 +222,14 @@ export default function ApplicationsPage() {
   const todayStr = new Date().toISOString().split('T')[0]
 
   const { data, isLoading } = useQuery({
-    queryKey: ['applications', search, statusFilter, ordering, dateFilter],
+    queryKey: ['applications', search, statusFilter, ordering, dateFilter, dateFrom, dateTo],
     queryFn: () =>
       applicationsService.list({
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
         ...(dateFilter === 'today' && { created_at_gte: todayStr, created_at_lte: todayStr }),
+        ...(dateFrom && !dateFilter && { created_at_gte: dateFrom }),
+        ...(dateTo && !dateFilter && { created_at_lte: dateTo }),
         ordering,
       }),
   })
@@ -409,6 +414,15 @@ export default function ApplicationsPage() {
           </Badge>
         )}
       </div>
+
+      {/* Date Range */}
+      <DateRangeFilter
+        fromDate={dateFrom}
+        toDate={dateTo}
+        onFromChange={(v) => { setDateFrom(v); setDateFilter('') }}
+        onToChange={(v) => { setDateTo(v); setDateFilter('') }}
+        onClear={() => { setDateFrom(''); setDateTo('') }}
+      />
 
       {/* Table */}
       {isLoading ? (
