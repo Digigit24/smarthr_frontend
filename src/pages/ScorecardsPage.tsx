@@ -1,38 +1,127 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Star, Search, Loader2, Eye, Pencil, Trash2 } from 'lucide-react'
+import {
+  Star, Search, Loader2, Trash2, MessageSquare, Brain, Shield, Zap,
+  ThumbsUp, ThumbsDown, TrendingUp,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { SideDrawer } from '@/components/SideDrawer'
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { scorecardsService } from '@/services/scorecards'
-import type { ScorecardListItem } from '@/types'
+import type { ScorecardListItem, ScorecardRecommendation } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
 
-const REC_COLORS: Record<string, string> = {
-  STRONG_YES: 'bg-emerald-100 text-emerald-700',
-  YES: 'bg-green-100 text-green-700',
-  MAYBE: 'bg-amber-100 text-amber-700',
-  NO: 'bg-red-100 text-red-700',
-  STRONG_NO: 'bg-red-200 text-red-900',
+const REC_CONFIG: Record<string, { label: string; color: string; gradient: string; dot: string }> = {
+  STRONG_YES: { label: 'Strong Yes', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', gradient: 'from-emerald-500 to-teal-500', dot: 'bg-emerald-500' },
+  YES: { label: 'Yes', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', gradient: 'from-green-500 to-emerald-500', dot: 'bg-green-500' },
+  MAYBE: { label: 'Maybe', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', gradient: 'from-amber-400 to-orange-500', dot: 'bg-amber-500' },
+  NO: { label: 'No', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', gradient: 'from-red-400 to-rose-500', dot: 'bg-red-500' },
+  STRONG_NO: { label: 'Strong No', color: 'bg-red-200 text-red-900 dark:bg-red-900/40 dark:text-red-300', gradient: 'from-red-500 to-red-700', dot: 'bg-red-600' },
 }
 
-function ScoreGauge({ score }: { score: string }) {
-  const val = parseFloat(score)
-  const color = val >= 70 ? 'text-emerald-500' : val >= 40 ? 'text-amber-500' : 'text-red-500'
-  return <span className={cn('text-lg font-bold', color)}>{val.toFixed(1)}</span>
+const DIMENSION_ICONS = [
+  { key: 'communication_score', label: 'Com', icon: MessageSquare, color: 'text-blue-500' },
+  { key: 'knowledge_score', label: 'Know', icon: Brain, color: 'text-purple-500' },
+  { key: 'confidence_score', label: 'Conf', icon: Shield, color: 'text-amber-500' },
+  { key: 'relevance_score', label: 'Rel', icon: Zap, color: 'text-emerald-500' },
+]
+
+function ScoreRingSmall({ score }: { score: number }) {
+  const size = 56
+  const stroke = 4
+  const radius = (size - stroke) / 2
+  const circ = 2 * Math.PI * radius
+  const offset = circ - (score / 100) * circ
+  const color = score >= 70 ? 'stroke-emerald-500' : score >= 40 ? 'stroke-amber-500' : 'stroke-red-500'
+  const textColor = score >= 70 ? 'text-emerald-600' : score >= 40 ? 'text-amber-600' : 'text-red-600'
+  return (
+    <div className="relative inline-flex items-center justify-center shrink-0">
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" strokeWidth={stroke} className="stroke-muted" />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" strokeWidth={stroke}
+          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+          className={cn(color, 'transition-all duration-500')} />
+      </svg>
+      <span className={cn('absolute text-sm font-bold', textColor)}>{score.toFixed(0)}</span>
+    </div>
+  )
+}
+
+function ScorecardCard({ sc, onDelete }: { sc: ScorecardListItem; onDelete: (id: string) => void }) {
+  const navigate = useNavigate()
+  const overall = parseFloat(sc.overall_score)
+  const recCfg = REC_CONFIG[sc.recommendation] || REC_CONFIG.MAYBE
+
+  return (
+    <div
+      className="group rounded-xl border bg-card overflow-hidden hover:shadow-md hover:border-border/80 transition-all duration-200 cursor-pointer"
+      onClick={() => navigate(`/scorecards/${sc.id}`)}
+    >
+      {/* Gradient accent */}
+      <div className={cn('h-1.5 bg-gradient-to-r', recCfg.gradient)} />
+
+      <div className="p-4 sm:p-5">
+        {/* Top: Score ring + Recommendation */}
+        <div className="flex items-center gap-3 mb-4">
+          <ScoreRingSmall score={overall} />
+          <div className="flex-1 min-w-0">
+            <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium', recCfg.color)}>
+              <span className={cn('h-1.5 w-1.5 rounded-full', recCfg.dot)} />
+              {recCfg.label}
+            </span>
+            <p className="text-xs text-muted-foreground mt-1">Overall: <span className="font-semibold text-foreground">{overall.toFixed(1)}</span> / 100</p>
+          </div>
+          <Button
+            variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+            onClick={(e) => { e.stopPropagation(); onDelete(sc.id) }}
+            title="Delete"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        {/* Dimension scores as mini bars */}
+        <div className="space-y-2 mb-4">
+          {DIMENSION_ICONS.map((dim) => {
+            const val = parseFloat((sc as unknown as Record<string, string>)[dim.key] || '0')
+            return (
+              <div key={dim.key} className="flex items-center gap-2">
+                <dim.icon className={cn('h-3.5 w-3.5 shrink-0', dim.color)} />
+                <span className="text-[11px] text-muted-foreground w-10 shrink-0">{dim.label}</span>
+                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={cn('h-full rounded-full transition-all duration-500',
+                      val >= 70 ? 'bg-emerald-500' : val >= 40 ? 'bg-amber-500' : 'bg-red-500'
+                    )}
+                    style={{ width: `${val}%` }}
+                  />
+                </div>
+                <span className="text-[11px] font-medium w-8 text-right">{val.toFixed(0)}</span>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Summary */}
+        {sc.summary && (
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed">{sc.summary}</p>
+        )}
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-3 border-t text-xs text-muted-foreground">
+          <span>{formatDate(sc.created_at)}</span>
+          <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-medium">
+            View Details →
+          </span>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function ScorecardsPage() {
@@ -42,14 +131,6 @@ export default function ScorecardsPage() {
   const [ordering, setOrdering] = useState('-overall_score')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
-  const [viewCardId, setViewCardId] = useState<string | null>(null)
-  const [viewOpen, setViewOpen] = useState(false)
-  const [editCardId, setEditCardId] = useState<string | null>(null)
-  const [editOpen, setEditOpen] = useState(false)
-  const [editForm, setEditForm] = useState({
-    summary: '',
-    recommendation: '',
-  })
 
   const { data, isLoading } = useQuery({
     queryKey: ['scorecards', search, recFilter, ordering, dateFrom, dateTo],
@@ -63,77 +144,65 @@ export default function ScorecardsPage() {
       }),
   })
 
-  const { data: viewCard, isLoading: viewCardLoading } = useQuery({
-    queryKey: ['scorecard-detail', viewCardId],
-    queryFn: () => scorecardsService.get(viewCardId!),
-    enabled: !!viewCardId,
-  })
-
-  const { data: editCard } = useQuery({
-    queryKey: ['scorecard-detail', editCardId],
-    queryFn: () => scorecardsService.get(editCardId!),
-    enabled: !!editCardId,
-  })
-
-  useEffect(() => {
-    if (editCard) {
-      setEditForm({
-        summary: editCard.summary || '',
-        recommendation: editCard.recommendation || '',
-      })
-    }
-  }, [editCard])
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
-      scorecardsService.update(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['scorecards'] })
-      qc.invalidateQueries({ queryKey: ['scorecard-detail'] })
-      setEditOpen(false)
-      setEditCardId(null)
-      toast.success('Scorecard updated')
-    },
-    onError: () => toast.error('Failed to update scorecard'),
-  })
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => scorecardsService.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['scorecards'] })
-      setViewOpen(false)
-      setViewCardId(null)
       toast.success('Scorecard deleted')
     },
     onError: () => toast.error('Failed to delete scorecard'),
   })
 
-  const handleView = (sc: ScorecardListItem) => {
-    setViewCardId(sc.id)
-    setViewOpen(true)
-  }
-
-  const handleEdit = (sc: ScorecardListItem) => {
-    setEditCardId(sc.id)
-    setEditOpen(true)
-  }
-
-  const handleDelete = (sc: ScorecardListItem) => {
+  const handleDelete = (id: string) => {
     if (window.confirm('Delete this scorecard? This cannot be undone.')) {
-      deleteMutation.mutate(sc.id)
+      deleteMutation.mutate(id)
     }
   }
 
+  // Recommendation counts
+  const allCards = data?.results || []
+  const recCounts = allCards.reduce((acc, c) => { acc[c.recommendation] = (acc[c.recommendation] || 0) + 1; return acc }, {} as Record<string, number>)
+
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-lg font-semibold">Scorecards</h1>
-        <p className="text-xs text-muted-foreground">{data?.count ?? 0} total scorecards</p>
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shrink-0">
+            <TrendingUp className="h-4 w-4" />
+          </div>
+          Scorecards
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">{data?.count ?? 0} total scorecards</p>
       </div>
 
+      {/* Quick recommendation pills */}
+      {allCards.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {(['STRONG_YES', 'YES', 'MAYBE', 'NO', 'STRONG_NO'] as ScorecardRecommendation[]).map((r) => {
+            const count = recCounts[r] || 0
+            if (count === 0) return null
+            const cfg = REC_CONFIG[r]
+            return (
+              <button
+                key={r}
+                onClick={() => setRecFilter(recFilter === r ? '' : r)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                  recFilter === r ? 'ring-2 ring-offset-1 ring-primary/30 ' + cfg.color : cfg.color + ' border-transparent hover:shadow-sm'
+                )}
+              >
+                <span className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
+                {count} {cfg.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search scorecards..."
@@ -142,255 +211,62 @@ export default function ScorecardsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select
-          value={recFilter || 'ALL'}
-          onValueChange={(v) => setRecFilter(v === 'ALL' ? '' : v)}
-        >
-          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
-            <SelectValue placeholder="All recommendations" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All recommendations</SelectItem>
-            <SelectItem value="STRONG_YES">Strong Yes</SelectItem>
-            <SelectItem value="YES">Yes</SelectItem>
-            <SelectItem value="MAYBE">Maybe</SelectItem>
-            <SelectItem value="NO">No</SelectItem>
-            <SelectItem value="STRONG_NO">Strong No</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={ordering} onValueChange={setOrdering}>
-          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="-overall_score">Highest score</SelectItem>
-            <SelectItem value="overall_score">Lowest score</SelectItem>
-            <SelectItem value="-created_at">Newest first</SelectItem>
-            <SelectItem value="created_at">Oldest first</SelectItem>
-          </SelectContent>
-        </Select>
-        <DateRangeFilter
-          fromDate={dateFrom}
-          toDate={dateTo}
-          onFromChange={setDateFrom}
-          onToChange={setDateTo}
-          onClear={() => { setDateFrom(''); setDateTo('') }}
-        />
+        <div className="flex flex-wrap gap-3">
+          <Select value={recFilter || 'ALL'} onValueChange={(v) => setRecFilter(v === 'ALL' ? '' : v)}>
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="All recommendations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All recommendations</SelectItem>
+              <SelectItem value="STRONG_YES">Strong Yes</SelectItem>
+              <SelectItem value="YES">Yes</SelectItem>
+              <SelectItem value="MAYBE">Maybe</SelectItem>
+              <SelectItem value="NO">No</SelectItem>
+              <SelectItem value="STRONG_NO">Strong No</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={ordering} onValueChange={setOrdering}>
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="-overall_score">Highest score</SelectItem>
+              <SelectItem value="overall_score">Lowest score</SelectItem>
+              <SelectItem value="-created_at">Newest first</SelectItem>
+              <SelectItem value="created_at">Oldest first</SelectItem>
+            </SelectContent>
+          </Select>
+          <DateRangeFilter
+            fromDate={dateFrom}
+            toDate={dateTo}
+            onFromChange={setDateFrom}
+            onToChange={setDateTo}
+            onClear={() => { setDateFrom(''); setDateTo('') }}
+          />
+        </div>
       </div>
 
+      {/* Grid */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground mt-3">Loading scorecards...</p>
         </div>
       ) : (data?.results?.length ?? 0) === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Star className="h-12 w-12 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">No scorecards yet</p>
+        <div className="text-center py-20">
+          <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <Star className="h-8 w-8 text-muted-foreground/40" />
+          </div>
+          <p className="font-semibold text-sm">No scorecards yet</p>
+          <p className="text-sm text-muted-foreground mt-1">Scorecards are generated when AI calls are completed</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {data?.results.map((sc) => (
-            <Card key={sc.id} className="hover:border-border/80 transition-colors">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Overall Score</p>
-                    <ScoreGauge score={sc.overall_score} />
-                    <span className="text-muted-foreground text-sm"> / 100</span>
-                  </div>
-                  <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', REC_COLORS[sc.recommendation])}>
-                    {sc.recommendation.replace(/_/g, ' ')}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-1 text-[12px] text-muted-foreground">
-                  <span>Com: <strong className="text-foreground">{parseFloat(sc.communication_score).toFixed(1)}</strong></span>
-                  <span>Know: <strong className="text-foreground">{parseFloat(sc.knowledge_score).toFixed(1)}</strong></span>
-                  <span>Conf: <strong className="text-foreground">{parseFloat(sc.confidence_score).toFixed(1)}</strong></span>
-                  <span>Rel: <strong className="text-foreground">{parseFloat(sc.relevance_score).toFixed(1)}</strong></span>
-                </div>
-                {sc.summary && (
-                  <p className="mt-2 text-[12px] text-muted-foreground line-clamp-2">{sc.summary}</p>
-                )}
-                <div className="flex items-center justify-between mt-2">
-                  <p className="text-[11px] text-muted-foreground">{formatDate(sc.created_at)}</p>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleView(sc)} title="View">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(sc)} title="Edit">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-destructive" onClick={() => handleDelete(sc)} title="Delete">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ScorecardCard key={sc.id} sc={sc} onDelete={handleDelete} />
           ))}
         </div>
       )}
-
-      <SideDrawer
-        open={viewOpen}
-        onOpenChange={(open) => {
-          setViewOpen(open)
-          if (!open) setViewCardId(null)
-        }}
-        title="Scorecard Detail"
-        mode="view"
-        size="lg"
-        footerButtons={
-          viewCard
-            ? [
-                {
-                  label: 'Edit',
-                  variant: 'outline' as const,
-                  icon: Pencil,
-                  onClick: () => {
-                    setViewOpen(false)
-                    setEditCardId(viewCard.id)
-                    setEditOpen(true)
-                  },
-                },
-                {
-                  label: 'Delete',
-                  variant: 'destructive' as const,
-                  icon: Trash2,
-                  onClick: () => {
-                    if (window.confirm('Delete this scorecard? This cannot be undone.')) {
-                      deleteMutation.mutate(viewCard.id)
-                    }
-                  },
-                },
-              ]
-            : []
-        }
-        footerAlignment="between"
-      >
-        {viewCardLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground mt-3">Loading scorecard details...</p>
-          </div>
-        ) : viewCard ? (
-          <div className="space-y-5">
-            <div className="text-center py-4 rounded-lg bg-muted/40">
-              <p className="text-xs text-muted-foreground mb-1">Overall Score</p>
-              <ScoreGauge score={viewCard.overall_score} />
-              <span className="text-muted-foreground"> / 100</span>
-              <div className="mt-2">
-                <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-medium', REC_COLORS[viewCard.recommendation])}>
-                  {viewCard.recommendation.replace(/_/g, ' ')}
-                </span>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              {[
-                { label: 'Communication', value: viewCard.communication_score },
-                { label: 'Knowledge', value: viewCard.knowledge_score },
-                { label: 'Confidence', value: viewCard.confidence_score },
-                { label: 'Relevance', value: viewCard.relevance_score },
-              ].map((item) => (
-                <div key={item.label} className="rounded-lg border p-3">
-                  <p className="text-[11px] text-muted-foreground">{item.label}</p>
-                  <p className="text-xl font-bold">{parseFloat(item.value).toFixed(1)}</p>
-                </div>
-              ))}
-            </div>
-            {viewCard.summary && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5">Summary</p>
-                <p className="text-[13px]">{viewCard.summary}</p>
-              </div>
-            )}
-            {viewCard.strengths?.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-emerald-600 mb-1.5">Strengths</p>
-                <ul className="list-disc list-inside text-[13px] space-y-1">
-                  {viewCard.strengths.map((s, i) => <li key={i}>{s}</li>)}
-                </ul>
-              </div>
-            )}
-            {viewCard.weaknesses?.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-red-500 mb-1.5">Areas to Improve</p>
-                <ul className="list-disc list-inside text-[13px] space-y-1">
-                  {viewCard.weaknesses.map((w, i) => <li key={i}>{w}</li>)}
-                </ul>
-              </div>
-            )}
-            {Object.entries(viewCard.detailed_feedback || {}).map(([key, val]) => (
-              <div key={key}>
-                <p className="text-xs font-medium text-muted-foreground capitalize mb-1">{key}</p>
-                <p className="text-[13px]">{val}</p>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </SideDrawer>
-
-      {/* Edit Scorecard Drawer */}
-      <SideDrawer
-        open={editOpen}
-        onOpenChange={(open) => {
-          setEditOpen(open)
-          if (!open) setEditCardId(null)
-        }}
-        title="Edit Scorecard"
-        mode="edit"
-        size="md"
-        footerButtons={[
-          { label: 'Cancel', variant: 'outline', onClick: () => { setEditOpen(false); setEditCardId(null) } },
-          {
-            label: 'Save Changes',
-            loading: updateMutation.isPending,
-            onClick: () => {
-              if (!editCardId) return
-              updateMutation.mutate({
-                id: editCardId,
-                data: {
-                  summary: editForm.summary,
-                  recommendation: editForm.recommendation,
-                },
-              })
-            },
-          },
-        ]}
-        footerAlignment="right"
-      >
-        {editCard ? (
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Recommendation</Label>
-              <Select
-                value={editForm.recommendation}
-                onValueChange={(v) => setEditForm((f) => ({ ...f, recommendation: v }))}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {['STRONG_YES', 'YES', 'MAYBE', 'NO', 'STRONG_NO'].map((r) => (
-                    <SelectItem key={r} value={r}>{r.replace(/_/g, ' ')}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Summary</Label>
-              <Textarea
-                rows={4}
-                value={editForm.summary}
-                onChange={(e) => setEditForm((f) => ({ ...f, summary: e.target.value }))}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        )}
-      </SideDrawer>
     </div>
   )
 }
