@@ -498,6 +498,7 @@ export interface InterviewDetail {
 
 export interface InterviewFormData {
   application: string
+  applicant_name?: string
   interview_type: InterviewType
   scheduled_at: string
   duration_minutes: number

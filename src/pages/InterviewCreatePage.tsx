@@ -80,7 +80,14 @@ export default function InterviewCreatePage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit((data) => createMutation.mutate(data as InterviewFormData))} className="space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit((data) => {
+        const selectedApp = applicationsData?.results?.find((a) => a.id === data.application)
+        const payload: InterviewFormData = {
+          ...data,
+          applicant_name: selectedApp?.applicant_name || selectedApp?.applicant_email || '',
+        }
+        createMutation.mutate(payload)
+      })} className="space-y-4 sm:space-y-6">
         {/* Application & Type */}
         <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-4">
           <h2 className="font-semibold text-sm flex items-center gap-2">
