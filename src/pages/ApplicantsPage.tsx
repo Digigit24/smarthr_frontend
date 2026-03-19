@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Users, Mail, Phone, Briefcase, Eye, Pencil, Trash2, Star, Loader2 } from 'lucide-react'
+import { Plus, Search, Users, Mail, Phone, Briefcase, Eye, Pencil, Trash2, Star, Loader2, SendHorizonal } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/select'
 import { SideDrawer } from '@/components/SideDrawer'
 import { applicantsService } from '@/services/applicants'
+import { applicationsService } from '@/services/applications'
+import { jobsService } from '@/services/jobs'
 import type { ApplicantListItem, ApplicantFormData } from '@/types'
 import { formatDate, getInitials, cn } from '@/lib/utils'
 
@@ -295,6 +297,85 @@ function ApplicantApplications({ applicantId }: { applicantId: string }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+function ApplyForJob({ applicantId }: { applicantId: string }) {
+  const qc = useQueryClient()
+  const [selectedJobId, setSelectedJobId] = useState('')
+  const [notes, setNotes] = useState('')
+
+  const { data: jobsData } = useQuery({
+    queryKey: ['jobs-list-for-apply'],
+    queryFn: () => jobsService.list({ status: 'OPEN', ordering: 'title' }),
+  })
+
+  const applyMutation = useMutation({
+    mutationFn: () =>
+      applicationsService.create({
+        job: selectedJobId,
+        applicant: applicantId,
+        status: 'APPLIED',
+        notes: notes || undefined,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['applicant-applications', applicantId] })
+      qc.invalidateQueries({ queryKey: ['applications'] })
+      setSelectedJobId('')
+      setNotes('')
+      toast.success('Application submitted successfully')
+    },
+    onError: () => toast.error('Failed to submit application'),
+  })
+
+  return (
+    <div className="rounded-lg border p-4 space-y-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+        <SendHorizonal className="h-3.5 w-3.5" />
+        Apply for a Job
+      </p>
+      <div className="space-y-1.5">
+        <Label className="text-[13px]">Select Job *</Label>
+        <Select value={selectedJobId} onValueChange={setSelectedJobId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Choose an open job..." />
+          </SelectTrigger>
+          <SelectContent>
+            {jobsData?.results?.map((job) => (
+              <SelectItem key={job.id} value={job.id}>
+                {job.title} — {job.department} ({job.location})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-[13px]">Notes</Label>
+        <Textarea
+          rows={2}
+          placeholder="Optional notes..."
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
+      </div>
+      <Button
+        className="w-full"
+        disabled={!selectedJobId || applyMutation.isPending}
+        onClick={() => applyMutation.mutate()}
+      >
+        {applyMutation.isPending ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Submitting...
+          </>
+        ) : (
+          <>
+            <SendHorizonal className="h-4 w-4 mr-2" />
+            Submit Application
+          </>
+        )}
+      </Button>
     </div>
   )
 }
@@ -641,6 +722,9 @@ export default function ApplicantsPage() {
                 <p className="text-sm">{viewApplicant.notes}</p>
               </div>
             )}
+
+            {/* Apply for Job */}
+            <ApplyForJob applicantId={viewApplicant.id} />
 
             {/* Applications Section */}
             <div className="space-y-2">
