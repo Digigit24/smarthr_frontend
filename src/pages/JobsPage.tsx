@@ -3,8 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus, Search, Briefcase, MapPin, Users, Clock,
-  Bot, ListChecks, ChevronRight, Loader2,
-  Eye, Pencil, Trash2,
+  Loader2, Eye, Pencil, Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
@@ -13,7 +12,6 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -23,16 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { SideDrawer } from '@/components/SideDrawer'
 import { jobsService } from '@/services/jobs'
-import { callQueuesService } from '@/services/callQueues'
-import type { JobListItem, JobDetail, JobFormData } from '@/types'
+import type { JobListItem, JobFormData } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
 
 const JOB_STATUS_COLORS: Record<string, string> = {
@@ -70,7 +61,7 @@ function JobCard({
   onDelete: (id: string) => void
 }) {
   return (
-    <Card className="hover:border-border/80 transition-colors">
+    <Card className="hover:border-border/80 transition-colors cursor-pointer" onClick={() => onView(job)}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -97,7 +88,7 @@ function JobCard({
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
             <Button
               variant="ghost"
               size="icon"
@@ -248,106 +239,6 @@ function JobFormComp({
   )
 }
 
-function VoiceConfigDialog({
-  job,
-  open,
-  onOpenChange,
-  onSuccess,
-}: {
-  job: JobDetail
-  open: boolean
-  onOpenChange: (v: boolean) => void
-  onSuccess: () => void
-}) {
-  const [selectedAgentId, setSelectedAgentId] = useState(job.voice_agent_id || '')
-  const [shortlistThreshold, setShortlistThreshold] = useState(
-    String(job.voice_agent_config?.auto_shortlist_threshold ?? 7.0)
-  )
-  const [rejectThreshold, setRejectThreshold] = useState(
-    String(job.voice_agent_config?.auto_reject_threshold ?? 4.0)
-  )
-
-  const { data: agentsData } = useQuery({
-    queryKey: ['voice-agents'],
-    queryFn: () => callQueuesService.voiceAgents(),
-    enabled: open,
-  })
-
-  const saveMutation = useMutation({
-    mutationFn: () =>
-      jobsService.updateVoiceConfig(job.id, {
-        voice_agent_id: selectedAgentId || undefined,
-        voice_agent_config: {
-          auto_shortlist_threshold: parseFloat(shortlistThreshold),
-          auto_reject_threshold: parseFloat(rejectThreshold),
-        },
-      }),
-    onSuccess: () => {
-      toast.success('Voice config saved')
-      onSuccess()
-      onOpenChange(false)
-    },
-    onError: () => toast.error('Failed to save voice config'),
-  })
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-md">
-        <DialogHeader>
-          <DialogTitle>Configure Voice Agent</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label>Voice Agent</Label>
-            <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select agent..." />
-              </SelectTrigger>
-              <SelectContent>
-                {agentsData?.map((agent) => (
-                  <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Auto Shortlist Threshold</Label>
-              <Input
-                type="number"
-                min="0"
-                max="10"
-                step="0.1"
-                value={shortlistThreshold}
-                onChange={(e) => setShortlistThreshold(e.target.value)}
-              />
-              <p className="text-[11px] text-muted-foreground">Score ≥ this → shortlisted</p>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Auto Reject Threshold</Label>
-              <Input
-                type="number"
-                min="0"
-                max="10"
-                step="0.1"
-                value={rejectThreshold}
-                onChange={(e) => setRejectThreshold(e.target.value)}
-              />
-              <p className="text-[11px] text-muted-foreground">Score ≤ this → rejected</p>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? 'Saving...' : 'Save Configuration'}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 export default function JobsPage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
@@ -357,11 +248,8 @@ export default function JobsPage() {
   const [expLevelFilter, setExpLevelFilter] = useState('')
   const [ordering, setOrdering] = useState('-created_at')
   const [createOpen, setCreateOpen] = useState(false)
-  const [viewJobId, setViewJobId] = useState<string | null>(null)
-  const [viewOpen, setViewOpen] = useState(false)
   const [editJobId, setEditJobId] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
-  const [voiceConfigOpen, setVoiceConfigOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['jobs', search, statusFilter, jobTypeFilter, expLevelFilter, ordering],
@@ -373,18 +261,6 @@ export default function JobsPage() {
         ...(expLevelFilter && { experience_level: expLevelFilter }),
         ordering,
       }),
-  })
-
-  const { data: viewJob, isLoading: viewJobLoading } = useQuery({
-    queryKey: ['job-detail', viewJobId],
-    queryFn: () => jobsService.get(viewJobId!),
-    enabled: !!viewJobId,
-  })
-
-  const { data: agentData } = useQuery({
-    queryKey: ['voice-agent', viewJob?.voice_agent_id],
-    queryFn: () => callQueuesService.voiceAgent(viewJob!.voice_agent_id!),
-    enabled: !!viewJob?.voice_agent_id,
   })
 
   const { data: editJob, isLoading: editJobLoading } = useQuery({
@@ -409,8 +285,6 @@ export default function JobsPage() {
     mutationFn: (id: string) => jobsService.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['jobs'] })
-      setViewOpen(false)
-      setViewJobId(null)
       toast.success('Job deleted')
     },
     onError: () => toast.error('Failed to delete job'),
@@ -427,8 +301,7 @@ export default function JobsPage() {
   })
 
   const handleView = (job: JobListItem) => {
-    setViewJobId(job.id)
-    setViewOpen(true)
+    navigate(`/jobs/${job.id}`)
   }
 
   const handleEdit = (job: JobListItem) => {
@@ -522,8 +395,8 @@ export default function JobsPage() {
           <SelectContent>
             <SelectItem value="-created_at">Newest first</SelectItem>
             <SelectItem value="created_at">Oldest first</SelectItem>
-            <SelectItem value="title">Title A–Z</SelectItem>
-            <SelectItem value="-title">Title Z–A</SelectItem>
+            <SelectItem value="title">Title A-Z</SelectItem>
+            <SelectItem value="-title">Title Z-A</SelectItem>
             <SelectItem value="-application_count">Most applications</SelectItem>
             <SelectItem value="application_count">Least applications</SelectItem>
           </SelectContent>
@@ -635,170 +508,6 @@ export default function JobsPage() {
           />
         ) : null}
       </SideDrawer>
-
-      {/* View Job Drawer */}
-      <SideDrawer
-        open={viewOpen}
-        onOpenChange={(open) => {
-          setViewOpen(open)
-          if (!open) setViewJobId(null)
-        }}
-        title={viewJob?.title || 'Job Details'}
-        mode="view"
-        size="xl"
-        footerButtons={
-          viewJob
-            ? [
-                {
-                  label: 'Edit',
-                  variant: 'outline',
-                  icon: Pencil,
-                  onClick: () => {
-                    setViewOpen(false)
-                    handleEdit({ id: viewJob.id } as JobListItem)
-                  },
-                },
-                {
-                  label: 'Delete',
-                  variant: 'destructive',
-                  icon: Trash2,
-                  onClick: () => handleDelete(viewJob.id),
-                },
-              ]
-            : []
-        }
-        footerAlignment="between"
-      >
-        {viewJobLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground mt-3">Loading job details...</p>
-          </div>
-        ) : viewJob ? (
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-medium', JOB_STATUS_COLORS[viewJob.status])}>
-                {viewJob.status}
-              </span>
-              <Badge variant="secondary">{viewJob.job_type.replace('_', ' ')}</Badge>
-              <Badge variant="secondary">{viewJob.experience_level}</Badge>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground text-xs mb-0.5">Department</p>
-                <p className="font-medium">{viewJob.department}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs mb-0.5">Location</p>
-                <p className="font-medium">{viewJob.location}</p>
-              </div>
-              {viewJob.salary_min && (
-                <div>
-                  <p className="text-muted-foreground text-xs mb-0.5">Salary Range</p>
-                  <p className="font-medium">${viewJob.salary_min} – ${viewJob.salary_max}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-muted-foreground text-xs mb-0.5">Applications</p>
-                <button
-                  className="font-medium text-blue-500 hover:underline flex items-center gap-1"
-                  onClick={() => { setViewOpen(false); navigate(`/applications?job_id=${viewJob.id}`) }}
-                >
-                  {viewJob.application_count} applications
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              {viewJob.published_at && (
-                <div>
-                  <p className="text-muted-foreground text-xs mb-0.5">Published</p>
-                  <p className="font-medium">{formatDate(viewJob.published_at)}</p>
-                </div>
-              )}
-              {viewJob.closes_at && (
-                <div>
-                  <p className="text-muted-foreground text-xs mb-0.5">Closes</p>
-                  <p className="font-medium">{formatDate(viewJob.closes_at)}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-muted-foreground text-xs mb-0.5">Created</p>
-                <p className="font-medium">{formatDate(viewJob.created_at)}</p>
-              </div>
-              {viewJob.updated_at && viewJob.updated_at !== viewJob.created_at && (
-                <div>
-                  <p className="text-muted-foreground text-xs mb-0.5">Last Updated</p>
-                  <p className="font-medium">{formatDate(viewJob.updated_at)}</p>
-                </div>
-              )}
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Description</p>
-              <p className="text-sm whitespace-pre-wrap">{viewJob.description}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Requirements</p>
-              <p className="text-sm whitespace-pre-wrap">{viewJob.requirements}</p>
-            </div>
-
-            {/* Voice Config Section */}
-            <div className="rounded-lg border p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                  <Bot className="h-3.5 w-3.5" />
-                  Voice Configuration
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setVoiceConfigOpen(true)}
-                >
-                  Configure
-                </Button>
-              </div>
-              {viewJob.voice_agent_id ? (
-                <div className="text-sm space-y-1">
-                  <div>
-                    <span className="text-muted-foreground text-xs">Agent: </span>
-                    <span className="font-medium">{agentData?.name || viewJob.voice_agent_id}</span>
-                  </div>
-                  {viewJob.voice_agent_config?.auto_shortlist_threshold != null && (
-                    <div className="text-[13px] text-muted-foreground">
-                      Shortlist ≥ {viewJob.voice_agent_config.auto_shortlist_threshold} /
-                      Reject ≤ {viewJob.voice_agent_config.auto_reject_threshold}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-[13px] text-muted-foreground">No voice agent configured</p>
-              )}
-            </div>
-
-            {/* Create Queue Button */}
-            <Button
-              variant="outline"
-              className="w-full gap-2"
-              onClick={() => {
-                setViewOpen(false)
-                // Navigate to call queues with pre-fill
-                navigate(`/call-queues?job_id=${viewJob.id}&voice_agent_id=${viewJob.voice_agent_id || ''}`)
-              }}
-            >
-              <ListChecks className="h-4 w-4" />
-              Create AI Call Queue for this Job
-            </Button>
-          </div>
-        ) : null}
-      </SideDrawer>
-
-      {/* Voice Config Dialog */}
-      {viewJob && (
-        <VoiceConfigDialog
-          job={viewJob}
-          open={voiceConfigOpen}
-          onOpenChange={setVoiceConfigOpen}
-          onSuccess={() => qc.invalidateQueries({ queryKey: ['job-detail', viewJobId] })}
-        />
-      )}
     </div>
   )
 }

@@ -10,6 +10,7 @@ import { notificationsService } from '@/services/notifications'
 import LoginPage from '@/pages/LoginPage'
 import DashboardPage from '@/pages/DashboardPage'
 import JobsPage from '@/pages/JobsPage'
+import JobDetailPage from '@/pages/JobDetailPage'
 import ApplicantsPage from '@/pages/ApplicantsPage'
 import ApplicationsPage from '@/pages/ApplicationsPage'
 import PipelinePage from '@/pages/PipelinePage'
@@ -56,7 +57,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppLayout() {
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const pageTitle = PAGE_TITLES[location.pathname] || 'SmartHR-In'
+  const pageTitle = PAGE_TITLES[location.pathname]
+    || (location.pathname.startsWith('/jobs/') ? 'Job Details' : 'SmartHR-In')
 
   const { data: notificationsData } = useQuery({
     queryKey: ['notifications', 'unread'],
@@ -82,6 +84,7 @@ function AppLayout() {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/jobs" element={<JobsPage />} />
+            <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/applicants" element={<ApplicantsPage />} />
             <Route path="/applications" element={<ApplicationsPage />} />
             <Route path="/pipeline" element={<PipelinePage />} />
