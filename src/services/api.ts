@@ -13,12 +13,15 @@ export const api: AxiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Request interceptor — attach Bearer token from the zustand store
+// Request interceptor — attach Bearer token and tenant ID from the zustand store
 api.interceptors.request.use((config) => {
   // Read from the zustand store (always up-to-date, not a stale localStorage read)
-  const token = useAuthStore.getState().accessToken
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  const { accessToken, user } = useAuthStore.getState()
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`
+  }
+  if (user?.tenant_id) {
+    config.headers['X-Tenant-ID'] = user.tenant_id
   }
   return config
 })
