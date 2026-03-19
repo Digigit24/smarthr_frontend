@@ -31,6 +31,20 @@ import { analyticsService } from '@/services/analytics'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 
+const COLOR_MAP: Record<string, { bg: string; border: string }> = {
+  'text-blue-500': { bg: 'bg-blue-500/10', border: 'border-l-blue-500' },
+  'text-indigo-500': { bg: 'bg-indigo-500/10', border: 'border-l-indigo-500' },
+  'text-violet-500': { bg: 'bg-violet-500/10', border: 'border-l-violet-500' },
+  'text-amber-500': { bg: 'bg-amber-500/10', border: 'border-l-amber-500' },
+  'text-orange-500': { bg: 'bg-orange-500/10', border: 'border-l-orange-500' },
+  'text-rose-500': { bg: 'bg-rose-500/10', border: 'border-l-rose-500' },
+  'text-cyan-500': { bg: 'bg-cyan-500/10', border: 'border-l-cyan-500' },
+  'text-teal-500': { bg: 'bg-teal-500/10', border: 'border-l-teal-500' },
+  'text-green-500': { bg: 'bg-green-500/10', border: 'border-l-green-500' },
+  'text-pink-500': { bg: 'bg-pink-500/10', border: 'border-l-pink-500' },
+  'text-foreground': { bg: 'bg-muted', border: 'border-l-foreground' },
+}
+
 function StatCard({
   title,
   value,
@@ -46,27 +60,33 @@ function StatCard({
   color?: string
   onClick?: () => void
 }) {
+  const palette = COLOR_MAP[color] || COLOR_MAP['text-foreground']
+
   return (
     <Card
-      className={
+      className={`border-l-4 ${palette.border} overflow-hidden ${
         onClick
-          ? 'cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:border-primary/30 group'
+          ? 'cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:border-l-4 group'
           : ''
-      }
+      }`}
       onClick={onClick}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className="flex items-center gap-1">
-          <Icon className={`h-4 w-4 ${color}`} />
-          {onClick && (
-            <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0" />
-          )}
+        <div className={`h-9 w-9 rounded-lg ${palette.bg} flex items-center justify-center`}>
+          <Icon className={`h-4.5 w-4.5 ${color}`} />
         </div>
       </CardHeader>
       <CardContent>
-        <div className={`text-2xl font-bold ${color}`}>{value}</div>
-        {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+        <div className="flex items-end justify-between">
+          <div>
+            <div className="text-2xl font-bold text-foreground">{value}</div>
+            {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+          </div>
+          {onClick && (
+            <ArrowRight className={`h-4 w-4 ${color} opacity-0 translate-x-[-4px] transition-all duration-200 group-hover:opacity-70 group-hover:translate-x-0 mb-1`} />
+          )}
+        </div>
       </CardContent>
     </Card>
   )
