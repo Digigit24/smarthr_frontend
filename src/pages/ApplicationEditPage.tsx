@@ -63,7 +63,7 @@ export default function ApplicationEditPage() {
       qc.invalidateQueries({ queryKey: ['applications'] })
       qc.invalidateQueries({ queryKey: ['application-detail', appId] })
       toast.success('Application updated')
-      navigate('/applications')
+      navigate(-1)
     },
     onError: () => toast.error('Failed to update application'),
   })
@@ -104,7 +104,7 @@ export default function ApplicationEditPage() {
       <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
         <FileText className="h-12 w-12 mb-3 opacity-30" />
         <p className="font-medium">Application not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/applications')}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Applications
         </Button>
@@ -120,7 +120,7 @@ export default function ApplicationEditPage() {
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/applications')}>
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md">
@@ -134,7 +134,7 @@ export default function ApplicationEditPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => navigate('/applications')}>Cancel</Button>
+              <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
               <Button
                 disabled={updateMutation.isPending}
                 onClick={handleSubmit(onSubmit)}

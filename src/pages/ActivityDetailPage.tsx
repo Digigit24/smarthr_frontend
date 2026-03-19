@@ -76,8 +76,8 @@ export default function ActivityDetailPage() {
       <div className="flex flex-col items-center justify-center py-32">
         <AlertTriangle className="h-10 w-10 text-amber-500 mb-3" />
         <p className="text-sm text-muted-foreground">Activity not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/activities')}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Activities
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Go Back
         </Button>
       </div>
     )
@@ -93,8 +93,8 @@ export default function ActivityDetailPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/activities')} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to Activities
+      <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-4 w-4" /> Go Back
       </Button>
 
       {/* Hero */}

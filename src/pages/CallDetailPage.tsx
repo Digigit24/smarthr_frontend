@@ -125,7 +125,7 @@ export default function CallDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['calls'] })
       toast.success('Call record deleted')
-      navigate('/calls')
+      navigate(-1)
     },
     onError: () => toast.error('Failed to delete call record'),
   })
@@ -150,7 +150,7 @@ export default function CallDetailPage() {
       <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
         <Phone className="h-12 w-12 mb-3 opacity-30" />
         <p className="font-medium">Call record not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/calls')}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Calls
         </Button>
       </div>
@@ -168,7 +168,7 @@ export default function CallDetailPage() {
         <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
             <div className="flex items-start gap-3 sm:gap-4">
-              <Button variant="ghost" size="icon" className="mt-0.5 shrink-0" onClick={() => navigate('/calls')}>
+              <Button variant="ghost" size="icon" className="mt-0.5 shrink-0" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className={cn('w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0 shadow-md', statusConf.gradient)}>

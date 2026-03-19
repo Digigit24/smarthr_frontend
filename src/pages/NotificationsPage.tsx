@@ -169,9 +169,7 @@ export default function NotificationsPage() {
 
   const handleCardClick = (n: Notification) => {
     if (!n.is_read) markReadMutation.mutate(n.id)
-    const route = getNotificationRoute(n.data)
-    if (route) navigate(route)
-    else navigate(`/notifications/${n.id}`)
+    navigate(`/notifications/${n.id}`)
   }
 
   // Category counts

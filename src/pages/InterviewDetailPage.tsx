@@ -109,8 +109,8 @@ export default function InterviewDetailPage() {
       <div className="flex flex-col items-center justify-center py-32">
         <AlertTriangle className="h-10 w-10 text-amber-500 mb-3" />
         <p className="text-sm text-muted-foreground">Interview not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/interviews')}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Interviews
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Go Back
         </Button>
       </div>
     )
@@ -125,8 +125,8 @@ export default function InterviewDetailPage() {
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
       {/* Back */}
-      <Button variant="ghost" size="sm" onClick={() => navigate('/interviews')} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to Interviews
+      <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-4 w-4" /> Back
       </Button>
 
       {/* Hero Header */}

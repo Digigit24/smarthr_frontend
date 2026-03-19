@@ -185,7 +185,7 @@ export default function ApplicantDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['applicants'] })
       toast.success('Applicant deleted')
-      navigate('/applicants')
+      navigate(-1)
     },
     onError: () => toast.error('Failed to delete applicant'),
   })
@@ -245,7 +245,7 @@ export default function ApplicantDetailPage() {
       <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
         <User className="h-12 w-12 mb-3 opacity-30" />
         <p className="font-medium">Applicant not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/applicants')}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Applicants
         </Button>
@@ -263,7 +263,7 @@ export default function ApplicantDetailPage() {
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <Button variant="ghost" size="icon" className="mt-1 shrink-0" onClick={() => navigate('/applicants')}>
+              <Button variant="ghost" size="icon" className="mt-1 shrink-0" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-md">

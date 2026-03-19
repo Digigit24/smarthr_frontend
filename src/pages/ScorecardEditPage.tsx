@@ -67,7 +67,7 @@ export default function ScorecardEditPage() {
       <div className="flex flex-col items-center justify-center py-32">
         <AlertTriangle className="h-10 w-10 text-amber-500 mb-3" />
         <p className="text-sm text-muted-foreground">Scorecard not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/scorecards')}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Scorecards
         </Button>
       </div>

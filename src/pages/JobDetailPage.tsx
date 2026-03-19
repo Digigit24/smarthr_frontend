@@ -214,7 +214,7 @@ export default function JobDetailPage() {
     mutationFn: (jobId: string) => jobsService.delete(jobId),
     onSuccess: () => {
       toast.success('Job deleted')
-      navigate('/jobs')
+      navigate(-1)
     },
     onError: () => toast.error('Failed to delete job'),
   })
@@ -259,7 +259,7 @@ export default function JobDetailPage() {
       <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
         <Briefcase className="h-12 w-12 mb-3 opacity-30" />
         <p className="font-medium">Job not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/jobs')}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Jobs
         </Button>
@@ -280,7 +280,7 @@ export default function JobDetailPage() {
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <Button variant="ghost" size="icon" className="mt-0.5 shrink-0" onClick={() => navigate('/jobs')}>
+              <Button variant="ghost" size="icon" className="mt-0.5 shrink-0" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>

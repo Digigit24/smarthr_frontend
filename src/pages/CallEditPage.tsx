@@ -45,7 +45,7 @@ export default function CallEditPage() {
       qc.invalidateQueries({ queryKey: ['calls'] })
       qc.invalidateQueries({ queryKey: ['call-detail', id] })
       toast.success('Call record updated')
-      navigate('/calls')
+      navigate(-1)
     },
     onError: () => toast.error('Failed to update call record'),
   })
@@ -68,7 +68,7 @@ export default function CallEditPage() {
       <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
         <FileText className="h-12 w-12 mb-3 opacity-30" />
         <p className="font-medium">Call record not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/calls')}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Calls
         </Button>
       </div>
@@ -83,7 +83,7 @@ export default function CallEditPage() {
         <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/calls')}>
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md">
@@ -95,7 +95,7 @@ export default function CallEditPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 ml-auto sm:ml-0">
-              <Button variant="outline" onClick={() => navigate('/calls')}>Cancel</Button>
+              <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
               <Button disabled={updateMutation.isPending} onClick={handleSave}>
                 {updateMutation.isPending ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>

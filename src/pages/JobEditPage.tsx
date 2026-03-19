@@ -63,7 +63,7 @@ export default function JobEditPage() {
       qc.invalidateQueries({ queryKey: ['jobs'] })
       qc.invalidateQueries({ queryKey: ['job-detail'] })
       toast.success('Job updated successfully')
-      navigate('/jobs')
+      navigate(-1)
     },
     onError: () => toast.error('Failed to update job'),
   })
@@ -82,7 +82,7 @@ export default function JobEditPage() {
       <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
         <Briefcase className="h-12 w-12 mb-3 opacity-30" />
         <p className="font-medium">Job not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/jobs')}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Jobs
         </Button>
@@ -95,7 +95,7 @@ export default function JobEditPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/jobs')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -132,7 +132,7 @@ export default function JobEditPage() {
         }}
         onSubmit={(data) => updateMutation.mutate({ id: job.id, data: data as JobFormData })}
         isLoading={updateMutation.isPending}
-        onCancel={() => navigate('/jobs')}
+        onCancel={() => navigate(-1)}
       />
     </div>
   )
