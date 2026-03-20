@@ -5,7 +5,8 @@ import {
   ArrowLeft, Loader2, Phone, Pencil, Trash2, RefreshCw,
   Clock, FileText, MessageSquare, ChevronDown, Mic, Activity,
   AlertTriangle, XCircle, CheckCircle2, AlertCircle,
-  TrendingUp, Shield, Zap, Star, ExternalLink,
+  TrendingUp, Shield, Zap, Star, ExternalLink, Calendar,
+  PhoneCall, PhoneIncoming, PhoneOff, Hash, User, Radio,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -14,15 +15,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { callsService } from '@/services/calls'
 import { formatDateTime, formatDuration, cn } from '@/lib/utils'
 
-const CALL_STATUS_CONFIG: Record<string, { bg: string; dot: string; gradient: string }> = {
-  QUEUED: { bg: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', dot: 'bg-gray-400', gradient: 'from-gray-400 to-gray-500' },
-  INITIATED: { bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500', gradient: 'from-blue-500 to-blue-600' },
-  RINGING: { bg: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500', gradient: 'from-amber-500 to-orange-500' },
-  IN_PROGRESS: { bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400', dot: 'bg-indigo-500', gradient: 'from-indigo-500 to-purple-500' },
-  COMPLETED: { bg: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500', gradient: 'from-emerald-500 to-teal-500' },
-  FAILED: { bg: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500', gradient: 'from-red-500 to-rose-600' },
-  NO_ANSWER: { bg: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', dot: 'bg-orange-500', gradient: 'from-orange-500 to-amber-600' },
-  BUSY: { bg: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', dot: 'bg-yellow-500', gradient: 'from-yellow-500 to-amber-500' },
+const CALL_STATUS_CONFIG: Record<string, { bg: string; dot: string; gradient: string; icon: typeof Phone }> = {
+  QUEUED: { bg: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', dot: 'bg-gray-400', gradient: 'from-gray-400 to-gray-500', icon: Clock },
+  INITIATED: { bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500', gradient: 'from-blue-500 to-blue-600', icon: PhoneCall },
+  RINGING: { bg: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500', gradient: 'from-amber-500 to-orange-500', icon: PhoneIncoming },
+  IN_PROGRESS: { bg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400', dot: 'bg-indigo-500', gradient: 'from-indigo-500 to-purple-500', icon: PhoneCall },
+  COMPLETED: { bg: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', dot: 'bg-emerald-500', gradient: 'from-emerald-500 to-teal-500', icon: CheckCircle2 },
+  FAILED: { bg: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500', gradient: 'from-red-500 to-rose-600', icon: PhoneOff },
+  NO_ANSWER: { bg: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', dot: 'bg-orange-500', gradient: 'from-orange-500 to-amber-600', icon: PhoneOff },
+  BUSY: { bg: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', dot: 'bg-yellow-500', gradient: 'from-yellow-500 to-amber-500', icon: PhoneOff },
 }
 
 const RECOMMENDATION_CONFIG: Record<string, { color: string; icon: typeof CheckCircle2 }> = {
@@ -32,6 +33,9 @@ const RECOMMENDATION_CONFIG: Record<string, { color: string; icon: typeof CheckC
   NO: { color: 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400', icon: XCircle },
   STRONG_NO: { color: 'text-red-700 bg-red-100 border-red-300 dark:bg-red-900/30 dark:border-red-700 dark:text-red-400', icon: XCircle },
 }
+
+const STATUS_STEPS = ['QUEUED', 'INITIATED', 'RINGING', 'IN_PROGRESS', 'COMPLETED']
+const FAILED_STATUSES = ['FAILED', 'NO_ANSWER', 'BUSY']
 
 interface TranscriptMessage {
   role: 'user' | 'bot' | 'agent'
@@ -58,21 +62,25 @@ function parseTranscript(raw: string): TranscriptMessage[] {
   return messages
 }
 
-function ScoreRing({ score }: { score: string }) {
+function ScoreRing({ score, size = 'lg' }: { score: string; size?: 'sm' | 'lg' }) {
   const val = parseFloat(score)
-  const circumference = 2 * Math.PI * 40
+  const r = size === 'lg' ? 40 : 28
+  const circumference = 2 * Math.PI * r
   const offset = circumference - (val / 100) * circumference
   const color = val >= 70 ? '#10b981' : val >= 40 ? '#f59e0b' : '#ef4444'
+  const svgSize = size === 'lg' ? 'w-24 h-24' : 'w-16 h-16'
+  const textSize = size === 'lg' ? 'text-xl' : 'text-sm'
+  const subSize = size === 'lg' ? 'text-[9px]' : 'text-[8px]'
   return (
-    <div className="relative w-24 h-24 mx-auto">
+    <div className={cn('relative mx-auto', svgSize)}>
       <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/30" />
-        <circle cx="50" cy="50" r="40" fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
+        <circle cx="50" cy="50" r={r} fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/30" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
           strokeDasharray={circumference} strokeDashoffset={offset} className="transition-all duration-1000" />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-bold">{val.toFixed(0)}</span>
-        <span className="text-[9px] text-muted-foreground -mt-0.5">/ 100</span>
+        <span className={cn('font-bold', textSize)}>{val.toFixed(0)}</span>
+        <span className={cn('text-muted-foreground -mt-0.5', subSize)}>/ 100</span>
       </div>
     </div>
   )
@@ -93,6 +101,74 @@ function ScoreDimensionBar({ label, value, icon: Icon }: { label: string; value:
       </div>
       <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
         <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
+}
+
+/* ── Status Timeline ── */
+function StatusTimeline({ status }: { status: string }) {
+  const isFailed = FAILED_STATUSES.includes(status)
+  const currentIdx = isFailed
+    ? STATUS_STEPS.indexOf('IN_PROGRESS')
+    : STATUS_STEPS.indexOf(status)
+
+  return (
+    <div className="flex items-center gap-0">
+      {STATUS_STEPS.map((step, idx) => {
+        const isDone = idx <= currentIdx && !isFailed
+        const isCurrent = step === status
+        const isFailedStep = isFailed && idx === currentIdx + 1
+        return (
+          <div key={step} className="flex items-center flex-1 last:flex-none">
+            <div className="flex flex-col items-center gap-1">
+              <div className={cn(
+                'w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all',
+                isDone ? 'bg-primary border-primary text-primary-foreground'
+                  : isCurrent ? 'bg-primary border-primary text-primary-foreground ring-4 ring-primary/20'
+                  : isFailedStep ? 'bg-red-500 border-red-500 text-white ring-4 ring-red-500/20'
+                  : 'bg-muted border-border text-muted-foreground'
+              )}>
+                {isDone && !isCurrent ? (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                ) : isFailedStep ? (
+                  <XCircle className="h-3.5 w-3.5" />
+                ) : (
+                  <span>{idx + 1}</span>
+                )}
+              </div>
+              <span className={cn(
+                'text-[9px] sm:text-[10px] font-medium whitespace-nowrap',
+                isDone || isCurrent ? 'text-foreground' : isFailedStep ? 'text-red-500' : 'text-muted-foreground'
+              )}>
+                {isFailedStep ? status.replace(/_/g, ' ') : step.replace(/_/g, ' ')}
+              </span>
+            </div>
+            {idx < STATUS_STEPS.length - 1 && (
+              <div className={cn(
+                'flex-1 h-0.5 mx-1 rounded-full',
+                idx < currentIdx && !isFailed ? 'bg-primary' : 'bg-border'
+              )} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ── Info Row ── */
+function InfoRow({ icon: Icon, label, value, mono }: { icon: typeof Phone; label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-start gap-3 py-2.5">
+      <div className="w-8 h-8 rounded-lg bg-muted/80 flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
+        <p className={cn('text-sm font-medium mt-0.5', mono && 'font-mono text-[11px] text-muted-foreground break-all')}>
+          {value || '—'}
+        </p>
       </div>
     </div>
   )
@@ -158,77 +234,73 @@ export default function CallDetailPage() {
   }
 
   const statusConf = CALL_STATUS_CONFIG[call.status] || CALL_STATUS_CONFIG.QUEUED
+  const StatusIcon = statusConf.icon
   const transcriptMessages = call.transcript ? parseTranscript(call.transcript) : []
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 max-w-7xl mx-auto">
       {/* Hero Header */}
-      <Card className="overflow-hidden">
-        <div className={cn('h-1.5 bg-gradient-to-r', statusConf.gradient)} />
-        <CardContent className="p-4 sm:p-5">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+      <Card className="overflow-hidden border-0 shadow-md">
+        <div className={cn('bg-gradient-to-r p-5 sm:p-6', statusConf.gradient)}>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-3 sm:gap-4">
-              <Button variant="ghost" size="icon" className="mt-0.5 shrink-0" onClick={() => navigate(-1)}>
+              <Button variant="ghost" size="icon" className="mt-0.5 shrink-0 text-white/80 hover:text-white hover:bg-white/10" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div className={cn('w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0 shadow-md', statusConf.gradient)}>
-                <Phone className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 shadow-lg border border-white/20">
+                <StatusIcon className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h1 className="text-lg sm:text-xl font-semibold">{call.phone}</h1>
-                  <span className={cn('inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium', statusConf.bg)}>
-                    <span className={cn('w-1.5 h-1.5 rounded-full', statusConf.dot)} />
+                <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-bold text-white">{call.phone}</h1>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/20 text-white backdrop-blur-sm border border-white/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                     {call.status.replace(/_/g, ' ')}
                   </span>
-                  <Badge variant="outline" className="text-[10px]">{call.provider}</Badge>
                 </div>
-                <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {formatDuration(call.duration)}
+                <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-white/80 flex-wrap">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {formatDateTime(call.created_at)}
                   </span>
-                  {call.started_at && (
+                  <Badge className="bg-white/20 text-white border-white/20 hover:bg-white/30 text-[10px]">{call.provider}</Badge>
+                  {call.duration > 0 && (
                     <span className="flex items-center gap-1">
-                      <Activity className="h-3.5 w-3.5" />
-                      {formatDateTime(call.started_at)}
+                      <Clock className="h-3.5 w-3.5" />
+                      {formatDuration(call.duration)}
                     </span>
-                  )}
-                  {call.application_id && (
-                    <button
-                      className="flex items-center gap-1 text-blue-500 hover:text-blue-600 hover:underline"
-                      onClick={() => navigate(`/applications/${call.application_id}`)}
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      View Application
-                    </button>
                   )}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
               {call.status === 'FAILED' && (
-                <Button variant="outline" size="sm" onClick={() => retryMutation.mutate()} disabled={retryMutation.isPending}>
+                <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/20" variant="outline" onClick={() => retryMutation.mutate()} disabled={retryMutation.isPending}>
                   <RefreshCw className={cn('h-3.5 w-3.5 mr-1.5', retryMutation.isPending && 'animate-spin')} />
                   Retry
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={() => navigate(`/calls/${call.id}/edit`)}>
+              <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/20" variant="outline" onClick={() => navigate(`/calls/${call.id}/edit`)}>
                 <Pencil className="h-3.5 w-3.5 mr-1.5" />
                 Edit
               </Button>
-              <Button variant="destructive" size="sm" onClick={handleDelete}>
+              <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/20" variant="outline" onClick={handleDelete}>
                 <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                 Delete
               </Button>
             </div>
           </div>
-        </CardContent>
+        </div>
+
+        {/* Status Timeline */}
+        <div className="px-4 sm:px-6 py-4 bg-card">
+          <StatusTimeline status={call.status} />
+        </div>
       </Card>
 
       {/* Error Banner */}
       {call.status === 'FAILED' && call.error_message && (
-        <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 flex items-start gap-3">
+        <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 flex items-start gap-3">
           <XCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-0.5 uppercase tracking-wide">Call Failed</p>
@@ -237,7 +309,7 @@ export default function CallDetailPage() {
         </div>
       )}
       {call.status !== 'FAILED' && call.error_message && (
-        <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 flex items-start gap-3">
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-0.5 uppercase tracking-wide">Note</p>
@@ -246,74 +318,95 @@ export default function CallDetailPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      {/* Stat Cards Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground font-medium">Duration</p>
+                <p className="text-lg font-bold">{call.duration > 0 ? formatDuration(call.duration) : '—'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
+                <Radio className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground font-medium">Provider</p>
+                <p className="text-lg font-bold">{call.provider}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                <Calendar className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground font-medium">Created</p>
+                <p className="text-sm font-bold">{formatDateTime(call.created_at)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                call.scorecard ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-gray-100 dark:bg-gray-800'
+              )}>
+                <Star className={cn('h-5 w-5',
+                  call.scorecard ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400'
+                )} />
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground font-medium">Score</p>
+                <p className="text-lg font-bold">
+                  {call.scorecard ? `${parseFloat(call.scorecard.overall_score).toFixed(0)}/100` : '—'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
         {/* Left Column */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-5">
 
           {/* Call Information */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <Phone className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <Phone className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 Call Information
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6 text-sm">
-                <div>
-                  <p className="text-muted-foreground text-xs mb-0.5">Phone</p>
-                  <p className="font-medium">{call.phone}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs mb-0.5">Duration</p>
-                  <p className="font-medium">{formatDuration(call.duration)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs mb-0.5">Provider</p>
-                  <p className="font-medium">{call.provider}</p>
-                </div>
-                {call.provider_call_id && (
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">Provider Call ID</p>
-                    <p className="font-mono text-[11px] break-all text-muted-foreground">{call.provider_call_id}</p>
-                  </div>
-                )}
-                {call.voice_agent_id && (
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">Voice Agent ID</p>
-                    <p className="font-mono text-[11px] break-all text-muted-foreground">{call.voice_agent_id}</p>
-                  </div>
-                )}
-                {call.application_id && (
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">Application ID</p>
-                    <p className="font-mono text-[11px] break-all text-muted-foreground">{call.application_id}</p>
-                  </div>
-                )}
-                {call.started_at && (
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">Started</p>
-                    <p className="font-medium">{formatDateTime(call.started_at)}</p>
-                  </div>
-                )}
-                {call.ended_at && (
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">Ended</p>
-                    <p className="font-medium">{formatDateTime(call.ended_at)}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-muted-foreground text-xs mb-0.5">Created</p>
-                  <p className="font-medium">{formatDateTime(call.created_at)}</p>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:gap-x-6">
+                <InfoRow icon={Phone} label="Phone Number" value={call.phone} />
+                <InfoRow icon={Clock} label="Duration" value={call.duration > 0 ? formatDuration(call.duration) : 'Not started'} />
+                {call.started_at && <InfoRow icon={Activity} label="Started At" value={formatDateTime(call.started_at)} />}
+                {call.ended_at && <InfoRow icon={CheckCircle2} label="Ended At" value={formatDateTime(call.ended_at)} />}
+                <InfoRow icon={Calendar} label="Created" value={formatDateTime(call.created_at)} />
                 {call.updated_at && call.updated_at !== call.created_at && (
-                  <div>
-                    <p className="text-muted-foreground text-xs mb-0.5">Updated</p>
-                    <p className="font-medium">{formatDateTime(call.updated_at)}</p>
-                  </div>
+                  <InfoRow icon={RefreshCw} label="Updated" value={formatDateTime(call.updated_at)} />
                 )}
+                {call.provider_call_id && <InfoRow icon={Hash} label="Provider Call ID" value={call.provider_call_id} mono />}
+                {call.voice_agent_id && <InfoRow icon={User} label="Voice Agent ID" value={call.voice_agent_id} mono />}
+                {call.application_id && <InfoRow icon={FileText} label="Application ID" value={call.application_id} mono />}
               </div>
             </CardContent>
           </Card>
@@ -323,8 +416,8 @@ export default function CallDetailPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
-                    <FileText className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                  <div className="w-7 h-7 rounded-lg bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+                    <FileText className="h-4 w-4 text-sky-600 dark:text-sky-400" />
                   </div>
                   Summary
                 </CardTitle>
@@ -340,14 +433,16 @@ export default function CallDetailPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                    <Mic className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                  <div className="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                    <Mic className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                   </div>
                   Recording
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <audio controls src={call.recording_url} className="w-full h-10" />
+                <div className="bg-muted/50 rounded-xl p-4">
+                  <audio controls src={call.recording_url} className="w-full h-10" />
+                </div>
               </CardContent>
             </Card>
           )}
@@ -361,8 +456,8 @@ export default function CallDetailPage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                      <Star className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                    <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                      <Star className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                     </div>
                     AI Scorecard
                   </CardTitle>
@@ -408,7 +503,7 @@ export default function CallDetailPage() {
                   {(sc.strengths?.length > 0 || sc.weaknesses?.length > 0) && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t">
                       {sc.strengths?.length > 0 && (
-                        <div className="rounded-lg bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 p-3">
+                        <div className="rounded-xl bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 p-3">
                           <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
                             <CheckCircle2 className="h-3.5 w-3.5" /> Strengths
                           </p>
@@ -420,7 +515,7 @@ export default function CallDetailPage() {
                         </div>
                       )}
                       {sc.weaknesses?.length > 0 && (
-                        <div className="rounded-lg bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 p-3">
+                        <div className="rounded-xl bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 p-3">
                           <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-1.5">
                             <AlertCircle className="h-3.5 w-3.5" /> Areas to Improve
                           </p>
@@ -456,8 +551,8 @@ export default function CallDetailPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                    <MessageSquare className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                    <MessageSquare className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   Transcript
                   <button
@@ -477,7 +572,7 @@ export default function CallDetailPage() {
                         <div
                           key={i}
                           className={cn(
-                            'rounded-lg px-3 py-2.5 text-[13px] max-w-[85%]',
+                            'rounded-xl px-3 py-2.5 text-[13px] max-w-[85%]',
                             msg.role === 'user'
                               ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 ml-auto'
                               : 'bg-muted text-foreground'
@@ -492,7 +587,7 @@ export default function CallDetailPage() {
                         </div>
                       ))
                     ) : (
-                      <pre className="p-3 bg-muted rounded-lg text-[13px] whitespace-pre-wrap font-mono overflow-auto">
+                      <pre className="p-3 bg-muted rounded-xl text-[13px] whitespace-pre-wrap font-mono overflow-auto">
                         {call.transcript}
                       </pre>
                     )}
@@ -504,15 +599,15 @@ export default function CallDetailPage() {
         </div>
 
         {/* Right Column — Sidebar */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-4 sm:space-y-5">
 
           {/* Score Ring */}
           {call.scorecard && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                    <Star className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <Star className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   </div>
                   Score
                 </CardTitle>
@@ -530,8 +625,8 @@ export default function CallDetailPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
-                  <Activity className="h-3.5 w-3.5 text-primary" />
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Activity className="h-4 w-4 text-primary" />
                 </div>
                 Quick Actions
               </CardTitle>
@@ -564,25 +659,27 @@ export default function CallDetailPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                  <FileText className="h-3.5 w-3.5 text-gray-600 dark:text-gray-400" />
+                <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                  <Hash className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                 </div>
-                Call Info
+                Identifiers
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Call ID</p>
-                <p className="font-mono text-[11px] break-all text-muted-foreground">{call.id}</p>
+                <p className="text-[11px] text-muted-foreground mb-0.5 font-medium uppercase tracking-wide">Call ID</p>
+                <p className="font-mono text-[11px] break-all text-muted-foreground bg-muted/50 px-2 py-1.5 rounded-md">{call.id}</p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Created</p>
-                <p className="font-medium">{formatDateTime(call.created_at)}</p>
-              </div>
-              {call.updated_at && call.updated_at !== call.created_at && (
+              {call.provider_call_id && (
                 <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Updated</p>
-                  <p className="font-medium">{formatDateTime(call.updated_at)}</p>
+                  <p className="text-[11px] text-muted-foreground mb-0.5 font-medium uppercase tracking-wide">Provider Call ID</p>
+                  <p className="font-mono text-[11px] break-all text-muted-foreground bg-muted/50 px-2 py-1.5 rounded-md">{call.provider_call_id}</p>
+                </div>
+              )}
+              {call.voice_agent_id && (
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-0.5 font-medium uppercase tracking-wide">Voice Agent ID</p>
+                  <p className="font-mono text-[11px] break-all text-muted-foreground bg-muted/50 px-2 py-1.5 rounded-md">{call.voice_agent_id}</p>
                 </div>
               )}
             </CardContent>

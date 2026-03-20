@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Briefcase, Users, FileText, GitBranch, Phone,
@@ -151,6 +151,14 @@ interface UniversalSidebarProps {
 
 export function UniversalSidebar({ mobileOpen, onMobileClose }: UniversalSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const location = useLocation()
+
+  // Auto-close mobile sidebar on any navigation
+  useEffect(() => {
+    if (mobileOpen) {
+      onMobileClose()
+    }
+  }, [location.pathname, location.key])
 
   return (
     <>
