@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
-  Plus, Search, Briefcase, MapPin, Users, Clock,
+  Plus, Search, Briefcase, MapPin, Users, Clock, Bot,
   Loader2, Eye, Pencil, Trash2, ArrowUpRight, Award, Calendar,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -126,6 +126,12 @@ function JobCard({
             <span className="text-[11px] text-muted-foreground px-1.5 py-0.5 bg-muted rounded-md font-medium">
               {job.experience_level}
             </span>
+            {job.voice_agent_provider && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-violet-700 dark:text-violet-400 px-1.5 py-0.5 bg-violet-50 dark:bg-violet-900/20 rounded-md font-medium">
+                <Bot className="h-3 w-3" />
+                {job.voice_agent_provider}
+              </span>
+            )}
           </div>
         </div>
 

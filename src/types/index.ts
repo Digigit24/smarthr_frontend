@@ -100,6 +100,7 @@ export interface JobListItem {
   status: JobStatus
   application_count: number
   voice_agent_id: string | null
+  voice_agent_provider: string
   published_at: string | null
   closes_at: string | null
   created_at: string
@@ -121,6 +122,7 @@ export interface JobDetail {
   status: JobStatus
   application_count: number
   voice_agent_id: string | null
+  voice_agent_provider: string
   voice_agent_config: {
     auto_shortlist_threshold?: number
     auto_reject_threshold?: number
@@ -143,6 +145,7 @@ export interface JobFormData {
   requirements: string
   status: JobStatus
   voice_agent_id?: string
+  voice_agent_provider?: string
   voice_agent_config?: {
     auto_shortlist_threshold?: number
     auto_reject_threshold?: number

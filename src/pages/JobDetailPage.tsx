@@ -84,6 +84,7 @@ function VoiceConfigDialog({
   onSuccess: () => void
 }) {
   const [selectedAgentId, setSelectedAgentId] = useState(job.voice_agent_id || '')
+  const [selectedProvider, setSelectedProvider] = useState(job.voice_agent_provider || '')
   const [shortlistThreshold, setShortlistThreshold] = useState(
     String(job.voice_agent_config?.auto_shortlist_threshold ?? 7.0)
   )
@@ -97,10 +98,17 @@ function VoiceConfigDialog({
     enabled: open,
   })
 
+  const handleAgentChange = (agentId: string) => {
+    setSelectedAgentId(agentId)
+    const agent = agentsData?.find((a) => a.id === agentId)
+    setSelectedProvider(agent?.provider || '')
+  }
+
   const saveMutation = useMutation({
     mutationFn: () =>
       jobsService.updateVoiceConfig(job.id, {
         voice_agent_id: selectedAgentId || undefined,
+        voice_agent_provider: selectedProvider || undefined,
         voice_agent_config: {
           auto_shortlist_threshold: parseFloat(shortlistThreshold),
           auto_reject_threshold: parseFloat(rejectThreshold),
@@ -123,16 +131,22 @@ function VoiceConfigDialog({
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label>Voice Agent</Label>
-            <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+            <Select value={selectedAgentId} onValueChange={handleAgentChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select agent..." />
               </SelectTrigger>
               <SelectContent>
                 {agentsData?.map((agent) => (
-                  <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
+                  <SelectItem key={agent.id} value={agent.id}>
+                    {agent.name}
+                    <span className="ml-1.5 text-muted-foreground text-[11px]">({agent.provider})</span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {selectedProvider && (
+              <p className="text-[11px] text-muted-foreground">Provider: <span className="font-medium text-foreground">{selectedProvider}</span></p>
+            )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -445,11 +459,20 @@ export default function JobDetailPage() {
                 </CardHeader>
                 <CardContent>
                   {job.voice_agent_id ? (
-                    <div className="text-sm space-y-1">
+                    <div className="text-sm space-y-1.5">
                       <div>
                         <span className="text-muted-foreground text-xs">Agent: </span>
                         <span className="font-medium">{agentData?.name || job.voice_agent_id}</span>
                       </div>
+                      {job.voice_agent_provider && (
+                        <div>
+                          <span className="text-muted-foreground text-xs">Provider: </span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 rounded-full text-[11px] font-medium">
+                            <Bot className="h-3 w-3" />
+                            {job.voice_agent_provider}
+                          </span>
+                        </div>
+                      )}
                       {job.voice_agent_config?.auto_shortlist_threshold != null && (
                         <div className="text-[13px] text-muted-foreground">
                           {"Shortlist >= "}{job.voice_agent_config.auto_shortlist_threshold}{" / "}

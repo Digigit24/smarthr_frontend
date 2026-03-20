@@ -31,6 +31,6 @@ export const jobsService = {
 
   stats: () => get<JobStats>('/jobs/stats/'),
 
-  updateVoiceConfig: (id: string, data: { voice_agent_id?: string; voice_agent_config?: { auto_shortlist_threshold?: number; auto_reject_threshold?: number } }) =>
+  updateVoiceConfig: (id: string, data: { voice_agent_id?: string; voice_agent_provider?: string; voice_agent_config?: { auto_shortlist_threshold?: number; auto_reject_threshold?: number } }) =>
     patch<JobDetail>(`/jobs/${id}/voice-config/`, data),
 }
