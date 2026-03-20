@@ -212,10 +212,10 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
         {/* Calendar header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-muted/30">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
+            <Button variant="outline" size="icon" className="h-9 w-9 sm:h-8 sm:w-8" onClick={prevMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth}>
+            <Button variant="outline" size="icon" className="h-9 w-9 sm:h-8 sm:w-8" onClick={nextMonth}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -231,7 +231,8 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
         <div className="grid grid-cols-7 border-b bg-muted/20">
           {WEEKDAYS.map((d) => (
             <div key={d} className="py-2 text-center text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              {d}
+              <span className="sm:hidden">{d[0]}</span>
+              <span className="hidden sm:inline">{d}</span>
             </div>
           ))}
         </div>
@@ -240,7 +241,7 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
         <div className="grid grid-cols-7">
           {days.map((day, idx) => {
             if (day === null) {
-              return <div key={`pad-${idx}`} className="border-b border-r last:border-r-0 bg-muted/5 min-h-[60px] sm:min-h-[90px]" />
+              return <div key={`pad-${idx}`} className="border-b border-r last:border-r-0 bg-muted/5 min-h-[52px] sm:min-h-[90px]" />
             }
             const key = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
             const dayInterviews = interviewsByDate[key] || []
@@ -253,7 +254,7 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
                 key={key}
                 onClick={() => setSelectedDate(isSelected ? null : key)}
                 className={cn(
-                  'relative border-b border-r text-left p-1 sm:p-2 min-h-[60px] sm:min-h-[90px] transition-colors',
+                  'relative border-b border-r text-left p-1 sm:p-2 min-h-[52px] sm:min-h-[90px] transition-colors',
                   'hover:bg-primary/5 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-primary/30',
                   isSelected && 'bg-primary/10 ring-1 ring-inset ring-primary/30',
                   isWeekend && !isSelected && 'bg-muted/10',
@@ -315,15 +316,18 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
       {/* Selected day detail panel */}
       {selectedDate && (
         <Card className="overflow-hidden">
-          <div className="px-4 sm:px-5 py-3 border-b bg-muted/30 flex items-center justify-between">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-primary" />
-              {new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          <div className="px-4 sm:px-5 py-3 border-b bg-muted/30 flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2 min-w-0">
+              <CalendarDays className="h-4 w-4 text-primary shrink-0" />
+              <span className="truncate">
+                <span className="hidden sm:inline">{new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                <span className="sm:hidden">{new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+              </span>
             </h3>
-            <span className="text-xs text-muted-foreground">{selectedInterviews.length} interview{selectedInterviews.length !== 1 ? 's' : ''}</span>
+            <span className="text-xs text-muted-foreground shrink-0">{selectedInterviews.length} interview{selectedInterviews.length !== 1 ? 's' : ''}</span>
           </div>
           {selectedInterviews.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
+            <div className="p-4 sm:p-6 text-center text-sm text-muted-foreground">
               No interviews on this day
             </div>
           ) : (
@@ -358,23 +362,23 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
                           {statusCfg.label}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
+                      <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 text-[11px] text-muted-foreground flex-wrap">
                         <span className={cn('inline-flex items-center gap-1', typeCfg.color)}>
                           <TypeIcon className="h-3 w-3" />
                           {typeCfg.label}
                         </span>
                         {iv.interviewer_name && (
                           <>
-                            <span className="text-border">|</span>
-                            <span className="flex items-center gap-1">
-                              <UserCheck className="h-3 w-3" />
-                              {iv.interviewer_name}
+                            <span className="text-border hidden sm:inline">|</span>
+                            <span className="flex items-center gap-1 truncate max-w-[120px] sm:max-w-none">
+                              <UserCheck className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{iv.interviewer_name}</span>
                             </span>
                           </>
                         )}
                         {iv.meeting_link && (
                           <>
-                            <span className="text-border">|</span>
+                            <span className="text-border hidden sm:inline">|</span>
                             <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
                               <Video className="h-3 w-3" /> Link
                             </span>
@@ -455,7 +459,7 @@ export default function InterviewsPage() {
             <button
               onClick={() => setViewMode('grid')}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all',
+                'flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-md text-xs font-medium transition-all',
                 viewMode === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -465,7 +469,7 @@ export default function InterviewsPage() {
             <button
               onClick={() => setViewMode('calendar')}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all',
+                'flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-md text-xs font-medium transition-all',
                 viewMode === 'calendar' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -580,7 +584,7 @@ export default function InterviewsPage() {
           </Button>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {allInterviews.map((iv) => (
             <InterviewCard key={iv.id} iv={iv} />
           ))}
