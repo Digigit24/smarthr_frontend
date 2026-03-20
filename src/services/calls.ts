@@ -11,8 +11,8 @@ export const callsService = {
 
   retry: (id: string) => post<CallRecordDetail>(`/calls/${id}/retry/`),
 
-  update: (id: string, data: Record<string, unknown>) =>
-    patch<CallRecordDetail>(`/calls/${id}/`, data),
+  updateStatus: (id: string, status: string) =>
+    patch<CallRecordDetail>(`/calls/${id}/update-status/`, { status }),
 
   delete: (id: string) => del(`/calls/${id}/`),
 

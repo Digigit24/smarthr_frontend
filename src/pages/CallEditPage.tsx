@@ -40,18 +40,18 @@ export default function CallEditPage() {
   }, [call])
 
   const updateMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => callsService.update(id!, data),
+    mutationFn: (status: string) => callsService.updateStatus(id!, status),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['calls'] })
       qc.invalidateQueries({ queryKey: ['call-detail', id] })
-      toast.success('Call record updated')
+      toast.success('Call status updated')
       navigate(-1)
     },
-    onError: () => toast.error('Failed to update call record'),
+    onError: () => toast.error('Failed to update call status'),
   })
 
   const handleSave = () => {
-    updateMutation.mutate({ phone: form.phone, summary: form.summary, status: form.status })
+    updateMutation.mutate(form.status)
   }
 
   if (isLoading) {

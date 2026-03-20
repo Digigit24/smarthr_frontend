@@ -12,6 +12,13 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { callsService } from '@/services/calls'
 import { formatDateTime, formatDuration, cn } from '@/lib/utils'
 
@@ -34,8 +41,9 @@ const RECOMMENDATION_CONFIG: Record<string, { color: string; icon: typeof CheckC
   STRONG_NO: { color: 'text-red-700 bg-red-100 border-red-300 dark:bg-red-900/30 dark:border-red-700 dark:text-red-400', icon: XCircle },
 }
 
-const STATUS_STEPS = ['QUEUED', 'INITIATED', 'RINGING', 'IN_PROGRESS', 'COMPLETED']
-const FAILED_STATUSES = ['FAILED', 'NO_ANSWER', 'BUSY']
+const HAPPY_PATH = ['QUEUED', 'INITIATED', 'RINGING', 'IN_PROGRESS', 'COMPLETED']
+const TERMINAL_STATUSES = ['FAILED', 'NO_ANSWER', 'BUSY']
+const ALL_STATUSES = [...HAPPY_PATH, ...TERMINAL_STATUSES]
 
 interface TranscriptMessage {
   role: 'user' | 'bot' | 'agent'
@@ -108,51 +116,78 @@ function ScoreDimensionBar({ label, value, icon: Icon }: { label: string; value:
 
 /* ── Status Timeline ── */
 function StatusTimeline({ status }: { status: string }) {
-  const isFailed = FAILED_STATUSES.includes(status)
-  const currentIdx = isFailed
-    ? STATUS_STEPS.indexOf('IN_PROGRESS')
-    : STATUS_STEPS.indexOf(status)
+  const isFailed = TERMINAL_STATUSES.includes(status)
+  const happyIdx = HAPPY_PATH.indexOf(status)
+  const currentHappyIdx = isFailed
+    ? HAPPY_PATH.indexOf('IN_PROGRESS')
+    : happyIdx
 
   return (
-    <div className="flex items-center gap-0">
-      {STATUS_STEPS.map((step, idx) => {
-        const isDone = idx <= currentIdx && !isFailed
-        const isCurrent = step === status
-        const isFailedStep = isFailed && idx === currentIdx + 1
-        return (
-          <div key={step} className="flex items-center flex-1 last:flex-none">
-            <div className="flex flex-col items-center gap-1">
-              <div className={cn(
-                'w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all',
-                isDone ? 'bg-primary border-primary text-primary-foreground'
-                  : isCurrent ? 'bg-primary border-primary text-primary-foreground ring-4 ring-primary/20'
-                  : isFailedStep ? 'bg-red-500 border-red-500 text-white ring-4 ring-red-500/20'
-                  : 'bg-muted border-border text-muted-foreground'
-              )}>
-                {isDone && !isCurrent ? (
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                ) : isFailedStep ? (
-                  <XCircle className="h-3.5 w-3.5" />
-                ) : (
-                  <span>{idx + 1}</span>
-                )}
+    <div className="space-y-4">
+      {/* Happy path row */}
+      <div className="flex items-center gap-0">
+        {HAPPY_PATH.map((step, idx) => {
+          const isDone = idx <= currentHappyIdx && !isFailed
+          const isCurrent = step === status
+          return (
+            <div key={step} className="flex items-center flex-1 last:flex-none">
+              <div className="flex flex-col items-center gap-1">
+                <div className={cn(
+                  'w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all',
+                  isCurrent ? 'bg-primary border-primary text-primary-foreground ring-4 ring-primary/20'
+                    : isDone ? 'bg-primary border-primary text-primary-foreground'
+                    : 'bg-muted border-border text-muted-foreground'
+                )}>
+                  {isDone && !isCurrent ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  ) : (
+                    <span>{idx + 1}</span>
+                  )}
+                </div>
+                <span className={cn(
+                  'text-[9px] sm:text-[10px] font-medium whitespace-nowrap',
+                  isDone || isCurrent ? 'text-foreground' : 'text-muted-foreground'
+                )}>
+                  {step.replace(/_/g, ' ')}
+                </span>
               </div>
-              <span className={cn(
-                'text-[9px] sm:text-[10px] font-medium whitespace-nowrap',
-                isDone || isCurrent ? 'text-foreground' : isFailedStep ? 'text-red-500' : 'text-muted-foreground'
-              )}>
-                {isFailedStep ? status.replace(/_/g, ' ') : step.replace(/_/g, ' ')}
-              </span>
+              {idx < HAPPY_PATH.length - 1 && (
+                <div className={cn(
+                  'flex-1 h-0.5 mx-1 rounded-full',
+                  idx < currentHappyIdx && !isFailed ? 'bg-primary' : 'bg-border'
+                )} />
+              )}
             </div>
-            {idx < STATUS_STEPS.length - 1 && (
-              <div className={cn(
-                'flex-1 h-0.5 mx-1 rounded-full',
-                idx < currentIdx && !isFailed ? 'bg-primary' : 'bg-border'
-              )} />
-            )}
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
+
+      {/* Terminal statuses row */}
+      <div className="flex items-center gap-3 pl-1">
+        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide shrink-0">Terminal:</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          {TERMINAL_STATUSES.map((step) => {
+            const isCurrent = step === status
+            const conf = CALL_STATUS_CONFIG[step]
+            return (
+              <div
+                key={step}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all',
+                  isCurrent
+                    ? 'ring-2 ring-offset-1 ' + (step === 'FAILED' ? 'bg-red-100 text-red-700 border-red-300 ring-red-400 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700'
+                      : step === 'NO_ANSWER' ? 'bg-orange-100 text-orange-700 border-orange-300 ring-orange-400 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700'
+                      : 'bg-yellow-100 text-yellow-700 border-yellow-300 ring-yellow-400 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700')
+                    : 'bg-muted/50 text-muted-foreground border-border/60'
+                )}
+              >
+                <span className={cn('w-1.5 h-1.5 rounded-full', isCurrent ? conf.dot : 'bg-muted-foreground/40')} />
+                {step.replace(/_/g, ' ')}
+              </div>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
@@ -204,6 +239,16 @@ export default function CallDetailPage() {
       navigate(-1)
     },
     onError: () => toast.error('Failed to delete call record'),
+  })
+
+  const updateStatusMutation = useMutation({
+    mutationFn: (status: string) => callsService.updateStatus(id!, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['calls'] })
+      qc.invalidateQueries({ queryKey: ['call-detail', id] })
+      toast.success('Status updated')
+    },
+    onError: () => toast.error('Failed to update status'),
   })
 
   const handleDelete = () => {
@@ -620,6 +665,48 @@ export default function CallDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Update Status */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <RefreshCw className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                Update Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Select
+                value={call.status}
+                onValueChange={(newStatus) => updateStatusMutation.mutate(newStatus)}
+                disabled={updateStatusMutation.isPending}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALL_STATUSES.map((s) => {
+                    const conf = CALL_STATUS_CONFIG[s]
+                    return (
+                      <SelectItem key={s} value={s}>
+                        <span className="flex items-center gap-2">
+                          <span className={cn('w-2 h-2 rounded-full', conf.dot)} />
+                          {s.replace(/_/g, ' ')}
+                        </span>
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+              {updateStatusMutation.isPending && (
+                <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Updating status...
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Quick Actions */}
           <Card>
