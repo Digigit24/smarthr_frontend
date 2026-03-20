@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Search, Calendar, Loader2, Trash2, Clock, User, Video,
   MessageSquare, Star, CheckCircle, ExternalLink, UserCheck, Briefcase,
+  ChevronLeft, ChevronRight, LayoutGrid, CalendarDays,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -32,6 +34,12 @@ const TYPE_CONFIG: Record<InterviewType, { label: string; icon: typeof Calendar;
   CULTURE_FIT: { label: 'Culture Fit', icon: Star, color: 'text-pink-600 dark:text-pink-400', bg: 'bg-pink-50 dark:bg-pink-900/20' },
   FINAL: { label: 'Final', icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
 }
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
 
 function GradientAvatar({ name }: { name: string }) {
   const hash = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
@@ -131,6 +139,262 @@ function InterviewCard({ iv }: { iv: InterviewListItem }) {
   )
 }
 
+/* ── Calendar helpers ── */
+function getCalendarDays(year: number, month: number) {
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  const startPad = firstDay.getDay()
+  const totalDays = lastDay.getDate()
+  const days: (number | null)[] = []
+  for (let i = 0; i < startPad; i++) days.push(null)
+  for (let d = 1; d <= totalDays; d++) days.push(d)
+  // pad to complete the last week
+  while (days.length % 7 !== 0) days.push(null)
+  return days
+}
+
+function dateKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function formatTime(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+/* ── Calendar View component ── */
+function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
+  const navigate = useNavigate()
+  const today = new Date()
+  const [calYear, setCalYear] = useState(today.getFullYear())
+  const [calMonth, setCalMonth] = useState(today.getMonth())
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+
+  const prevMonth = () => {
+    if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1) }
+    else setCalMonth(calMonth - 1)
+    setSelectedDate(null)
+  }
+  const nextMonth = () => {
+    if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1) }
+    else setCalMonth(calMonth + 1)
+    setSelectedDate(null)
+  }
+  const goToday = () => {
+    setCalYear(today.getFullYear())
+    setCalMonth(today.getMonth())
+    setSelectedDate(dateKey(today))
+  }
+
+  // Group interviews by date
+  const interviewsByDate = useMemo(() => {
+    const map: Record<string, InterviewListItem[]> = {}
+    for (const iv of interviews) {
+      const key = dateKey(new Date(iv.scheduled_at))
+      if (!map[key]) map[key] = []
+      map[key].push(iv)
+    }
+    // Sort each day's interviews by time
+    for (const key of Object.keys(map)) {
+      map[key].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+    }
+    return map
+  }, [interviews])
+
+  const days = getCalendarDays(calYear, calMonth)
+  const todayKey = dateKey(today)
+  const selectedInterviews = selectedDate ? (interviewsByDate[selectedDate] || []) : []
+
+  return (
+    <div className="space-y-4">
+      {/* Calendar card */}
+      <Card className="overflow-hidden">
+        {/* Calendar header */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <h2 className="text-base sm:text-lg font-semibold">
+            {MONTH_NAMES[calMonth]} {calYear}
+          </h2>
+          <Button variant="outline" size="sm" className="text-xs" onClick={goToday}>
+            Today
+          </Button>
+        </div>
+
+        {/* Weekday headers */}
+        <div className="grid grid-cols-7 border-b bg-muted/20">
+          {WEEKDAYS.map((d) => (
+            <div key={d} className="py-2 text-center text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Day cells */}
+        <div className="grid grid-cols-7">
+          {days.map((day, idx) => {
+            if (day === null) {
+              return <div key={`pad-${idx}`} className="border-b border-r last:border-r-0 bg-muted/5 min-h-[60px] sm:min-h-[90px]" />
+            }
+            const key = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+            const dayInterviews = interviewsByDate[key] || []
+            const isToday = key === todayKey
+            const isSelected = key === selectedDate
+            const isWeekend = idx % 7 === 0 || idx % 7 === 6
+
+            return (
+              <button
+                key={key}
+                onClick={() => setSelectedDate(isSelected ? null : key)}
+                className={cn(
+                  'relative border-b border-r text-left p-1 sm:p-2 min-h-[60px] sm:min-h-[90px] transition-colors',
+                  'hover:bg-primary/5 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-primary/30',
+                  isSelected && 'bg-primary/10 ring-1 ring-inset ring-primary/30',
+                  isWeekend && !isSelected && 'bg-muted/10',
+                )}
+              >
+                {/* Day number */}
+                <span className={cn(
+                  'inline-flex items-center justify-center h-6 w-6 sm:h-7 sm:w-7 rounded-full text-xs sm:text-sm font-medium',
+                  isToday ? 'bg-primary text-primary-foreground' : 'text-foreground',
+                )}>
+                  {day}
+                </span>
+
+                {/* Interview dots / chips */}
+                {dayInterviews.length > 0 && (
+                  <div className="mt-0.5 sm:mt-1 space-y-0.5 overflow-hidden">
+                    {/* Mobile: show dots */}
+                    <div className="flex gap-0.5 flex-wrap sm:hidden">
+                      {dayInterviews.slice(0, 4).map((iv) => {
+                        const cfg = STATUS_CONFIG[iv.status] || STATUS_CONFIG.SCHEDULED
+                        return <span key={iv.id} className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
+                      })}
+                      {dayInterviews.length > 4 && (
+                        <span className="text-[8px] text-muted-foreground">+{dayInterviews.length - 4}</span>
+                      )}
+                    </div>
+
+                    {/* Desktop: show event chips */}
+                    <div className="hidden sm:block space-y-0.5">
+                      {dayInterviews.slice(0, 3).map((iv) => {
+                        const cfg = STATUS_CONFIG[iv.status] || STATUS_CONFIG.SCHEDULED
+                        return (
+                          <div
+                            key={iv.id}
+                            className={cn(
+                              'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium truncate',
+                              cfg.color,
+                            )}
+                          >
+                            <span className={cn('h-1 w-1 rounded-full shrink-0', cfg.dot)} />
+                            <span className="truncate">
+                              {formatTime(iv.scheduled_at)} {iv.applicant_name?.split(' ')[0] || 'Interview'}
+                            </span>
+                          </div>
+                        )
+                      })}
+                      {dayInterviews.length > 3 && (
+                        <p className="text-[10px] text-muted-foreground pl-1.5">+{dayInterviews.length - 3} more</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </Card>
+
+      {/* Selected day detail panel */}
+      {selectedDate && (
+        <Card className="overflow-hidden">
+          <div className="px-4 sm:px-5 py-3 border-b bg-muted/30 flex items-center justify-between">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              {new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            </h3>
+            <span className="text-xs text-muted-foreground">{selectedInterviews.length} interview{selectedInterviews.length !== 1 ? 's' : ''}</span>
+          </div>
+          {selectedInterviews.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">
+              No interviews on this day
+            </div>
+          ) : (
+            <div className="divide-y">
+              {selectedInterviews.map((iv) => {
+                const statusCfg = STATUS_CONFIG[iv.status] || STATUS_CONFIG.SCHEDULED
+                const typeCfg = TYPE_CONFIG[iv.interview_type] || TYPE_CONFIG.TECHNICAL
+                const TypeIcon = typeCfg.icon
+                return (
+                  <div
+                    key={iv.id}
+                    className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 hover:bg-muted/30 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/interviews/${iv.id}`)}
+                  >
+                    {/* Time block */}
+                    <div className="text-center shrink-0 w-14">
+                      <p className="text-sm font-bold">{formatTime(iv.scheduled_at)}</p>
+                      <p className="text-[10px] text-muted-foreground">{iv.duration_minutes}min</p>
+                    </div>
+
+                    {/* Color bar */}
+                    <div className={cn('w-1 self-stretch rounded-full bg-gradient-to-b', statusCfg.gradient)} />
+
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium truncate">
+                          {iv.applicant_name || iv.applicant_email || 'Unknown Candidate'}
+                        </p>
+                        <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium', statusCfg.color)}>
+                          <span className={cn('h-1 w-1 rounded-full', statusCfg.dot)} />
+                          {statusCfg.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
+                        <span className={cn('inline-flex items-center gap-1', typeCfg.color)}>
+                          <TypeIcon className="h-3 w-3" />
+                          {typeCfg.label}
+                        </span>
+                        {iv.interviewer_name && (
+                          <>
+                            <span className="text-border">|</span>
+                            <span className="flex items-center gap-1">
+                              <UserCheck className="h-3 w-3" />
+                              {iv.interviewer_name}
+                            </span>
+                          </>
+                        )}
+                        {iv.meeting_link && (
+                          <>
+                            <span className="text-border">|</span>
+                            <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                              <Video className="h-3 w-3" /> Link
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </Card>
+      )}
+    </div>
+  )
+}
+
 export default function InterviewsPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -140,6 +404,7 @@ export default function InterviewsPage() {
   const [interviewerFilter, setInterviewerFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid')
 
   const { data, isLoading } = useQuery({
     queryKey: ['interviews', search, statusFilter, typeFilter, interviewerFilter, dateFrom, dateTo],
@@ -184,9 +449,34 @@ export default function InterviewsPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">{data?.count ?? 0} total interviews</p>
         </div>
-        <Button onClick={() => navigate('/interviews/new')} className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" /> Schedule Interview
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center rounded-lg border bg-muted/30 p-0.5">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all',
+                viewMode === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Cards</span>
+            </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all',
+                viewMode === 'calendar' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Calendar</span>
+            </button>
+          </div>
+          <Button onClick={() => navigate('/interviews/new')} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" /> Schedule Interview
+          </Button>
+        </div>
       </div>
 
       {/* Quick status pills */}
@@ -260,17 +550,19 @@ export default function InterviewsPage() {
               </SelectContent>
             </Select>
           )}
-          <DateRangeFilter
-            fromDate={dateFrom}
-            toDate={dateTo}
-            onFromChange={setDateFrom}
-            onToChange={setDateTo}
-            onClear={() => { setDateFrom(''); setDateTo('') }}
-          />
+          {viewMode === 'grid' && (
+            <DateRangeFilter
+              fromDate={dateFrom}
+              toDate={dateTo}
+              onFromChange={setDateFrom}
+              onToChange={setDateTo}
+              onClear={() => { setDateFrom(''); setDateTo('') }}
+            />
+          )}
         </div>
       </div>
 
-      {/* Grid */}
+      {/* Content */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -287,12 +579,14 @@ export default function InterviewsPage() {
             <Plus className="h-4 w-4 mr-2" /> Schedule Interview
           </Button>
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {allInterviews.map((iv) => (
             <InterviewCard key={iv.id} iv={iv} />
           ))}
         </div>
+      ) : (
+        <CalendarView interviews={allInterviews} />
       )}
     </div>
   )
