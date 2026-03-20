@@ -102,7 +102,7 @@ function AppLayout() {
   // Auto-close mobile sidebar on route change
   useEffect(() => {
     setMobileOpen(false)
-  }, [location.pathname])
+  }, [location.pathname, location.key])
 
   const { data: notificationsData } = useQuery({
     queryKey: ['notifications', 'unread'],

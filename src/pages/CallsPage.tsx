@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Phone, Search, Loader2, Eye, Pencil, Trash2, Clock,
+  Phone, Search, Loader2, Eye, Pencil, Trash2, Clock, Calendar,
   Activity, PhoneOff, PhoneIncoming, PhoneCall,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -178,6 +178,10 @@ function CallCard({ call, onView, onEdit, onDelete }: {
             <Clock className="h-3 w-3" />
             {formatDuration(call.duration)}
           </span>
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {formatDateTime(call.created_at)}
+          </span>
           {call.started_at && (
             <span className="flex items-center gap-1">
               <Activity className="h-3 w-3" />
@@ -337,6 +341,7 @@ export default function CallsPage() {
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Status</th>
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Duration</th>
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Summary</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Created</th>
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Started</th>
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Actions</th>
                   </tr>
@@ -386,6 +391,9 @@ export default function CallsPage() {
                         </td>
                         <td className="px-4 py-3 text-[12px] text-muted-foreground max-w-[180px]">
                           <span className="truncate block">{call.summary || '—'}</span>
+                        </td>
+                        <td className="px-4 py-3 text-[13px] text-muted-foreground whitespace-nowrap">
+                          {formatDateTime(call.created_at)}
                         </td>
                         <td className="px-4 py-3 text-[13px] text-muted-foreground whitespace-nowrap">
                           {call.started_at ? formatDateTime(call.started_at) : '—'}
