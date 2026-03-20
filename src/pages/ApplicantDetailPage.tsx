@@ -256,7 +256,7 @@ export default function ApplicantDetailPage() {
   const apps = appsData?.results || []
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
       <Card className="overflow-hidden">
         <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
@@ -421,9 +421,9 @@ export default function ApplicantDetailPage() {
         </Card>
       ) : (
         /* ── View Mode ── */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left column — details */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Contact & Info */}
             <Card>
               <CardHeader className="pb-3">

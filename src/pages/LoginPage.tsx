@@ -79,9 +79,9 @@ export default function LoginPage() {
           </div>
 
           {/* Middle - Hero */}
-          <div className="space-y-8">
+          <div className="space-y-6 lg:space-y-8">
             <div>
-              <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight">
+              <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-white leading-tight">
                 Smarter hiring<br />starts here.
               </h1>
               <p className="text-lg text-white/70 mt-4 max-w-md">
@@ -114,7 +114,7 @@ export default function LoginPage() {
 
       {/* Right panel - login form */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-[400px] space-y-8">
+        <div className="w-full max-w-[400px] space-y-6 sm:space-y-8">
           {/* Mobile logo */}
           <div className="lg:hidden flex flex-col items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">

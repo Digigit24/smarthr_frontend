@@ -168,9 +168,9 @@ function CallCard({ call, onView, onEdit, onDelete }: {
             </div>
           </div>
           <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-500" onClick={onView}><Eye className="h-3.5 w-3.5" /></Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-amber-500" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /></Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={onDelete}><Trash2 className="h-3.5 w-3.5" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-500" onClick={onView}><Eye className="h-3.5 w-3.5" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-amber-500" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={onDelete}><Trash2 className="h-3.5 w-3.5" /></Button>
           </div>
         </div>
         <div className="mt-3 flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap">
@@ -268,7 +268,7 @@ export default function CallsPage() {
           <Input placeholder="Search by phone..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter || 'ALL'} onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}>
-          <SelectTrigger className="w-[calc(50%-4px)] sm:w-44">
+          <SelectTrigger className="w-[calc(50%-4px)] min-[400px]:w-44">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -279,7 +279,7 @@ export default function CallsPage() {
           </SelectContent>
         </Select>
         <Select value={providerFilter || 'ALL'} onValueChange={(v) => setProviderFilter(v === 'ALL' ? '' : v)}>
-          <SelectTrigger className="w-[calc(50%-4px)] sm:w-40">
+          <SelectTrigger className="w-[calc(50%-4px)] min-[400px]:w-40">
             <SelectValue placeholder="All providers" />
           </SelectTrigger>
           <SelectContent>
@@ -332,7 +332,7 @@ export default function CallsPage() {
           {/* Desktop Table View */}
           <Card className="hidden sm:block">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[750px]">
+              <table className="w-full text-sm" style={{ minWidth: 750 }}>
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Phone</th>
@@ -400,13 +400,13 @@ export default function CallsPage() {
                         </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-0.5">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-500" title="View" onClick={() => navigate(`/calls/${call.id}`)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-500" title="View" onClick={() => navigate(`/calls/${call.id}`)}>
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-amber-500" title="Edit" onClick={() => navigate(`/calls/${call.id}/edit`)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-amber-500" title="Edit" onClick={() => navigate(`/calls/${call.id}/edit`)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" title="Delete" onClick={() => handleDelete(call.id)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" title="Delete" onClick={() => handleDelete(call.id)}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>

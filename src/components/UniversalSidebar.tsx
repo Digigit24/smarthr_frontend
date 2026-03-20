@@ -173,7 +173,7 @@ export function UniversalSidebar({ mobileOpen, onMobileClose }: UniversalSidebar
       {/* Mobile Sidebar */}
       <div
         className={cn(
-          'fixed top-0 left-0 h-full w-72 bg-background border-r border-border/40 z-50',
+          'fixed top-0 left-0 h-full w-72 max-w-[calc(100vw-3rem)] bg-background border-r border-border/40 z-50',
           'transition-transform duration-300 shadow-xl flex flex-col',
           'lg:hidden',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'

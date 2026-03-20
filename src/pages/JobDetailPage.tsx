@@ -282,7 +282,7 @@ export default function JobDetailPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header Card */}
       <Card className="overflow-hidden">
         <div className={cn('h-1.5', {
@@ -370,7 +370,7 @@ export default function JobDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-5 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Left column - details */}
             <div className="space-y-5">
               <Card>
@@ -514,7 +514,7 @@ export default function JobDetailPage() {
               value={appStatusFilter || 'ALL'}
               onValueChange={(v) => setAppStatusFilter(v === 'ALL' ? '' : v)}
             >
-              <SelectTrigger className="w-[calc(50%-6px)] sm:w-48">
+              <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-48">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -548,7 +548,7 @@ export default function JobDetailPage() {
           ) : (
             <Card>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[700px]">
+                <table className="w-full text-sm" style={{ minWidth: 700 }}>
                   <thead>
                     <tr className="border-b bg-muted/50">
                       <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Applicant</th>
@@ -585,7 +585,7 @@ export default function JobDetailPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-blue-500"
+                              className="h-8 w-8 text-muted-foreground hover:text-blue-500"
                               title="View"
                               onClick={() => handleViewApplication(app)}
                             >
@@ -594,7 +594,7 @@ export default function JobDetailPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
+                              className="h-8 w-8"
                               title="Trigger AI Call"
                               onClick={() => triggerCallMutation.mutate(app.id)}
                             >

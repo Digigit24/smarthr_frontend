@@ -113,7 +113,7 @@ export default function ApplicationEditPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-3xl mx-auto">
       {/* Header */}
       <Card className="overflow-hidden">
         <div className="h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-400" />

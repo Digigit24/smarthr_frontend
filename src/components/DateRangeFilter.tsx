@@ -30,7 +30,7 @@ export function DateRangeFilter({
           type="date"
           value={fromDate}
           onChange={(e) => onFromChange(e.target.value)}
-          className={`h-9 w-[calc(50%-6px)] sm:w-36 text-xs ${!fromDate ? '[&::-webkit-datetime-edit]:invisible' : ''}`}
+          className={`h-9 w-[calc(50%-6px)] min-[400px]:w-36 text-xs ${!fromDate ? '[&::-webkit-datetime-edit]:invisible' : ''}`}
         />
       </div>
       <div className="relative">
@@ -44,7 +44,7 @@ export function DateRangeFilter({
           type="date"
           value={toDate}
           onChange={(e) => onToChange(e.target.value)}
-          className={`h-9 w-[calc(50%-6px)] sm:w-36 text-xs ${!toDate ? '[&::-webkit-datetime-edit]:invisible' : ''}`}
+          className={`h-9 w-[calc(50%-6px)] min-[400px]:w-36 text-xs ${!toDate ? '[&::-webkit-datetime-edit]:invisible' : ''}`}
         />
       </div>
       {hasFilter && (

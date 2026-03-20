@@ -199,7 +199,7 @@ export default function ApplicationDetailPage() {
   const fullName = `${app.applicant.first_name} ${app.applicant.last_name}`
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* ── Hero Header Card ── */}
       <Card className="overflow-hidden">
         <div className={cn('h-1.5 bg-gradient-to-r', statusConf.gradient)} />
@@ -278,9 +278,9 @@ export default function ApplicationDetailPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* ── Left Column ── */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
 
           {/* Applicant Info */}
           <Card>

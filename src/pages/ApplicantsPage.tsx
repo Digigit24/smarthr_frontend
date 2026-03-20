@@ -207,7 +207,7 @@ export default function ApplicantsPage() {
   }
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -235,7 +235,7 @@ export default function ApplicantsPage() {
           value={sourceFilter || 'ALL'}
           onValueChange={(v) => setSourceFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-[calc(50%-6px)] sm:w-40">
+          <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-40">
             <SelectValue placeholder="All sources" />
           </SelectTrigger>
           <SelectContent>
@@ -248,7 +248,7 @@ export default function ApplicantsPage() {
           </SelectContent>
         </Select>
         <Select value={ordering} onValueChange={setOrdering}>
-          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-44">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>

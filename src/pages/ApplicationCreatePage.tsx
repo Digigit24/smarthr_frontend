@@ -75,7 +75,7 @@ export default function ApplicationCreatePage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-3xl mx-auto">
       {/* Header */}
       <Card className="overflow-hidden">
         <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />

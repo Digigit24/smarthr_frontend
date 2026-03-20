@@ -158,11 +158,11 @@ function KanbanBoard({
   }
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-4 -mx-6 px-6">
+    <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6">
       {columns.map(({ status, items }) => (
         <div
           key={status}
-          className="flex-shrink-0 w-[280px]"
+          className="flex-shrink-0 w-[260px] sm:w-[280px]"
           onDragOver={handleDragOver}
           onDrop={(e) => handleDrop(e, status)}
         >
@@ -414,7 +414,7 @@ export default function ApplicationsPage() {
           value={statusFilter || 'ALL'}
           onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-[calc(50%-6px)] sm:w-48">
+          <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-48">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -425,7 +425,7 @@ export default function ApplicationsPage() {
           </SelectContent>
         </Select>
         <Select value={ordering} onValueChange={setOrdering}>
-          <SelectTrigger className="w-[calc(50%-6px)] sm:w-44">
+          <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-44">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
@@ -506,7 +506,7 @@ export default function ApplicationsPage() {
         /* ── Table View ── */
         <Card>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[800px]">
+            <table className="w-full text-sm" style={{ minWidth: 800 }}>
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="w-10 px-3 py-2.5 text-left">
@@ -575,7 +575,7 @@ export default function ApplicationsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-blue-500"
+                          className="h-8 w-8 text-muted-foreground hover:text-blue-500"
                           title="View"
                           onClick={() => handleView(app)}
                         >
@@ -584,7 +584,7 @@ export default function ApplicationsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-amber-500"
+                          className="h-8 w-8 text-muted-foreground hover:text-amber-500"
                           title="Edit"
                           onClick={() => navigate(`/applications/${app.id}/edit`)}
                         >
@@ -593,7 +593,7 @@ export default function ApplicationsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
                           title="Delete"
                           onClick={() => handleDelete(app.id)}
                         >
@@ -602,7 +602,7 @@ export default function ApplicationsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-violet-500"
+                          className="h-8 w-8 text-muted-foreground hover:text-violet-500"
                           title="Trigger AI Call"
                           onClick={() => triggerCallMutation.mutate(app.id)}
                         >
