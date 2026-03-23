@@ -118,29 +118,30 @@ export default function ApplicationEditPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-3xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-3xl mx-auto">
       {/* Header */}
       <Card className="overflow-hidden">
         <div className="h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-400" />
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between">
+        <CardContent className="p-3 sm:p-4 md:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md shrink-0">
                 <Pencil className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold">Edit Application</h1>
+                <h1 className="text-lg sm:text-xl font-semibold">Edit Application</h1>
                 <p className="text-sm text-muted-foreground">
                   {app.applicant.first_name} {app.applicant.last_name} — {app.job.title}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end items-stretch sm:items-center gap-2">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate(-1)}>Cancel</Button>
               <Button
+                className="w-full sm:w-auto"
                 disabled={updateMutation.isPending}
                 onClick={handleSubmit(onSubmit)}
               >
