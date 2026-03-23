@@ -175,7 +175,7 @@ export default function ScorecardEditPage() {
         <Button
           onClick={() => updateMutation.mutate({ summary: form.summary, recommendation: form.recommendation })}
           disabled={updateMutation.isPending}
-          className="sm:w-auto"
+          className="w-full sm:w-auto"
         >
           {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Save Changes

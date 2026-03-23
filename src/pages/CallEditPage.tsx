@@ -86,11 +86,11 @@ export default function CallEditPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-3xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 space-y-6 max-w-3xl mx-auto">
       {/* Header */}
       <Card className="overflow-hidden">
         <div className="h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-400" />
-        <CardContent className="p-4 sm:p-5">
+        <CardContent className="p-3 sm:p-4 md:p-5">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -100,13 +100,13 @@ export default function CallEditPage() {
                 <Pencil className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg sm:text-xl font-semibold">Edit Call Record</h1>
+                <h1 className="text-base sm:text-lg md:text-xl font-semibold">Edit Call Record</h1>
                 <p className="text-sm text-muted-foreground">{call.phone} · {call.provider}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 ml-auto sm:ml-0">
-              <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
-              <Button disabled={updateMutation.isPending} onClick={handleSave}>
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 ml-auto sm:ml-0 w-full sm:w-auto">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate(-1)}>Cancel</Button>
+              <Button className="w-full sm:w-auto" disabled={updateMutation.isPending} onClick={handleSave}>
                 {updateMutation.isPending ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
                 ) : (
@@ -123,7 +123,7 @@ export default function CallEditPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Call Details</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-3 sm:px-6">
           <div className="space-y-1.5">
             <Label>Phone</Label>
             <Input
