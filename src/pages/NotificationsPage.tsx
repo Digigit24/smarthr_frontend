@@ -108,6 +108,12 @@ function NotificationCard({
                 {n.notification_type.replace(/_/g, ' ')}
               </span>
             )}
+            {n.notification_type === 'EMAIL' && n.sent_at && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400">
+                <Mail className="h-3 w-3" />
+                Emailed
+              </span>
+            )}
             {route && (
               <span className="inline-flex items-center gap-1 text-[11px] text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
                 View details <ExternalLink className="h-3 w-3" />

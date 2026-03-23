@@ -137,3 +137,16 @@ export async function put<T>(url: string, data?: unknown): Promise<T> {
 export async function del(url: string): Promise<void> {
   await api.delete(url)
 }
+
+export async function download(url: string, filename: string): Promise<void> {
+  const res = await api.get(url, { responseType: 'blob' })
+  const blob = new Blob([res.data as BlobPart])
+  const blobUrl = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = blobUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(blobUrl)
+}

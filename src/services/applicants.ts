@@ -1,4 +1,4 @@
-import { get, post, put, patch, del } from './api'
+import { get, post, put, patch, del, download } from './api'
 import type {
   ApplicantListItem,
   ApplicantDetail,
@@ -24,4 +24,10 @@ export const applicantsService = {
 
   applications: (id: string, params?: Record<string, string>) =>
     get<PaginatedResponse<ApplicationListItem>>(`/applicants/${id}/applications/`, { params }),
+
+  export: (filters: Record<string, string>, format: 'csv' | 'xlsx') =>
+    download(
+      `/applicants/export/?${new URLSearchParams({ ...filters, format })}`,
+      `applicants.${format}`,
+    ),
 }

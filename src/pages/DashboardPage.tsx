@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -11,7 +12,9 @@ import {
   Calendar,
   Loader2,
   ArrowRight,
+  Download,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   AreaChart,
   Area,
@@ -27,6 +30,10 @@ import {
   LabelList,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { analyticsService } from '@/services/analytics'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -120,6 +127,20 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExport = async (value: string) => {
+    setIsExporting(true)
+    try {
+      const [report, format] = value.split(':') as [string, 'csv' | 'xlsx']
+      await analyticsService.export(report as 'all' | 'funnel' | 'scores' | 'timeline', format, '30d')
+      toast.success(`Export started (${report} · ${format.toUpperCase()})`)
+    } catch {
+      toast.error('Export failed')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['analytics-dashboard'],
@@ -153,9 +174,23 @@ export default function DashboardPage() {
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
-        <p className="text-xs text-muted-foreground">Your recruitment pipeline at a glance</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
+          <p className="text-xs text-muted-foreground">Your recruitment pipeline at a glance</p>
+        </div>
+        <Select onValueChange={handleExport}>
+          <SelectTrigger className="w-40 h-9" disabled={isExporting}>
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            <SelectValue placeholder="Export Report" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all:xlsx">Full Report (Excel)</SelectItem>
+            <SelectItem value="funnel:csv">Funnel (CSV)</SelectItem>
+            <SelectItem value="scores:csv">Scores (CSV)</SelectItem>
+            <SelectItem value="timeline:csv">Timeline (CSV)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Stats Grid */}

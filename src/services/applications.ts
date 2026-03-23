@@ -1,5 +1,20 @@
-import { get, post, put, patch, del } from './api'
+import { get, post, put, patch, del, download } from './api'
 import type { ApplicationListItem, ApplicationDetail, ApplicationFormData, PaginatedResponse } from '@/types'
+
+export interface BulkActionPayload {
+  application_ids: string[]
+  action: 'change_status' | 'delete' | 'trigger_ai_call' | 'add_to_queue'
+  status?: string
+  queue_id?: string
+}
+
+export interface BulkActionResponse {
+  action: string
+  affected: number
+  errors?: { application_id: string; error: string }[]
+  skipped?: number
+  queue_id?: string
+}
 
 export const applicationsService = {
   list: (params?: Record<string, string>) =>
@@ -23,10 +38,12 @@ export const applicationsService = {
   triggerAiCall: (id: string) =>
     post<{ id: string; status: string }>(`/applications/${id}/trigger-ai-call/`),
 
-  bulkAction: (application_ids: string[], action: string, status?: string) =>
-    post<{ updated: number; action: string }>('/applications/bulk-action/', {
-      application_ids,
-      action,
-      status,
-    }),
+  bulkAction: (payload: BulkActionPayload) =>
+    post<BulkActionResponse>('/applications/bulk-action/', payload),
+
+  export: (filters: Record<string, string>, format: 'csv' | 'xlsx') =>
+    download(
+      `/applications/export/?${new URLSearchParams({ ...filters, format })}`,
+      `applications.${format}`,
+    ),
 }

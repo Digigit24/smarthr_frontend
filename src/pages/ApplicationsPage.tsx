@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search, FileText, Phone, Star, ChevronDown, ChevronLeft, ChevronRight,
   Loader2, Plus, Eye, Pencil, Trash2, LayoutList, Columns3,
-  GripVertical, Clock, User, Briefcase,
+  GripVertical, Clock, User, Briefcase, Download, ListPlus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
@@ -21,7 +21,9 @@ import {
 } from '@/components/ui/select'
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { applicationsService } from '@/services/applications'
-import type { ApplicationListItem, ApplicationStatus, PaginatedResponse } from '@/types'
+import type { BulkActionPayload, BulkActionResponse } from '@/services/applications'
+import { callQueuesService } from '@/services/callQueues'
+import type { ApplicationListItem, ApplicationStatus, CallQueue, PaginatedResponse } from '@/types'
 import { formatDate, getInitials, cn } from '@/lib/utils'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -677,15 +679,67 @@ export default function ApplicationsPage() {
   })
 
   const bulkMutation = useMutation({
-    mutationFn: ({ ids, status }: { ids: string[]; status: string }) =>
-      applicationsService.bulkAction(ids, 'change_status', status),
-    onSuccess: (res) => {
+    mutationFn: (payload: BulkActionPayload) => applicationsService.bulkAction(payload),
+    onSuccess: (res: BulkActionResponse) => {
       qc.invalidateQueries({ queryKey: ['applications'] })
       setSelectedIds(new Set())
-      toast.success(`${res.updated} applications updated`)
+      if (res.errors && res.errors.length > 0) {
+        toast.success(`${res.affected} succeeded, ${res.errors.length} failed`, {
+          description: res.errors.map((e) => e.error).join('; '),
+        })
+      } else if (res.skipped) {
+        toast.success(`${res.affected} added to queue, ${res.skipped} skipped`)
+      } else {
+        toast.success(`${res.affected} applications processed`)
+      }
     },
     onError: (err) => toast.error(extractApiError(err, 'Bulk action failed')),
   })
+
+  const [showQueuePicker, setShowQueuePicker] = useState(false)
+
+  const { data: queuesData } = useQuery({
+    queryKey: ['call-queues-for-bulk', 'DRAFT,PAUSED'],
+    queryFn: () => callQueuesService.list({ status: 'DRAFT,PAUSED' }),
+    enabled: showQueuePicker,
+  })
+
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExport = async (format: 'csv' | 'xlsx') => {
+    setIsExporting(true)
+    try {
+      const filters: Record<string, string> = {}
+      if (search) filters.search = search
+      if (statusFilter) filters.status = statusFilter
+      if (dateFilter === 'today') {
+        filters.created_at_gte = todayStr
+        filters.created_at_lte = todayStr
+      }
+      if (dateFrom && !dateFilter) filters.created_at_gte = dateFrom
+      if (dateTo && !dateFilter) filters.created_at_lte = dateTo
+      await applicationsService.export(filters, format)
+      toast.success(`Export started (${format.toUpperCase()})`)
+    } catch (err) {
+      toast.error(extractApiError(err, 'Export failed'))
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (!window.confirm(`Permanently delete ${selectedIds.size} application(s)? This cannot be undone.`)) return
+    bulkMutation.mutate({ application_ids: Array.from(selectedIds), action: 'delete' })
+  }
+
+  const handleBulkTriggerCall = () => {
+    bulkMutation.mutate({ application_ids: Array.from(selectedIds), action: 'trigger_ai_call' })
+  }
+
+  const handleBulkAddToQueue = (queueId: string) => {
+    setShowQueuePicker(false)
+    bulkMutation.mutate({ application_ids: Array.from(selectedIds), action: 'add_to_queue', queue_id: queueId })
+  }
 
   const handleView = (app: ApplicationListItem) => {
     navigate(`/applications/${app.id}`)
@@ -723,13 +777,13 @@ export default function ApplicationsPage() {
           <h1 className="text-lg font-semibold">Applications</h1>
           <p className="text-xs text-muted-foreground">{data?.count ?? 0} total</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {selectedIds.size > 0 && (
             <>
               <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
               <Select
                 onValueChange={(status) =>
-                  bulkMutation.mutate({ ids: Array.from(selectedIds), status })
+                  bulkMutation.mutate({ application_ids: Array.from(selectedIds), action: 'change_status', status })
                 }
               >
                 <SelectTrigger className="w-44 h-9">
@@ -741,8 +795,51 @@ export default function ApplicationsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button variant="outline" size="sm" onClick={handleBulkTriggerCall} disabled={bulkMutation.isPending}>
+                <Phone className="h-3.5 w-3.5 mr-1.5" />
+                AI Call
+              </Button>
+              <div className="relative">
+                <Button variant="outline" size="sm" onClick={() => setShowQueuePicker(!showQueuePicker)} disabled={bulkMutation.isPending}>
+                  <ListPlus className="h-3.5 w-3.5 mr-1.5" />
+                  Add to Queue
+                </Button>
+                {showQueuePicker && (
+                  <div className="absolute right-0 top-full mt-1 z-50 w-64 rounded-lg border bg-popover p-2 shadow-md">
+                    <p className="text-xs font-medium text-muted-foreground px-2 py-1">Select a queue</p>
+                    {!queuesData?.results?.length ? (
+                      <p className="text-xs text-muted-foreground px-2 py-3 text-center">No draft/paused queues available</p>
+                    ) : (
+                      queuesData.results.map((q: CallQueue) => (
+                        <button
+                          key={q.id}
+                          className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors"
+                          onClick={() => handleBulkAddToQueue(q.id)}
+                        >
+                          {q.name}
+                          <span className="text-xs text-muted-foreground ml-2">{q.status}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+              <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={handleBulkDelete} disabled={bulkMutation.isPending}>
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                Delete
+              </Button>
             </>
           )}
+          <Select onValueChange={(v) => handleExport(v as 'csv' | 'xlsx')}>
+            <SelectTrigger className="w-32 h-9" disabled={isExporting}>
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              <SelectValue placeholder="Export" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="csv">Export CSV</SelectItem>
+              <SelectItem value="xlsx">Export Excel</SelectItem>
+            </SelectContent>
+          </Select>
           <Button onClick={() => navigate('/applications/new')}>
             <Plus className="h-4 w-4 mr-2" />
             New Application
