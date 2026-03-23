@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select'
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { applicationsService } from '@/services/applications'
-import type { ApplicationListItem, ApplicationStatus } from '@/types'
+import type { ApplicationListItem, ApplicationStatus, PaginatedResponse } from '@/types'
 import { formatDate, getInitials, cn } from '@/lib/utils'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -134,6 +134,7 @@ function KanbanBoard({
   }))
 
   const [dragItem, setDragItem] = useState<string | null>(null)
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null)
 
   const handleDragStart = (e: React.DragEvent, appId: string) => {
     setDragItem(appId)
@@ -141,9 +142,14 @@ function KanbanBoard({
     e.dataTransfer.setData('text/plain', appId)
   }
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, targetStatus: string) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
+    if (dragOverCol !== targetStatus) setDragOverCol(targetStatus)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverCol(null)
   }
 
   const handleDrop = (e: React.DragEvent, targetStatus: string) => {
@@ -156,6 +162,12 @@ function KanbanBoard({
       }
     }
     setDragItem(null)
+    setDragOverCol(null)
+  }
+
+  const handleDragEnd = () => {
+    setDragItem(null)
+    setDragOverCol(null)
   }
 
   return (
@@ -164,7 +176,8 @@ function KanbanBoard({
         <div
           key={status}
           className="flex-shrink-0 w-[260px] sm:w-[280px]"
-          onDragOver={handleDragOver}
+          onDragOver={(e) => handleDragOver(e, status)}
+          onDragLeave={handleDragLeave}
           onDrop={(e) => handleDrop(e, status)}
         >
           {/* Column Header */}
@@ -178,8 +191,9 @@ function KanbanBoard({
 
           {/* Column Body */}
           <div className={cn(
-            'min-h-[200px] max-h-[calc(100vh-340px)] overflow-y-auto rounded-b-lg border border-t-0 bg-muted/10 p-2 space-y-2',
-            dragItem && 'bg-muted/20'
+            'min-h-[200px] max-h-[calc(100vh-340px)] overflow-y-auto rounded-b-lg border border-t-0 bg-muted/10 p-2 space-y-2 transition-colors',
+            dragItem && 'bg-muted/15',
+            dragOverCol === status && dragItem && 'bg-primary/5 border-primary/30 ring-1 ring-inset ring-primary/20',
           )}>
             {items.length === 0 ? (
               <div className="flex items-center justify-center h-24 text-[11px] text-muted-foreground">
@@ -191,6 +205,7 @@ function KanbanBoard({
                   key={app.id}
                   draggable
                   onDragStart={(e) => handleDragStart(e, app.id)}
+                  onDragEnd={handleDragEnd}
                   className={cn(
                     'rounded-lg border bg-card p-3 cursor-grab active:cursor-grabbing hover:shadow-sm transition-all group',
                     dragItem === app.id && 'opacity-50'
@@ -301,14 +316,45 @@ export default function ApplicationsPage() {
       }),
   })
 
+  const applicationsQueryKey = ['applications', search, statusFilter, ordering, dateFilter, dateFrom, dateTo]
+
   const changeStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       applicationsService.changeStatus(id, status),
+    onMutate: async ({ id, status }) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await qc.cancelQueries({ queryKey: applicationsQueryKey })
+
+      // Snapshot current data for rollback
+      const previous = qc.getQueryData<PaginatedResponse<ApplicationListItem>>(applicationsQueryKey)
+
+      // Optimistically update the status in cache
+      qc.setQueryData<PaginatedResponse<ApplicationListItem>>(applicationsQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.map((app) =>
+            app.id === id ? { ...app, status: status as ApplicationStatus } : app
+          ),
+        }
+      })
+
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['applications'] })
       toast.success('Status updated')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to update status')),
+    onError: (err, _vars, context) => {
+      // Roll back on error
+      if (context?.previous) {
+        qc.setQueryData(applicationsQueryKey, context.previous)
+      }
+      toast.error(extractApiError(err, 'Failed to update status'))
+    },
+    onSettled: () => {
+      // Refetch to sync with server
+      qc.invalidateQueries({ queryKey: applicationsQueryKey })
+    },
   })
 
   const triggerCallMutation = useMutation({
