@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Search, FileText, Phone, Star, ChevronDown, Loader2,
-  Plus, Eye, Pencil, Trash2, LayoutList, Columns3,
+  Search, FileText, Phone, Star, ChevronDown, ChevronLeft, ChevronRight,
+  Loader2, Plus, Eye, Pencil, Trash2, LayoutList, Columns3,
   GripVertical, Clock, User, Briefcase,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -280,6 +280,300 @@ function KanbanBoard({
   )
 }
 
+/* ──────────────────── Swipeable Card (touch) ──────────────────── */
+
+const SWIPE_THRESHOLD = 60
+
+function SwipeableCard({
+  app,
+  onView,
+  onChangeStatus,
+  onTriggerCall,
+  onDelete,
+}: {
+  app: ApplicationListItem
+  onView: (app: ApplicationListItem) => void
+  onChangeStatus: (id: string, status: string) => void
+  onTriggerCall: (id: string) => void
+  onDelete: (id: string) => void
+}) {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
+  const [swipeOffset, setSwipeOffset] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+
+  const currentIdx = ALL_STATUSES.indexOf(app.status as ApplicationStatus)
+  const prevStatus = currentIdx > 0 ? ALL_STATUSES[currentIdx - 1] : null
+  const nextStatus = currentIdx < ALL_STATUSES.length - 1 ? ALL_STATUSES[currentIdx + 1] : null
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+    setIsSwiping(false)
+  }, [])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - touchStartX.current
+    const dy = e.touches[0].clientY - touchStartY.current
+
+    // Only track horizontal swipes (ignore vertical scroll)
+    if (!isSwiping && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) return
+    if (Math.abs(dx) > 10) setIsSwiping(true)
+
+    if (!isSwiping && Math.abs(dx) < 10) return
+
+    // Clamp: don't swipe if no status in that direction
+    const clampedDx =
+      (!prevStatus && dx < 0) || (!nextStatus && dx > 0)
+        ? dx * 0.15 // rubber-band effect
+        : dx
+
+    setSwipeOffset(clampedDx)
+  }, [isSwiping, prevStatus, nextStatus])
+
+  const handleTouchEnd = useCallback(() => {
+    if (Math.abs(swipeOffset) >= SWIPE_THRESHOLD) {
+      if (swipeOffset > 0 && nextStatus) {
+        onChangeStatus(app.id, nextStatus)
+      } else if (swipeOffset < 0 && prevStatus) {
+        onChangeStatus(app.id, prevStatus)
+      }
+    }
+    setSwipeOffset(0)
+    setIsSwiping(false)
+  }, [swipeOffset, nextStatus, prevStatus, app.id, onChangeStatus])
+
+  const targetStatus =
+    Math.abs(swipeOffset) >= SWIPE_THRESHOLD
+      ? swipeOffset > 0
+        ? nextStatus
+        : prevStatus
+      : null
+
+  return (
+    <div className="relative overflow-hidden rounded-lg">
+      {/* Swipe background indicators */}
+      {isSwiping && (
+        <>
+          {/* Left background (swipe left → previous status) */}
+          <div className={cn(
+            'absolute inset-y-0 left-0 w-full flex items-center px-4 rounded-lg transition-colors',
+            targetStatus && swipeOffset < 0
+              ? 'bg-amber-100 dark:bg-amber-900/30'
+              : 'bg-muted/40',
+          )}>
+            {prevStatus && (
+              <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                <ChevronLeft className="h-4 w-4" />
+                <span>{prevStatus.replace(/_/g, ' ')}</span>
+              </div>
+            )}
+          </div>
+          {/* Right background (swipe right → next status) */}
+          <div className={cn(
+            'absolute inset-y-0 right-0 w-full flex items-center justify-end px-4 rounded-lg transition-colors',
+            targetStatus && swipeOffset > 0
+              ? 'bg-emerald-100 dark:bg-emerald-900/30'
+              : 'bg-muted/40',
+          )}>
+            {nextStatus && (
+              <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                <span>{nextStatus.replace(/_/g, ' ')}</span>
+                <ChevronRight className="h-4 w-4" />
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Card */}
+      <div
+        ref={cardRef}
+        className="relative rounded-lg border bg-card p-3 transition-shadow active:shadow-md"
+        style={{
+          transform: `translateX(${swipeOffset}px)`,
+          transition: isSwiping ? 'none' : 'transform 0.25s ease-out',
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => !isSwiping && onView(app)}
+      >
+        <div className="flex items-start gap-2.5">
+          <div className={cn('w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0', getAvatarGradient(app.applicant_name))}>
+            <span className="text-[10px] font-bold text-white">{getInitials(app.applicant_name)}</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold truncate">{app.applicant_name}</p>
+            <p className="text-xs text-muted-foreground truncate">{app.applicant_email}</p>
+          </div>
+          <ScoreBadge score={app.score} />
+        </div>
+
+        <div className="mt-2 flex items-center justify-between">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
+            <Briefcase className="h-3 w-3 shrink-0" />
+            <span className="truncate">{app.job_title}</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0 ml-2">
+            <Clock className="h-2.5 w-2.5" />
+            {formatDate(app.created_at)}
+          </span>
+        </div>
+
+        {/* Swipe hint */}
+        <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground/50">
+          {prevStatus ? (
+            <span className="flex items-center gap-0.5"><ChevronLeft className="h-3 w-3" />{prevStatus.replace(/_/g, ' ')}</span>
+          ) : <span />}
+          {nextStatus ? (
+            <span className="flex items-center gap-0.5">{nextStatus.replace(/_/g, ' ')}<ChevronRight className="h-3 w-3" /></span>
+          ) : <span />}
+        </div>
+
+        {/* Action row */}
+        <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-blue-500"
+            title="View"
+            onClick={(e) => { e.stopPropagation(); onView(app) }}
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-violet-500"
+            title="Trigger AI Call"
+            onClick={(e) => { e.stopPropagation(); onTriggerCall(app.id) }}
+          >
+            <Phone className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            title="Delete"
+            onClick={(e) => { e.stopPropagation(); onDelete(app.id) }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+          <Select
+            value={app.status}
+            onValueChange={(status) => onChangeStatus(app.id, status)}
+          >
+            <SelectTrigger className="h-7 ml-auto w-auto gap-1 px-2 text-[11px] border-0 shadow-none">
+              <span className={cn('w-1.5 h-1.5 rounded-full', STATUS_DOT_COLORS[app.status])} />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ALL_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ──────────────────── Mobile Kanban View ──────────────────── */
+
+function MobileKanbanView({
+  applications,
+  onView,
+  onChangeStatus,
+  onTriggerCall,
+  onDelete,
+}: {
+  applications: ApplicationListItem[]
+  onView: (app: ApplicationListItem) => void
+  onChangeStatus: (id: string, status: string) => void
+  onTriggerCall: (id: string) => void
+  onDelete: (id: string) => void
+}) {
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+
+  const groups = ALL_STATUSES
+    .map((status) => ({
+      status,
+      items: applications.filter((a) => a.status === status),
+    }))
+    .filter(({ items }) => items.length > 0)
+
+  const toggleGroup = (status: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      next.has(status) ? next.delete(status) : next.add(status)
+      return next
+    })
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Swipe instruction */}
+      <div className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground bg-muted/30 rounded-lg">
+        <ChevronLeft className="h-3.5 w-3.5" />
+        <span>Swipe cards to change status</span>
+        <ChevronRight className="h-3.5 w-3.5" />
+      </div>
+
+      {groups.map(({ status, items }) => {
+        const isCollapsed = collapsedGroups.has(status)
+        return (
+          <div key={status}>
+            {/* Group header */}
+            <button
+              className={cn(
+                'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border-l-4 transition-colors',
+                STATUS_BORDER_COLORS[status],
+                'bg-muted/30 hover:bg-muted/50',
+              )}
+              onClick={() => toggleGroup(status)}
+            >
+              <span className={cn('w-2.5 h-2.5 rounded-full', STATUS_DOT_COLORS[status])} />
+              <span className="text-sm font-semibold">{status.replace(/_/g, ' ')}</span>
+              <span className="ml-auto text-xs font-medium bg-muted rounded-full px-2 py-0.5">
+                {items.length}
+              </span>
+              <ChevronDown className={cn(
+                'h-4 w-4 text-muted-foreground transition-transform',
+                isCollapsed && '-rotate-90',
+              )} />
+            </button>
+
+            {/* Group cards */}
+            {!isCollapsed && (
+              <div className="mt-2 space-y-2">
+                {items.map((app) => (
+                  <SwipeableCard
+                    key={app.id}
+                    app={app}
+                    onView={onView}
+                    onChangeStatus={onChangeStatus}
+                    onTriggerCall={onTriggerCall}
+                    onDelete={onDelete}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+
+      {groups.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground text-sm">
+          No applications to display
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ────────────────────────── Main Page ────────────────────────── */
 
 export default function ApplicationsPage() {
@@ -293,7 +587,17 @@ export default function ApplicationsPage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table')
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 640
+      setIsMobile(mobile)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     if (searchParams.has('status') || searchParams.has('filter')) {
@@ -542,13 +846,23 @@ export default function ApplicationsPage() {
           <p className="text-sm mt-1">Create your first application to get started</p>
         </div>
       ) : viewMode === 'kanban' ? (
-        <KanbanBoard
-          applications={data!.results}
-          onView={handleView}
-          onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
-          onTriggerCall={(id) => triggerCallMutation.mutate(id)}
-          onDelete={handleDelete}
-        />
+        isMobile ? (
+          <MobileKanbanView
+            applications={data!.results}
+            onView={handleView}
+            onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
+            onTriggerCall={(id) => triggerCallMutation.mutate(id)}
+            onDelete={handleDelete}
+          />
+        ) : (
+          <KanbanBoard
+            applications={data!.results}
+            onView={handleView}
+            onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
+            onTriggerCall={(id) => triggerCallMutation.mutate(id)}
+            onDelete={handleDelete}
+          />
+        )
       ) : (
         /* ── Table View ── */
         <Card>
