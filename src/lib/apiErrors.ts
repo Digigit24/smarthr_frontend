@@ -2,9 +2,29 @@ import axios from 'axios'
 import type { UseFormSetError, FieldValues, Path } from 'react-hook-form'
 
 /**
+ * Parse a flat field-error object from various response shapes.
+ * Handles:
+ * - { field: ["err", ...], ... }           (DRF default)
+ * - { details: { field: ["err", ...] } }   (custom backend wrapper)
+ */
+function parseFieldMap(obj: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === 'non_field_errors') continue
+    if (Array.isArray(value) && value.length > 0) {
+      out[key] = String(value[0])
+    } else if (typeof value === 'string') {
+      out[key] = value
+    }
+  }
+  return out
+}
+
+/**
  * Extract a human-readable error message from an API error response.
  * Handles Django REST Framework error shapes:
  * - { detail: "string" }
+ * - { error: "...", code: "...", details: { field: [...] } }
  * - { field_name: ["error1", "error2"] }
  * - { non_field_errors: ["error"] }
  * - Plain string responses
@@ -33,8 +53,19 @@ export function extractApiError(error: unknown, fallback = 'Something went wrong
   // { non_field_errors: [...] }
   if (Array.isArray(data.non_field_errors)) return data.non_field_errors.join('. ')
 
-  // { error: "..." }
-  if (typeof data.error === 'string') return data.error
+  // { error: "...", code: "...", details: { ... } }
+  if (typeof data.error === 'string') {
+    if (data.details && typeof data.details === 'object') {
+      const fieldErrors = parseFieldMap(data.details as Record<string, unknown>)
+      const fieldMessages = Object.entries(fieldErrors).map(
+        ([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`,
+      )
+      if (fieldMessages.length > 0) {
+        return `${data.error}: ${fieldMessages.join('; ')}`
+      }
+    }
+    return data.error
+  }
 
   // { message: "..." }
   if (typeof data.message === 'string') return data.message
@@ -43,11 +74,9 @@ export function extractApiError(error: unknown, fallback = 'Something went wrong
   const messages: string[] = []
   for (const [key, value] of Object.entries(data)) {
     if (Array.isArray(value)) {
-      const fieldName = key.replace(/_/g, ' ')
-      messages.push(`${fieldName}: ${value.join(', ')}`)
+      messages.push(`${key.replace(/_/g, ' ')}: ${(value as string[]).join(', ')}`)
     } else if (typeof value === 'string') {
-      const fieldName = key.replace(/_/g, ' ')
-      messages.push(`${fieldName}: ${value}`)
+      messages.push(`${key.replace(/_/g, ' ')}: ${value}`)
     }
   }
 
@@ -59,29 +88,27 @@ export function extractApiError(error: unknown, fallback = 'Something went wrong
 /**
  * Extract field-level errors from an API error response.
  * Returns a Record mapping field names to their first error message.
- * Non-field errors (detail, non_field_errors, error, message) are excluded.
+ *
+ * Handles:
+ * - { field: ["err"], ... }                          (DRF flat)
+ * - { error: "...", code: "...", details: { ... } }  (backend wrapper)
  */
 export function extractFieldErrors(error: unknown): Record<string, string> {
-  const fieldErrors: Record<string, string> = {}
-
-  if (!axios.isAxiosError(error)) return fieldErrors
+  if (!axios.isAxiosError(error)) return {}
 
   const data = error.response?.data
-  if (!data || typeof data !== 'object') return fieldErrors
+  if (!data || typeof data !== 'object') return {}
 
-  // Skip if the response is a top-level message shape (not field errors)
-  if (data.detail || data.error || data.message) return fieldErrors
-
-  for (const [key, value] of Object.entries(data)) {
-    if (key === 'non_field_errors') continue
-    if (Array.isArray(value) && value.length > 0) {
-      fieldErrors[key] = value[0]
-    } else if (typeof value === 'string') {
-      fieldErrors[key] = value
-    }
+  // Backend wrapper: { error, code, details: { field: [...] } }
+  if (data.details && typeof data.details === 'object') {
+    return parseFieldMap(data.details as Record<string, unknown>)
   }
 
-  return fieldErrors
+  // Skip if the response is a top-level message shape (not field errors)
+  if (data.detail || data.error || data.message) return {}
+
+  // DRF flat field errors: { field: ["err"], ... }
+  return parseFieldMap(data as Record<string, unknown>)
 }
 
 /**
@@ -97,7 +124,10 @@ function extractNonFieldError(error: unknown): string | null {
   if (typeof data.detail === 'string') return data.detail
   if (Array.isArray(data.detail)) return data.detail.join('. ')
   if (Array.isArray(data.non_field_errors)) return data.non_field_errors.join('. ')
+
+  // { error: "...", code: "..." } — return the error string as the non-field message
   if (typeof data.error === 'string') return data.error
+
   if (typeof data.message === 'string') return data.message
 
   return null
