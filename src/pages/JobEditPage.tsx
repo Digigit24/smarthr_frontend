@@ -1,10 +1,11 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { extractApiError } from '@/lib/apiErrors'
+import { extractApiError, extractFieldErrors } from '@/lib/apiErrors'
 import {
   ArrowLeft, Loader2, Save, Briefcase, MapPin, Clock,
 } from 'lucide-react'
@@ -51,6 +52,7 @@ export default function JobEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
 
   const { data: job, isLoading } = useQuery({
     queryKey: ['job-detail', id],
@@ -66,7 +68,16 @@ export default function JobEditPage() {
       toast.success('Job updated successfully')
       navigate(-1)
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to update job')),
+    onError: (err) => {
+      const fieldErrors = extractFieldErrors(err)
+      setServerErrors(fieldErrors)
+      const hasFieldErrors = Object.keys(fieldErrors).length > 0
+      if (hasFieldErrors) {
+        toast.error('Please fix the highlighted errors')
+      } else {
+        toast.error(extractApiError(err, 'Failed to update job'))
+      }
+    },
   })
 
   if (isLoading) {
@@ -131,9 +142,10 @@ export default function JobEditPage() {
           status: job.status,
           closes_at: job.closes_at || undefined,
         }}
-        onSubmit={(data) => updateMutation.mutate({ id: job.id, data: data as JobFormData })}
+        onSubmit={(data) => { setServerErrors({}); updateMutation.mutate({ id: job.id, data: data as JobFormData }) }}
         isLoading={updateMutation.isPending}
         onCancel={() => navigate(-1)}
+        serverErrors={serverErrors}
       />
     </div>
   )
@@ -144,11 +156,13 @@ function EditForm({
   onSubmit,
   isLoading,
   onCancel,
+  serverErrors = {},
 }: {
   defaultValues: Partial<JobForm>
   onSubmit: (data: JobForm) => void
   isLoading?: boolean
   onCancel: () => void
+  serverErrors?: Record<string, string>
 }) {
   const {
     register,
@@ -177,18 +191,18 @@ function EditForm({
           <div className="space-y-1.5">
             <Label>Job Title *</Label>
             <Input placeholder="e.g. Senior Python Developer" {...register('title')} className="max-w-lg" />
-            {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+            {(errors.title || serverErrors.title) && <p className="text-xs text-destructive">{errors.title?.message || serverErrors.title}</p>}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Department *</Label>
               <Input placeholder="e.g. Engineering" {...register('department')} />
-              {errors.department && <p className="text-xs text-destructive">{errors.department.message}</p>}
+              {(errors.department || serverErrors.department) && <p className="text-xs text-destructive">{errors.department?.message || serverErrors.department}</p>}
             </div>
             <div className="space-y-1.5">
               <Label>Location *</Label>
               <Input placeholder="e.g. Remote" {...register('location')} />
-              {errors.location && <p className="text-xs text-destructive">{errors.location.message}</p>}
+              {(errors.location || serverErrors.location) && <p className="text-xs text-destructive">{errors.location?.message || serverErrors.location}</p>}
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -242,14 +256,17 @@ function EditForm({
             <div className="space-y-1.5">
               <Label>Min Salary</Label>
               <Input placeholder="e.g. 80000" {...register('salary_min')} />
+              {serverErrors.salary_min && <p className="text-xs text-destructive">{serverErrors.salary_min}</p>}
             </div>
             <div className="space-y-1.5">
               <Label>Max Salary</Label>
               <Input placeholder="e.g. 120000" {...register('salary_max')} />
+              {serverErrors.salary_max && <p className="text-xs text-destructive">{serverErrors.salary_max}</p>}
             </div>
             <div className="space-y-1.5">
               <Label>Closes At</Label>
               <Input type="datetime-local" {...register('closes_at')} />
+              {serverErrors.closes_at && <p className="text-xs text-destructive">{serverErrors.closes_at}</p>}
             </div>
           </div>
         </CardContent>
@@ -264,12 +281,12 @@ function EditForm({
           <div className="space-y-1.5">
             <Label>Description *</Label>
             <Textarea rows={6} placeholder="Job description..." {...register('description')} />
-            {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+            {(errors.description || serverErrors.description) && <p className="text-xs text-destructive">{errors.description?.message || serverErrors.description}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Requirements *</Label>
             <Textarea rows={4} placeholder="Required skills and experience..." {...register('requirements')} />
-            {errors.requirements && <p className="text-xs text-destructive">{errors.requirements.message}</p>}
+            {(errors.requirements || serverErrors.requirements) && <p className="text-xs text-destructive">{errors.requirements?.message || serverErrors.requirements}</p>}
           </div>
         </CardContent>
       </Card>

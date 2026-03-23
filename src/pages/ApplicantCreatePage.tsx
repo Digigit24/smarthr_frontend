@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { applicantsService } from '@/services/applicants'
-import { extractApiError } from '@/lib/apiErrors'
+import { applyFieldErrors } from '@/lib/apiErrors'
 import ApplicationJobWizard from '@/components/ApplicationJobWizard'
 import type { ApplicantFormData } from '@/types'
 import { cn } from '@/lib/utils'
@@ -52,6 +52,7 @@ export default function ApplicantCreatePage() {
     handleSubmit,
     setValue,
     watch,
+    setError,
     formState: { errors },
   } = useForm<ApplicantFormInput>({
     resolver: zodResolver(applicantSchema),
@@ -65,7 +66,10 @@ export default function ApplicantCreatePage() {
       toast.success('Applicant created')
       navigate(`/applicants/${result.id}`)
     },
-    onError: (err) => toast.error(extractApiError(err)),
+    onError: (err) => {
+      const msg = applyFieldErrors(err, setError, 'Failed to create applicant')
+      if (msg) toast.error(msg)
+    },
   })
 
   const onSubmit = (data: ApplicantFormInput) => {

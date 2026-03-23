@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Calendar, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { extractApiError } from '@/lib/apiErrors'
+import { applyFieldErrors } from '@/lib/apiErrors'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -41,7 +41,7 @@ export default function InterviewCreatePage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, watch, setError, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: { interview_type: 'TECHNICAL', duration_minutes: 60 },
   })
@@ -58,7 +58,10 @@ export default function InterviewCreatePage() {
       toast.success('Interview scheduled')
       navigate('/interviews')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to schedule interview')),
+    onError: (err) => {
+      const msg = applyFieldErrors(err, setError, 'Failed to schedule interview')
+      if (msg) toast.error(msg)
+    },
   })
 
   return (

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { ArrowLeft, Loader2, Pencil, Phone } from 'lucide-react'
 import { toast } from 'sonner'
-import { extractApiError } from '@/lib/apiErrors'
+import { extractApiError, extractFieldErrors } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,6 +33,7 @@ export default function CallEditPage() {
   })
 
   const [form, setForm] = useState({ phone: '', summary: '', status: '' })
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (call) {
@@ -48,7 +49,15 @@ export default function CallEditPage() {
       toast.success('Call status updated')
       navigate(-1)
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to update call status')),
+    onError: (err) => {
+      const fe = extractFieldErrors(err)
+      setFieldErrors(fe)
+      if (Object.keys(fe).length > 0) {
+        toast.error('Please fix the highlighted errors')
+      } else {
+        toast.error(extractApiError(err, 'Failed to update call status'))
+      }
+    },
   })
 
   const handleSave = () => {
@@ -119,12 +128,13 @@ export default function CallEditPage() {
             <Label>Phone</Label>
             <Input
               value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              onChange={(e) => { setForm((f) => ({ ...f, phone: e.target.value })); setFieldErrors(fe => { const { phone, ...rest } = fe; return rest }) }}
             />
+            {fieldErrors.phone && <p className="text-xs text-destructive">{fieldErrors.phone}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Status</Label>
-            <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
+            <Select value={form.status} onValueChange={(v) => { setForm((f) => ({ ...f, status: v })); setFieldErrors(fe => { const { status, ...rest } = fe; return rest }) }}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {ALL_STATUSES.map((s) => (
@@ -132,15 +142,17 @@ export default function CallEditPage() {
                 ))}
               </SelectContent>
             </Select>
+            {fieldErrors.status && <p className="text-xs text-destructive">{fieldErrors.status}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Summary</Label>
             <Textarea
               rows={5}
               value={form.summary}
-              onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value }))}
+              onChange={(e) => { setForm((f) => ({ ...f, summary: e.target.value })); setFieldErrors(fe => { const { summary, ...rest } = fe; return rest }) }}
               placeholder="Call summary..."
             />
+            {fieldErrors.summary && <p className="text-xs text-destructive">{fieldErrors.summary}</p>}
           </div>
         </CardContent>
       </Card>

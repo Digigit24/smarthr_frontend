@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { extractApiError } from '@/lib/apiErrors'
+import { applyFieldErrors } from '@/lib/apiErrors'
 import { ArrowLeft, Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,21 +41,12 @@ export default function JobCreatePage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
 
-  const createMutation = useMutation({
-    mutationFn: (data: JobFormData) => jobsService.create(data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['jobs'] })
-      toast.success('Job created successfully')
-      navigate('/jobs')
-    },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to create job')),
-  })
-
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    setError,
     formState: { errors },
   } = useForm<JobForm>({
     resolver: zodResolver(jobSchema),
@@ -63,6 +54,19 @@ export default function JobCreatePage() {
       status: 'DRAFT',
       job_type: 'FULL_TIME',
       experience_level: 'MID',
+    },
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (data: JobFormData) => jobsService.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['jobs'] })
+      toast.success('Job created successfully')
+      navigate('/jobs')
+    },
+    onError: (err) => {
+      const msg = applyFieldErrors(err, setError, 'Failed to create job')
+      if (msg) toast.error(msg)
     },
   })
 

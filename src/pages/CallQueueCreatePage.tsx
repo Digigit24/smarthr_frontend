@@ -2,7 +2,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ListChecks, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { extractApiError } from '@/lib/apiErrors'
+import { applyFieldErrors } from '@/lib/apiErrors'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -52,7 +52,7 @@ export default function CallQueueCreatePage() {
   const defaultJobId = searchParams.get('job') || ''
   const defaultVoiceAgentId = searchParams.get('agent') || ''
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<QueueFormInput, unknown, QueueForm>({
+  const { register, handleSubmit, setValue, watch, setError, formState: { errors } } = useForm<QueueFormInput, unknown, QueueForm>({
     resolver: zodResolver(queueSchema),
     defaultValues: {
       name: '',
@@ -105,7 +105,10 @@ export default function CallQueueCreatePage() {
       toast.success('Queue created successfully')
       navigate('/call-queues')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to create queue')),
+    onError: (err) => {
+      const msg = applyFieldErrors(err, setError, 'Failed to create queue')
+      if (msg) toast.error(msg)
+    },
   })
 
   const toggleFilterStatus = (status: string) => {

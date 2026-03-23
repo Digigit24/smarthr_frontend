@@ -22,7 +22,7 @@ import {
 import { applicantsService } from '@/services/applicants'
 import { applicationsService } from '@/services/applications'
 import { jobsService } from '@/services/jobs'
-import { extractApiError } from '@/lib/apiErrors'
+import { extractApiError, extractFieldErrors } from '@/lib/apiErrors'
 import type { ApplicantFormData } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -98,6 +98,7 @@ export default function ApplicationJobWizard({
   // ── Step 3: Review ──
   const [resumeUrl, setResumeUrl] = useState('')
   const [notes, setNotes] = useState('')
+  const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({})
 
   // ── Queries ──
   const { data: applicantsData } = useQuery({
@@ -129,7 +130,13 @@ export default function ApplicationJobWizard({
       setStep(1)
     },
     onError: (err) => {
-      toast.error(extractApiError(err))
+      const fe = extractFieldErrors(err)
+      if (Object.keys(fe).length > 0) {
+        setApplicantErrors(fe)
+        toast.error('Please fix the highlighted errors')
+      } else {
+        toast.error(extractApiError(err))
+      }
     },
   })
 
@@ -147,7 +154,13 @@ export default function ApplicationJobWizard({
       }
     },
     onError: (err) => {
-      toast.error(extractApiError(err))
+      const fe = extractFieldErrors(err)
+      if (Object.keys(fe).length > 0) {
+        setSubmitErrors(fe)
+        toast.error('Please fix the highlighted errors')
+      } else {
+        toast.error(extractApiError(err))
+      }
     },
   })
 
@@ -518,6 +531,17 @@ export default function ApplicationJobWizard({
                 </div>
               )}
 
+              {/* Server errors */}
+              {Object.keys(submitErrors).length > 0 && (
+                <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 space-y-1">
+                  {Object.entries(submitErrors).map(([field, msg]) => (
+                    <p key={field} className="text-sm text-red-700 dark:text-red-300">
+                      <span className="font-medium capitalize">{field.replace(/_/g, ' ')}</span>: {msg}
+                    </p>
+                  ))}
+                </div>
+              )}
+
               {/* Summary */}
               <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
                 <div className="flex items-center gap-3">
@@ -525,6 +549,7 @@ export default function ApplicationJobWizard({
                   <div>
                     <p className="text-xs text-muted-foreground">Candidate</p>
                     <p className="text-sm font-medium">{selectedApplicantName}</p>
+                    {submitErrors.applicant && <p className="text-xs text-destructive">{submitErrors.applicant}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -532,6 +557,7 @@ export default function ApplicationJobWizard({
                   <div>
                     <p className="text-xs text-muted-foreground">Job Position</p>
                     <p className="text-sm font-medium">{selectedJobTitle}</p>
+                    {submitErrors.job && <p className="text-xs text-destructive">{submitErrors.job}</p>}
                   </div>
                 </div>
               </div>

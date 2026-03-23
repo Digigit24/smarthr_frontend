@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Star, Loader2, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
-import { extractApiError } from '@/lib/apiErrors'
+import { extractApiError, extractFieldErrors } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,6 +27,7 @@ export default function ScorecardEditPage() {
   const qc = useQueryClient()
 
   const [form, setForm] = useState({ summary: '', recommendation: '' })
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const { data: card, isLoading } = useQuery({
     queryKey: ['scorecard-detail', id],
@@ -51,7 +52,15 @@ export default function ScorecardEditPage() {
       toast.success('Scorecard updated')
       navigate(`/scorecards/${id}`)
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to update scorecard')),
+    onError: (err) => {
+      const fe = extractFieldErrors(err)
+      setFieldErrors(fe)
+      if (Object.keys(fe).length > 0) {
+        toast.error('Please fix the highlighted errors')
+      } else {
+        toast.error(extractApiError(err, 'Failed to update scorecard'))
+      }
+    },
   })
 
   if (isLoading) {
@@ -120,7 +129,7 @@ export default function ScorecardEditPage() {
       <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-5">
         <div className="space-y-2">
           <Label>Recommendation</Label>
-          <Select value={form.recommendation} onValueChange={(v) => setForm(f => ({ ...f, recommendation: v }))}>
+          <Select value={form.recommendation} onValueChange={(v) => { setForm(f => ({ ...f, recommendation: v })); setFieldErrors(fe => { const { recommendation, ...rest } = fe; return rest }) }}>
             <SelectTrigger><SelectValue placeholder="Select recommendation..." /></SelectTrigger>
             <SelectContent>
               {REC_OPTIONS.map((r) => (
@@ -132,6 +141,7 @@ export default function ScorecardEditPage() {
               ))}
             </SelectContent>
           </Select>
+          {fieldErrors.recommendation && <p className="text-xs text-destructive">{fieldErrors.recommendation}</p>}
           {/* Preview current selection */}
           {form.recommendation && (
             <div className="mt-1">
@@ -149,9 +159,10 @@ export default function ScorecardEditPage() {
             rows={6}
             placeholder="Summarize the candidate's performance..."
             value={form.summary}
-            onChange={(e) => setForm(f => ({ ...f, summary: e.target.value }))}
+            onChange={(e) => { setForm(f => ({ ...f, summary: e.target.value })); setFieldErrors(fe => { const { summary, ...rest } = fe; return rest }) }}
             className="resize-y"
           />
+          {fieldErrors.summary && <p className="text-xs text-destructive">{fieldErrors.summary}</p>}
           <p className="text-xs text-muted-foreground">{form.summary.length} characters</p>
         </div>
       </div>

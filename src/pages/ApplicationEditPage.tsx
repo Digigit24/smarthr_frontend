@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Loader2, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
-import { extractApiError } from '@/lib/apiErrors'
+import { applyFieldErrors } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -58,22 +58,12 @@ export default function ApplicationEditPage() {
     queryFn: () => applicantsService.list({ ordering: 'first_name' }),
   })
 
-  const updateMutation = useMutation({
-    mutationFn: (data: ApplicationFormData) => applicationsService.update(appId!, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['applications'] })
-      qc.invalidateQueries({ queryKey: ['application-detail', appId] })
-      toast.success('Application updated')
-      navigate(-1)
-    },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to update application')),
-  })
-
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    setError,
     formState: { errors },
   } = useForm<FormInput>({
     resolver: zodResolver(schema),
@@ -85,6 +75,20 @@ export default function ApplicationEditPage() {
           notes: app.notes || undefined,
         }
       : undefined,
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: ApplicationFormData) => applicationsService.update(appId!, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['applications'] })
+      qc.invalidateQueries({ queryKey: ['application-detail', appId] })
+      toast.success('Application updated')
+      navigate(-1)
+    },
+    onError: (err) => {
+      const msg = applyFieldErrors(err, setError, 'Failed to update application')
+      if (msg) toast.error(msg)
+    },
   })
 
   const onSubmit = (data: FormInput) => {

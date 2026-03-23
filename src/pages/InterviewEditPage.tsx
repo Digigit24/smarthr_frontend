@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Pencil, Loader2, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
-import { extractApiError } from '@/lib/apiErrors'
+import { extractApiError, extractFieldErrors } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,6 +22,7 @@ export default function InterviewEditPage() {
     scheduled_at: '',
     duration_minutes: 60,
   })
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const { data: interview, isLoading } = useQuery({
     queryKey: ['interview-detail', id],
@@ -49,7 +50,15 @@ export default function InterviewEditPage() {
       toast.success('Interview updated')
       navigate(`/interviews/${id}`)
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to update interview')),
+    onError: (err) => {
+      const fe = extractFieldErrors(err)
+      setFieldErrors(fe)
+      if (Object.keys(fe).length > 0) {
+        toast.error('Please fix the highlighted errors')
+      } else {
+        toast.error(extractApiError(err, 'Failed to update interview'))
+      }
+    },
   })
 
   if (isLoading) {
@@ -100,24 +109,27 @@ export default function InterviewEditPage() {
             <Label>Interviewer Name</Label>
             <Input
               value={form.interviewer_name}
-              onChange={(e) => setForm(f => ({ ...f, interviewer_name: e.target.value }))}
+              onChange={(e) => { setForm(f => ({ ...f, interviewer_name: e.target.value })); setFieldErrors(fe => { const { interviewer_name, ...rest } = fe; return rest }) }}
             />
+            {fieldErrors.interviewer_name && <p className="text-xs text-destructive">{fieldErrors.interviewer_name}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Interviewer Email</Label>
             <Input
               type="email"
               value={form.interviewer_email}
-              onChange={(e) => setForm(f => ({ ...f, interviewer_email: e.target.value }))}
+              onChange={(e) => { setForm(f => ({ ...f, interviewer_email: e.target.value })); setFieldErrors(fe => { const { interviewer_email, ...rest } = fe; return rest }) }}
             />
+            {fieldErrors.interviewer_email && <p className="text-xs text-destructive">{fieldErrors.interviewer_email}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Scheduled At</Label>
             <Input
               type="datetime-local"
               value={form.scheduled_at}
-              onChange={(e) => setForm(f => ({ ...f, scheduled_at: e.target.value }))}
+              onChange={(e) => { setForm(f => ({ ...f, scheduled_at: e.target.value })); setFieldErrors(fe => { const { scheduled_at, ...rest } = fe; return rest }) }}
             />
+            {fieldErrors.scheduled_at && <p className="text-xs text-destructive">{fieldErrors.scheduled_at}</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Duration (minutes)</Label>
@@ -125,16 +137,18 @@ export default function InterviewEditPage() {
               type="number"
               min="15"
               value={form.duration_minutes}
-              onChange={(e) => setForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))}
+              onChange={(e) => { setForm(f => ({ ...f, duration_minutes: Number(e.target.value) })); setFieldErrors(fe => { const { duration_minutes, ...rest } = fe; return rest }) }}
             />
+            {fieldErrors.duration_minutes && <p className="text-xs text-destructive">{fieldErrors.duration_minutes}</p>}
           </div>
           <div className="sm:col-span-2 space-y-1.5">
             <Label>Meeting Link</Label>
             <Input
               value={form.meeting_link}
-              onChange={(e) => setForm(f => ({ ...f, meeting_link: e.target.value }))}
+              onChange={(e) => { setForm(f => ({ ...f, meeting_link: e.target.value })); setFieldErrors(fe => { const { meeting_link, ...rest } = fe; return rest }) }}
               placeholder="https://meet.google.com/..."
             />
+            {fieldErrors.meeting_link && <p className="text-xs text-destructive">{fieldErrors.meeting_link}</p>}
           </div>
         </div>
       </div>
