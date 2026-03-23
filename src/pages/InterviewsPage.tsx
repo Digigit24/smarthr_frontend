@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Search, Calendar, Loader2, Trash2, Clock, User, Video,
   MessageSquare, Star, CheckCircle, ExternalLink, UserCheck, Briefcase,
-  ChevronLeft, ChevronRight, LayoutGrid, CalendarDays, CalendarCheck,
+  ChevronLeft, ChevronRight, LayoutGrid, CalendarDays,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
@@ -131,8 +131,9 @@ function InterviewCard({ iv }: { iv: InterviewListItem }) {
               <Video className="h-3 w-3" /> Link
             </span>
           )}
-          <span className={cn('flex items-center gap-1', iv.calendar_synced ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground/50')}>
-            <CalendarCheck className="h-3 w-3" /> {iv.calendar_synced ? 'Synced' : 'Not synced'}
+          <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full', iv.calendar_synced ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-muted text-muted-foreground/60')}>
+            <span className={cn('h-1.5 w-1.5 rounded-full', iv.calendar_synced ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600')} />
+            {iv.calendar_synced ? 'Synced' : 'Not synced'}
           </span>
           <span className="opacity-0 group-hover:opacity-100 transition-opacity text-primary font-medium ml-auto">
             View Details →

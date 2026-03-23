@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Pencil, Trash2, Loader2, AlertTriangle, Calendar, Clock,
-  User, Mail, Video, XCircle, CheckCircle, Star, MessageSquare, ExternalLink, CalendarCheck,
+  User, Mail, Video, XCircle, CheckCircle, Star, MessageSquare, ExternalLink, CalendarDays,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
@@ -237,7 +237,7 @@ export default function InterviewDetailPage() {
                 <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
                   interview.calendar_synced ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-gray-100 dark:bg-gray-800'
                 )}>
-                  <CalendarCheck className={cn('h-4 w-4',
+                  <CalendarDays className={cn('h-4 w-4',
                     interview.calendar_synced ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'
                   )} />
                 </div>
@@ -409,7 +409,7 @@ export default function InterviewDetailPage() {
                 <span className="font-medium truncate ml-2">{interview.interviewer_name || '—'}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground flex items-center gap-1.5"><CalendarCheck className="h-3.5 w-3.5" /> Calendar</span>
+                <span className="text-muted-foreground flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" /> Calendar</span>
                 <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-medium',
                   interview.calendar_synced
                     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
