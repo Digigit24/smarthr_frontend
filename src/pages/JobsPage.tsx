@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus, Search, Briefcase, MapPin, Users, Clock, Bot,
-  Loader2, Eye, Pencil, Trash2, ArrowUpRight, Award, Calendar,
+  Loader2, Eye, Pencil, Trash2, ArrowUpRight, Award, Calendar, Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
@@ -195,6 +195,27 @@ export default function JobsPage() {
     }
   }
 
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExport = async (format: 'csv' | 'xlsx') => {
+    setIsExporting(true)
+    try {
+      const filters: Record<string, string> = {}
+      if (search) filters.search = search
+      if (statusFilter) filters.status = statusFilter
+      if (jobTypeFilter) filters.job_type = jobTypeFilter
+      if (expLevelFilter) filters.experience_level = expLevelFilter
+      if (dateFrom) filters.created_at_gte = dateFrom
+      if (dateTo) filters.created_at_lte = dateTo
+      await jobsService.export(filters, format)
+      toast.success(`Export started (${format.toUpperCase()})`)
+    } catch (err) {
+      toast.error(extractApiError(err, 'Export failed'))
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
       {/* Header */}
@@ -203,10 +224,22 @@ export default function JobsPage() {
           <h1 className="text-lg font-semibold">Jobs</h1>
           <p className="text-xs text-muted-foreground">{data?.count ?? 0} total jobs</p>
         </div>
-        <Button onClick={() => navigate('/jobs/new')}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Job
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select onValueChange={(v) => handleExport(v as 'csv' | 'xlsx')}>
+            <SelectTrigger className="w-32 h-9" disabled={isExporting}>
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              <SelectValue placeholder="Export" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="csv">Export CSV</SelectItem>
+              <SelectItem value="xlsx">Export Excel</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={() => navigate('/jobs/new')}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Job
+          </Button>
+        </div>
       </div>
 
       {/* Filters Row 1 */}

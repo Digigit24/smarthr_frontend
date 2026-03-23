@@ -1,4 +1,4 @@
-import { get, patch, del } from './api'
+import { get, patch, del, download } from './api'
 import type { ScorecardListItem, ScorecardDetail, PaginatedResponse } from '@/types'
 
 export const scorecardsService = {
@@ -11,4 +11,10 @@ export const scorecardsService = {
     patch<ScorecardDetail>(`/scorecards/${id}/`, data),
 
   delete: (id: string) => del(`/scorecards/${id}/`),
+
+  export: (filters: Record<string, string>, format: 'csv' | 'xlsx') =>
+    download(
+      `/scorecards/export/?${new URLSearchParams({ ...filters, export_format: format })}`,
+      `scorecards.${format}`,
+    ),
 }

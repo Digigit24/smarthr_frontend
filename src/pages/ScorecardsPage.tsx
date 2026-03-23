@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Star, Search, Loader2, Trash2, MessageSquare, Brain, Shield, Zap,
-  ThumbsUp, ThumbsDown, TrendingUp,
+  ThumbsUp, ThumbsDown, TrendingUp, Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
@@ -160,6 +160,25 @@ export default function ScorecardsPage() {
     }
   }
 
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExport = async (format: 'csv' | 'xlsx') => {
+    setIsExporting(true)
+    try {
+      const filters: Record<string, string> = {}
+      if (search) filters.search = search
+      if (recFilter) filters.recommendation = recFilter
+      if (dateFrom) filters.created_at_gte = dateFrom
+      if (dateTo) filters.created_at_lte = dateTo
+      await scorecardsService.export(filters, format)
+      toast.success(`Export started (${format.toUpperCase()})`)
+    } catch (err) {
+      toast.error(extractApiError(err, 'Export failed'))
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   // Recommendation counts
   const allCards = data?.results || []
   const recCounts = allCards.reduce((acc, c) => { acc[c.recommendation] = (acc[c.recommendation] || 0) + 1; return acc }, {} as Record<string, number>)
@@ -167,14 +186,26 @@ export default function ScorecardsPage() {
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shrink-0">
-            <TrendingUp className="h-4 w-4" />
-          </div>
-          Scorecards
-        </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{data?.count ?? 0} total scorecards</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shrink-0">
+              <TrendingUp className="h-4 w-4" />
+            </div>
+            Scorecards
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{data?.count ?? 0} total scorecards</p>
+        </div>
+        <Select onValueChange={(v) => handleExport(v as 'csv' | 'xlsx')}>
+          <SelectTrigger className="w-32 h-9" disabled={isExporting}>
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            <SelectValue placeholder="Export" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="csv">Export CSV</SelectItem>
+            <SelectItem value="xlsx">Export Excel</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Quick recommendation pills */}

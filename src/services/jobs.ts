@@ -1,4 +1,4 @@
-import { get, post, put, patch, del } from './api'
+import { get, post, put, patch, del, download } from './api'
 import type {
   JobListItem,
   JobDetail,
@@ -33,4 +33,10 @@ export const jobsService = {
 
   updateVoiceConfig: (id: string, data: { voice_agent_id?: string; voice_agent_provider?: string; voice_agent_config?: { auto_shortlist_threshold?: number; auto_reject_threshold?: number } }) =>
     patch<JobDetail>(`/jobs/${id}/voice-config/`, data),
+
+  export: (filters: Record<string, string>, format: 'csv' | 'xlsx') =>
+    download(
+      `/jobs/export/?${new URLSearchParams({ ...filters, export_format: format })}`,
+      `jobs.${format}`,
+    ),
 }
