@@ -63,18 +63,18 @@ export default function InterviewEditPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-32">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground mt-3">Loading interview...</p>
+      <div className="flex flex-col items-center justify-center py-24 sm:py-32">
+        <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" />
+        <p className="text-xs sm:text-sm text-muted-foreground mt-3">Loading interview...</p>
       </div>
     )
   }
 
   if (!interview) {
     return (
-      <div className="flex flex-col items-center justify-center py-32">
-        <AlertTriangle className="h-10 w-10 text-amber-500 mb-3" />
-        <p className="text-sm text-muted-foreground">Interview not found</p>
+      <div className="flex flex-col items-center justify-center py-24 sm:py-32">
+        <AlertTriangle className="h-8 w-8 sm:h-10 sm:w-10 text-amber-500 mb-3" />
+        <p className="text-xs sm:text-sm text-muted-foreground">Interview not found</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Go Back
         </Button>
@@ -83,79 +83,79 @@ export default function InterviewEditPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 max-w-3xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to Interview
       </Button>
 
       {/* Header */}
       <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="h-2 bg-gradient-to-r from-amber-400 to-orange-500" />
-        <div className="p-4 sm:p-6 flex items-center gap-4">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shrink-0">
-            <Pencil className="h-6 w-6" />
+        <div className="h-1.5 sm:h-2 bg-gradient-to-r from-amber-400 to-orange-500" />
+        <div className="p-3 sm:p-4 md:p-6 flex items-center gap-3 sm:gap-4">
+          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shrink-0">
+            <Pencil className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold">Edit Interview</h1>
-            <p className="text-sm text-muted-foreground">{interview.interview_type.replace(/_/g, ' ')} · {interview.status}</p>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold">Edit Interview</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">{interview.interview_type.replace(/_/g, ' ')} · {interview.status}</p>
           </div>
         </div>
       </div>
 
       {/* Form */}
-      <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="space-y-1.5">
-            <Label>Interviewer Name</Label>
+            <Label className="text-xs sm:text-sm">Interviewer Name</Label>
             <Input
               value={form.interviewer_name}
               onChange={(e) => { setForm(f => ({ ...f, interviewer_name: e.target.value })); setFieldErrors(fe => { const { interviewer_name, ...rest } = fe; return rest }) }}
             />
-            {fieldErrors.interviewer_name && <p className="text-xs text-destructive">{fieldErrors.interviewer_name}</p>}
+            {fieldErrors.interviewer_name && <p className="text-[10px] sm:text-xs text-destructive">{fieldErrors.interviewer_name}</p>}
           </div>
           <div className="space-y-1.5">
-            <Label>Interviewer Email</Label>
+            <Label className="text-xs sm:text-sm">Interviewer Email</Label>
             <Input
               type="email"
               value={form.interviewer_email}
               onChange={(e) => { setForm(f => ({ ...f, interviewer_email: e.target.value })); setFieldErrors(fe => { const { interviewer_email, ...rest } = fe; return rest }) }}
             />
-            {fieldErrors.interviewer_email && <p className="text-xs text-destructive">{fieldErrors.interviewer_email}</p>}
+            {fieldErrors.interviewer_email && <p className="text-[10px] sm:text-xs text-destructive">{fieldErrors.interviewer_email}</p>}
           </div>
           <div className="space-y-1.5">
-            <Label>Scheduled At</Label>
+            <Label className="text-xs sm:text-sm">Scheduled At</Label>
             <Input
               type="datetime-local"
               value={form.scheduled_at}
               onChange={(e) => { setForm(f => ({ ...f, scheduled_at: e.target.value })); setFieldErrors(fe => { const { scheduled_at, ...rest } = fe; return rest }) }}
             />
-            {fieldErrors.scheduled_at && <p className="text-xs text-destructive">{fieldErrors.scheduled_at}</p>}
+            {fieldErrors.scheduled_at && <p className="text-[10px] sm:text-xs text-destructive">{fieldErrors.scheduled_at}</p>}
           </div>
           <div className="space-y-1.5">
-            <Label>Duration (minutes)</Label>
+            <Label className="text-xs sm:text-sm">Duration (minutes)</Label>
             <Input
               type="number"
               min="15"
               value={form.duration_minutes}
               onChange={(e) => { setForm(f => ({ ...f, duration_minutes: Number(e.target.value) })); setFieldErrors(fe => { const { duration_minutes, ...rest } = fe; return rest }) }}
             />
-            {fieldErrors.duration_minutes && <p className="text-xs text-destructive">{fieldErrors.duration_minutes}</p>}
+            {fieldErrors.duration_minutes && <p className="text-[10px] sm:text-xs text-destructive">{fieldErrors.duration_minutes}</p>}
           </div>
           <div className="sm:col-span-2 space-y-1.5">
-            <Label>Meeting Link</Label>
+            <Label className="text-xs sm:text-sm">Meeting Link</Label>
             <Input
               value={form.meeting_link}
               onChange={(e) => { setForm(f => ({ ...f, meeting_link: e.target.value })); setFieldErrors(fe => { const { meeting_link, ...rest } = fe; return rest }) }}
               placeholder="https://meet.google.com/..."
             />
-            {fieldErrors.meeting_link && <p className="text-xs text-destructive">{fieldErrors.meeting_link}</p>}
+            {fieldErrors.meeting_link && <p className="text-[10px] sm:text-xs text-destructive">{fieldErrors.meeting_link}</p>}
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2 pb-4">
-        <Button type="button" variant="outline" onClick={() => navigate(-1)} className="sm:w-auto">
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-1 sm:pt-2 pb-4">
+        <Button type="button" variant="outline" onClick={() => navigate(-1)} className="w-full sm:w-auto">
           Cancel
         </Button>
         <Button
@@ -167,7 +167,7 @@ export default function InterviewEditPage() {
             duration_minutes: form.duration_minutes,
           })}
           disabled={updateMutation.isPending}
-          className="sm:w-auto"
+          className="w-full sm:w-auto"
         >
           {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Save Changes

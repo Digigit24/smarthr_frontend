@@ -70,19 +70,19 @@ function InterviewCard({ iv }: { iv: InterviewListItem }) {
       onClick={() => navigate(`/interviews/${iv.id}`)}
     >
       <div className={cn('h-1.5 bg-gradient-to-r', statusCfg.gradient)} />
-      <div className="p-4 sm:p-5">
+      <div className="p-3 sm:p-5">
         {/* Status + Type badges */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium', statusCfg.color)}>
+        <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3 flex-wrap">
+          <span className={cn('inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium', statusCfg.color)}>
             <span className={cn('h-1.5 w-1.5 rounded-full', statusCfg.dot, iv.status === 'IN_PROGRESS' && 'animate-pulse')} />
             {statusCfg.label}
           </span>
-          <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium', typeCfg.bg, typeCfg.color)}>
+          <span className={cn('inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium', typeCfg.bg, typeCfg.color)}>
             <TypeIcon className="h-3 w-3" />
             {typeCfg.label}
           </span>
           {isUpcoming && (
-            <span className="text-[11px] text-muted-foreground ml-auto">
+            <span className="text-[10px] sm:text-[11px] text-muted-foreground ml-auto">
               {(() => {
                 const diff = scheduledDate.getTime() - Date.now()
                 const hours = Math.floor(diff / (1000 * 60 * 60))
@@ -97,32 +97,32 @@ function InterviewCard({ iv }: { iv: InterviewListItem }) {
 
         {/* Schedule info */}
         <div className="flex items-center gap-2 mb-2">
-          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-          <p className="text-sm font-medium">{formatDateTime(iv.scheduled_at)}</p>
+          <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
+          <p className="text-xs sm:text-sm font-medium truncate">{formatDateTime(iv.scheduled_at)}</p>
         </div>
 
-        {/* Applicant (whose interview) */}
-        <div className="flex items-center gap-2.5 mb-2 p-2.5 rounded-lg bg-muted/30">
+        {/* Applicant */}
+        <div className="flex items-center gap-2 sm:gap-2.5 mb-2 p-2 sm:p-2.5 rounded-lg bg-muted/30">
           <GradientAvatar name={iv.applicant_name || iv.applicant_email || 'A'} />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Candidate</p>
-            <p className="text-sm font-medium truncate">{iv.applicant_name || iv.applicant_email || 'Unknown'}</p>
+            <p className="text-xs sm:text-sm font-medium truncate">{iv.applicant_name || iv.applicant_email || 'Unknown'}</p>
           </div>
         </div>
 
-        {/* Interviewer (who takes the interview) */}
-        <div className="flex items-center gap-2.5 mb-3 p-2.5 rounded-lg bg-muted/30">
+        {/* Interviewer */}
+        <div className="flex items-center gap-2 sm:gap-2.5 mb-2.5 sm:mb-3 p-2 sm:p-2.5 rounded-lg bg-muted/30">
           <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Interviewer</p>
-            <p className="text-sm font-medium truncate">{iv.interviewer_name || 'No name'}</p>
+            <p className="text-xs sm:text-sm font-medium truncate">{iv.interviewer_name || 'No name'}</p>
           </div>
         </div>
 
         {/* Footer info */}
-        <div className="flex items-center gap-3 pt-3 border-t text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-2 sm:gap-3 pt-2.5 sm:pt-3 border-t text-[10px] sm:text-[11px] text-muted-foreground flex-wrap">
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" /> {iv.duration_minutes}min
           </span>
@@ -135,7 +135,7 @@ function InterviewCard({ iv }: { iv: InterviewListItem }) {
             <span className={cn('h-1.5 w-1.5 rounded-full', iv.calendar_synced ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600')} />
             {iv.calendar_synced ? 'Synced' : 'Not synced'}
           </span>
-          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-primary font-medium ml-auto">
+          <span className="hidden sm:inline-flex opacity-0 group-hover:opacity-100 transition-opacity text-primary font-medium ml-auto">
             View Details →
           </span>
         </div>
@@ -211,23 +211,23 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
   const selectedInterviews = selectedDate ? (interviewsByDate[selectedDate] || []) : []
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Calendar card */}
       <Card className="overflow-hidden">
         {/* Calendar header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b bg-muted/30">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-9 w-9 sm:h-8 sm:w-8" onClick={prevMonth}>
+        <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b bg-muted/30">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" className="h-9 w-9 sm:h-8 sm:w-8" onClick={nextMonth}>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <h2 className="text-base sm:text-lg font-semibold">
+          <h2 className="text-sm sm:text-lg font-semibold">
             {MONTH_NAMES[calMonth]} {calYear}
           </h2>
-          <Button variant="outline" size="sm" className="text-xs" onClick={goToday}>
+          <Button variant="outline" size="sm" className="text-xs h-8" onClick={goToday}>
             Today
           </Button>
         </div>
@@ -235,7 +235,7 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
         {/* Weekday headers */}
         <div className="grid grid-cols-7 border-b bg-muted/20">
           {WEEKDAYS.map((d) => (
-            <div key={d} className="py-2 text-center text-[11px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            <div key={d} className="py-1.5 sm:py-2 text-center text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               <span className="sm:hidden">{d[0]}</span>
               <span className="hidden sm:inline">{d}</span>
             </div>
@@ -246,7 +246,7 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
         <div className="grid grid-cols-7">
           {days.map((day, idx) => {
             if (day === null) {
-              return <div key={`pad-${idx}`} className="border-b border-r last:border-r-0 bg-muted/5 min-h-[52px] sm:min-h-[90px]" />
+              return <div key={`pad-${idx}`} className="border-b border-r last:border-r-0 bg-muted/5 min-h-[44px] sm:min-h-[90px]" />
             }
             const key = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
             const dayInterviews = interviewsByDate[key] || []
@@ -259,7 +259,7 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
                 key={key}
                 onClick={() => setSelectedDate(isSelected ? null : key)}
                 className={cn(
-                  'relative border-b border-r text-left p-1 sm:p-2 min-h-[52px] sm:min-h-[90px] transition-colors cursor-pointer',
+                  'relative border-b border-r text-left p-0.5 sm:p-2 min-h-[44px] sm:min-h-[90px] transition-colors cursor-pointer',
                   'hover:bg-primary/5 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-primary/30',
                   isSelected && 'bg-primary/10 ring-1 ring-inset ring-primary/30',
                   isWeekend && !isSelected && 'bg-muted/10',
@@ -267,7 +267,7 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
               >
                 {/* Day number */}
                 <span className={cn(
-                  'inline-flex items-center justify-center h-6 w-6 sm:h-7 sm:w-7 rounded-full text-xs sm:text-sm font-medium',
+                  'inline-flex items-center justify-center h-5 w-5 sm:h-7 sm:w-7 rounded-full text-[10px] sm:text-sm font-medium',
                   isToday ? 'bg-primary text-primary-foreground' : 'text-foreground',
                 )}>
                   {day}
@@ -277,17 +277,17 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
                 {dayInterviews.length > 0 && (
                   <div className="mt-0.5 sm:mt-1 space-y-0.5">
                     {/* Mobile: show dots */}
-                    <div className="flex gap-0.5 flex-wrap sm:hidden">
-                      {dayInterviews.slice(0, 4).map((iv) => {
+                    <div className="flex gap-0.5 flex-wrap sm:hidden justify-center">
+                      {dayInterviews.slice(0, 3).map((iv) => {
                         const cfg = STATUS_CONFIG[iv.status] || STATUS_CONFIG.SCHEDULED
                         return <span key={iv.id} className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
                       })}
-                      {dayInterviews.length > 4 && (
-                        <span className="text-[8px] text-muted-foreground">+{dayInterviews.length - 4}</span>
+                      {dayInterviews.length > 3 && (
+                        <span className="text-[8px] text-muted-foreground">+{dayInterviews.length - 3}</span>
                       )}
                     </div>
 
-                    {/* Desktop: show all event chips (cell grows to fit) */}
+                    {/* Desktop: show all event chips */}
                     <div className="hidden sm:block space-y-0.5">
                       {dayInterviews.map((iv) => {
                         const cfg = STATUS_CONFIG[iv.status] || STATUS_CONFIG.SCHEDULED
@@ -320,15 +320,15 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
       {/* Selected day detail panel */}
       {selectedDate && (
         <Card className="overflow-hidden">
-          <div className="px-4 sm:px-5 py-3 border-b bg-muted/30 flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold flex items-center gap-2 min-w-0">
-              <CalendarDays className="h-4 w-4 text-primary shrink-0" />
+          <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-b bg-muted/30 flex items-center justify-between gap-2">
+            <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
               <span className="truncate">
                 <span className="hidden sm:inline">{new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
                 <span className="sm:hidden">{new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
               </span>
             </h3>
-            <span className="text-xs text-muted-foreground shrink-0">{selectedInterviews.length} interview{selectedInterviews.length !== 1 ? 's' : ''}</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0">{selectedInterviews.length} interview{selectedInterviews.length !== 1 ? 's' : ''}</span>
           </div>
           {selectedInterviews.length === 0 ? (
             <div className="p-4 sm:p-6 text-center text-sm text-muted-foreground">
@@ -343,38 +343,38 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
                 return (
                   <div
                     key={iv.id}
-                    className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 hover:bg-muted/30 cursor-pointer transition-colors"
+                    className="flex items-center gap-2.5 sm:gap-4 px-3 sm:px-5 py-2.5 sm:py-3 hover:bg-muted/30 cursor-pointer transition-colors"
                     onClick={() => navigate(`/interviews/${iv.id}`)}
                   >
                     {/* Time block */}
-                    <div className="text-center shrink-0 w-14">
-                      <p className="text-sm font-bold">{formatTime(iv.scheduled_at)}</p>
-                      <p className="text-[10px] text-muted-foreground">{iv.duration_minutes}min</p>
+                    <div className="text-center shrink-0 w-12 sm:w-14">
+                      <p className="text-xs sm:text-sm font-bold">{formatTime(iv.scheduled_at)}</p>
+                      <p className="text-[9px] sm:text-[10px] text-muted-foreground">{iv.duration_minutes}min</p>
                     </div>
 
                     {/* Color bar */}
-                    <div className={cn('w-1 self-stretch rounded-full bg-gradient-to-b', statusCfg.gradient)} />
+                    <div className={cn('w-0.5 sm:w-1 self-stretch rounded-full bg-gradient-to-b', statusCfg.gradient)} />
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium truncate">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        <p className="text-xs sm:text-sm font-medium truncate">
                           {iv.applicant_name || iv.applicant_email || 'Unknown Candidate'}
                         </p>
-                        <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium', statusCfg.color)}>
+                        <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium', statusCfg.color)}>
                           <span className={cn('h-1 w-1 rounded-full', statusCfg.dot)} />
                           {statusCfg.label}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 text-[11px] text-muted-foreground flex-wrap">
+                      <div className="flex items-center gap-1.5 mt-0.5 text-[10px] sm:text-[11px] text-muted-foreground flex-wrap">
                         <span className={cn('inline-flex items-center gap-1', typeCfg.color)}>
                           <TypeIcon className="h-3 w-3" />
-                          {typeCfg.label}
+                          <span className="hidden xs:inline">{typeCfg.label}</span>
                         </span>
                         {iv.interviewer_name && (
                           <>
                             <span className="text-border hidden sm:inline">|</span>
-                            <span className="flex items-center gap-1 truncate max-w-[120px] sm:max-w-none">
+                            <span className="flex items-center gap-1 truncate max-w-[100px] sm:max-w-none">
                               <UserCheck className="h-3 w-3 shrink-0" />
                               <span className="truncate">{iv.interviewer_name}</span>
                             </span>
@@ -391,7 +391,7 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
                       </div>
                     </div>
 
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
                   </div>
                 )
               })}
@@ -445,25 +445,25 @@ export default function InterviewsPage() {
   const statusCounts = allInterviews.reduce((acc, iv) => { acc[iv.status] = (acc[iv.status] || 0) + 1; return acc }, {} as Record<string, number>)
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white shrink-0">
-              <Calendar className="h-4 w-4" />
-            </div>
-            Interviews
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{data?.count ?? 0} total interviews</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white shrink-0">
+                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </div>
+              Interviews
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{data?.count ?? 0} total</p>
+          </div>
           {/* View toggle */}
           <div className="flex items-center rounded-lg border bg-muted/30 p-0.5">
             <button
               onClick={() => setViewMode('grid')}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-md text-xs font-medium transition-all',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all',
                 viewMode === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -473,7 +473,7 @@ export default function InterviewsPage() {
             <button
               onClick={() => setViewMode('calendar')}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-md text-xs font-medium transition-all',
+                'flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all',
                 viewMode === 'calendar' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -481,15 +481,15 @@ export default function InterviewsPage() {
               <span className="hidden sm:inline">Calendar</span>
             </button>
           </div>
-          <Button onClick={() => navigate('/interviews/new')} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" /> Schedule Interview
-          </Button>
         </div>
+        <Button onClick={() => navigate('/interviews/new')} className="w-full sm:w-auto sm:self-end">
+          <Plus className="h-4 w-4 mr-2" /> Schedule Interview
+        </Button>
       </div>
 
       {/* Quick status pills */}
       {allInterviews.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0">
           {(['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as InterviewStatus[]).map((s) => {
             const count = statusCounts[s] || 0
             if (count === 0) return null
@@ -499,7 +499,7 @@ export default function InterviewsPage() {
                 key={s}
                 onClick={() => setStatusFilter(statusFilter === s ? '' : s)}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                  'inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium border transition-all whitespace-nowrap shrink-0',
                   statusFilter === s ? 'ring-2 ring-offset-1 ring-primary/30 ' + cfg.color : cfg.color + ' border-transparent hover:shadow-sm'
                 )}
               >
@@ -512,7 +512,7 @@ export default function InterviewsPage() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="space-y-2 sm:space-y-0 sm:flex sm:flex-row sm:gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -522,7 +522,7 @@ export default function InterviewsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3">
           <Select value={statusFilter || 'ALL'} onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}>
             <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="All statuses" />
@@ -572,23 +572,23 @@ export default function InterviewsPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground mt-3">Loading interviews...</p>
+        <div className="flex flex-col items-center justify-center py-16 sm:py-20">
+          <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" />
+          <p className="text-xs sm:text-sm text-muted-foreground mt-3">Loading interviews...</p>
         </div>
       ) : allInterviews.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-            <Calendar className="h-8 w-8 text-muted-foreground/40" />
+        <div className="text-center py-16 sm:py-20">
+          <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <Calendar className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground/40" />
           </div>
           <p className="font-semibold text-sm">No interviews scheduled</p>
-          <p className="text-sm text-muted-foreground mt-1 mb-4">Schedule your first interview to get started</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 mb-4">Schedule your first interview to get started</p>
           <Button onClick={() => navigate('/interviews/new')}>
             <Plus className="h-4 w-4 mr-2" /> Schedule Interview
           </Button>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {allInterviews.map((iv) => (
             <InterviewCard key={iv.id} iv={iv} />
           ))}
