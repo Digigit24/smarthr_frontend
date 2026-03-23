@@ -175,9 +175,9 @@ function VoiceConfigDialog({
               <p className="text-[11px] text-muted-foreground">{"Score <= this -> rejected"}</p>
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button className="w-full sm:w-auto" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
               {saveMutation.isPending ? 'Saving...' : 'Save Configuration'}
             </Button>
           </div>
@@ -283,7 +283,7 @@ export default function JobDetailPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       {/* Header Card */}
       <Card className="overflow-hidden">
         <div className={cn('h-1.5', {
@@ -292,20 +292,20 @@ export default function JobDetailPage() {
           'bg-amber-500': job.status === 'PAUSED',
           'bg-red-500': job.status === 'CLOSED',
         })} />
-        <CardContent className="p-5">
-          <div className="flex items-start justify-between gap-4">
+        <CardContent className="p-3 sm:p-4 md:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-3">
               <Button variant="ghost" size="icon" className="mt-0.5 shrink-0" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h1 className="text-xl font-semibold">{job.title}</h1>
+                  <h1 className="text-lg sm:text-xl font-semibold">{job.title}</h1>
                   <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-medium', JOB_STATUS_COLORS[job.status])}>
                     {job.status}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                <div className="flex items-center flex-wrap gap-2 sm:gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Briefcase className="h-3.5 w-3.5" />
                     {job.department}
@@ -346,12 +346,12 @@ export default function JobDetailPage() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button variant="outline" size="sm" onClick={() => navigate(`/jobs/${job.id}/edit`)}>
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-initial" onClick={() => navigate(`/jobs/${job.id}/edit`)}>
                 <Pencil className="h-3.5 w-3.5 mr-1.5" />
                 Edit
               </Button>
-              <Button variant="destructive" size="sm" onClick={handleDelete}>
+              <Button variant="destructive" size="sm" className="flex-1 sm:flex-initial" onClick={handleDelete}>
                 <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                 Delete
               </Button>

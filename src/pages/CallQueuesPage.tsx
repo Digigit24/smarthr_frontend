@@ -203,11 +203,11 @@ export default function CallQueuesPage() {
   const statusCounts = allQueues.reduce((acc, q) => { acc[q.status] = (acc[q.status] || 0) + 1; return acc }, {} as Record<string, number>)
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
+          <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white shrink-0">
               <Zap className="h-4 w-4" />
             </div>
@@ -301,7 +301,7 @@ export default function CallQueuesPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {data?.results.map((queue) => (
             <QueueCard
               key={queue.id}

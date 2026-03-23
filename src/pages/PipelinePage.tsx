@@ -49,7 +49,7 @@ function StageCard({
         isDragOver && 'border-primary border-2 scale-[1.02]'
       )}
     >
-      <CardContent className="p-4 flex items-center gap-3">
+      <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
         <GripVertical className="h-5 w-5 text-muted-foreground/40 shrink-0 cursor-grab active:cursor-grabbing" />
         <div
           className="w-3 h-3 rounded-full shrink-0"
@@ -215,13 +215,13 @@ export default function PipelinePage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold">Pipeline Stages</h1>
+          <h1 className="text-base sm:text-lg font-semibold">Pipeline Stages</h1>
           <p className="text-xs text-muted-foreground">{stages.length} stages configured</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button onClick={() => setCreateOpen(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Add Stage
         </Button>
@@ -262,7 +262,7 @@ export default function PipelinePage() {
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center gap-3 px-4 pb-1">
+          <div className="hidden sm:flex items-center gap-3 px-4 pb-1">
             <div className="w-5" />
             <div className="w-3" />
             <div className="flex-1">

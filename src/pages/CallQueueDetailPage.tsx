@@ -147,7 +147,7 @@ export default function CallQueueDetailPage() {
   const calledProgress = queue.total_queued > 0 ? (queue.total_called / queue.total_queued) * 100 : 0
 
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 max-w-6xl mx-auto space-y-4 sm:space-y-6">
       {/* Back button */}
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back
@@ -175,7 +175,7 @@ export default function CallQueueDetailPage() {
                   </span>
                 )}
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold truncate">{queue.name}</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate">{queue.name}</h1>
               <p className="text-sm text-muted-foreground mt-0.5">{queue.job_title}</p>
               <p className="text-xs text-muted-foreground mt-1">Created {formatDate(queue.created_at)} · Updated {formatDate(queue.updated_at)}</p>
             </div>
@@ -230,7 +230,7 @@ export default function CallQueueDetailPage() {
                 <stat.icon className={cn('h-5 w-5', stat.iconColor)} />
               </div>
               <div>
-                <p className="text-xl sm:text-2xl font-bold">{stat.value}</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold">{stat.value}</p>
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
             </div>
@@ -247,7 +247,7 @@ export default function CallQueueDetailPage() {
       </div>
 
       {/* Progress bars */}
-      <div className="rounded-xl border bg-card p-4 sm:p-5 space-y-4">
+      <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-5 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <div className="h-7 w-7 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
             <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -291,7 +291,7 @@ export default function CallQueueDetailPage() {
       <div className="rounded-xl border bg-card overflow-hidden">
         <button
           onClick={() => setConfigExpanded(!configExpanded)}
-          className="w-full flex items-center justify-between p-4 sm:p-5 hover:bg-muted/30 transition-colors"
+          className="w-full flex items-center justify-between p-3 sm:p-4 md:p-5 hover:bg-muted/30 transition-colors"
         >
           <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
@@ -339,7 +339,7 @@ export default function CallQueueDetailPage() {
 
       {/* Queue Items */}
       <div className="rounded-xl border bg-card overflow-hidden">
-        <div className="p-4 sm:p-5 border-b flex items-center justify-between">
+        <div className="p-3 sm:p-4 md:p-5 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center">
               <Users className="h-4 w-4 text-violet-600 dark:text-violet-400" />

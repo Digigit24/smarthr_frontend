@@ -113,7 +113,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel - login form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12">
         <div className="w-full max-w-[400px] space-y-6 sm:space-y-8">
           {/* Mobile logo */}
           <div className="lg:hidden flex flex-col items-center gap-3 mb-4">

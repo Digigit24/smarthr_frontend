@@ -87,7 +87,7 @@ function StatCard({
       <CardContent>
         <div className="flex items-end justify-between">
           <div>
-            <div className="text-2xl font-bold text-foreground">{value}</div>
+            <div className="text-xl sm:text-2xl font-bold text-foreground">{value}</div>
             {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
           </div>
           {onClick && (
@@ -174,13 +174,13 @@ export default function DashboardPage() {
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
+          <h1 className="text-base sm:text-lg font-semibold text-foreground">Dashboard</h1>
           <p className="text-xs text-muted-foreground">Your recruitment pipeline at a glance</p>
         </div>
         <Select onValueChange={handleExport}>
-          <SelectTrigger className="w-40 h-9" disabled={isExporting}>
+          <SelectTrigger className="w-full sm:w-40 h-9" disabled={isExporting}>
             <Download className="h-3.5 w-3.5 mr-1.5" />
             <SelectValue placeholder="Export Report" />
           </SelectTrigger>
@@ -194,7 +194,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Open Jobs"
           value={metrics?.total_jobs_open ?? 0}
@@ -279,7 +279,7 @@ export default function DashboardPage() {
 
       {/* Charts */}
       <Tabs defaultValue="timeline">
-        <TabsList>
+        <TabsList className="overflow-x-auto flex-wrap">
           <TabsTrigger value="timeline">Activity Timeline</TabsTrigger>
           <TabsTrigger value="funnel">Pipeline Funnel</TabsTrigger>
           <TabsTrigger value="scores">Score Distribution</TabsTrigger>
@@ -292,7 +292,8 @@ export default function DashboardPage() {
               <CardDescription>Daily applications, calls, and hires</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <div className="h-[200px] sm:h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={timeline || []}>
                   <defs>
                     <linearGradient id="appGrad" x1="0" y1="0" x2="0" y2="1">
@@ -333,6 +334,7 @@ export default function DashboardPage() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -380,7 +382,8 @@ export default function DashboardPage() {
               <CardDescription>How candidates scored in AI screening</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <div className="h-[200px] sm:h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={scores || []}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="range" tick={{ fontSize: 11 }} />
@@ -396,6 +399,7 @@ export default function DashboardPage() {
                   <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Candidates" />
                 </BarChart>
               </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

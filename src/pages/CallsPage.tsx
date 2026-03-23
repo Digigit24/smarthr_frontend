@@ -121,9 +121,9 @@ function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange
               </SelectContent>
             </Select>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button disabled={!selectedAppId || !selectedAgentId || triggerMutation.isPending} onClick={() => triggerMutation.mutate()}>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button className="w-full sm:w-auto" disabled={!selectedAppId || !selectedAgentId || triggerMutation.isPending} onClick={() => triggerMutation.mutate()}>
               <Phone className="h-4 w-4 mr-2" />
               {triggerMutation.isPending ? 'Triggering...' : 'Trigger Call'}
             </Button>
@@ -146,7 +146,7 @@ function CallCard({ call, onView, onEdit, onDelete }: {
 
   return (
     <Card className="group hover:shadow-sm hover:border-primary/20 transition-all cursor-pointer" onClick={onView}>
-      <CardContent className="p-4">
+      <CardContent className="p-3 sm:p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
             <div className={cn('w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0',
@@ -168,7 +168,7 @@ function CallCard({ call, onView, onEdit, onDelete }: {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-0.5 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-500" onClick={onView}><Eye className="h-3.5 w-3.5" /></Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-amber-500" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /></Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={onDelete}><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -248,11 +248,11 @@ export default function CallsPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold">Call Records</h1>
+          <h1 className="text-base sm:text-lg font-semibold">Call Records</h1>
           <p className="text-xs text-muted-foreground">{data?.count ?? 0} total calls</p>
         </div>
         <Button onClick={() => setTriggerDialogOpen(true)} size="sm" className="sm:size-default">

@@ -99,7 +99,7 @@ function JobCard({
             </div>
 
             {/* Action buttons - visible on hover */}
-            <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-0.5 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-500" title="View" onClick={() => onView(job)}>
                 <Eye className="h-3.5 w-3.5" />
               </Button>
@@ -217,16 +217,16 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold">Jobs</h1>
+          <h1 className="text-base sm:text-lg font-semibold">Jobs</h1>
           <p className="text-xs text-muted-foreground">{data?.count ?? 0} total jobs</p>
         </div>
         <div className="flex items-center gap-2">
           <Select onValueChange={(v) => handleExport(v as 'csv' | 'xlsx')}>
-            <SelectTrigger className="w-32 h-9" disabled={isExporting}>
+            <SelectTrigger className="w-full sm:w-32 h-9" disabled={isExporting}>
               <Download className="h-3.5 w-3.5 mr-1.5" />
               <SelectValue placeholder="Export" />
             </SelectTrigger>
@@ -311,7 +311,7 @@ export default function JobsPage() {
           <p className="text-sm mt-1">Create your first job posting</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {data?.results.map((job) => (
             <JobCard key={job.id} job={job} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} />
           ))}
