@@ -7,6 +7,7 @@ import {
   GripVertical, Clock, User, Briefcase,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -307,13 +308,13 @@ export default function ApplicationsPage() {
       qc.invalidateQueries({ queryKey: ['applications'] })
       toast.success('Status updated')
     },
-    onError: () => toast.error('Failed to update status'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to update status')),
   })
 
   const triggerCallMutation = useMutation({
     mutationFn: (id: string) => applicationsService.triggerAiCall(id),
     onSuccess: () => toast.success('AI call triggered'),
-    onError: () => toast.error('Failed to trigger AI call'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to trigger AI call')),
   })
 
   const deleteMutation = useMutation({
@@ -322,7 +323,7 @@ export default function ApplicationsPage() {
       qc.invalidateQueries({ queryKey: ['applications'] })
       toast.success('Application deleted')
     },
-    onError: () => toast.error('Failed to delete application'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete application')),
   })
 
   const bulkMutation = useMutation({
@@ -333,7 +334,7 @@ export default function ApplicationsPage() {
       setSelectedIds(new Set())
       toast.success(`${res.updated} applications updated`)
     },
-    onError: () => toast.error('Bulk action failed'),
+    onError: (err) => toast.error(extractApiError(err, 'Bulk action failed')),
   })
 
   const handleView = (app: ApplicationListItem) => {

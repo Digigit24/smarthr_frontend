@@ -9,6 +9,7 @@ import {
   PhoneCall, PhoneIncoming, PhoneOff, Hash, User, Radio,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -228,7 +229,7 @@ export default function CallDetailPage() {
       toast.success('Call retried')
       navigate(`/calls/${newCall.id}`)
     },
-    onError: () => toast.error('Failed to retry call'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to retry call')),
   })
 
   const deleteMutation = useMutation({
@@ -238,7 +239,7 @@ export default function CallDetailPage() {
       toast.success('Call record deleted')
       navigate(-1)
     },
-    onError: () => toast.error('Failed to delete call record'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete call record')),
   })
 
   const updateStatusMutation = useMutation({
@@ -248,7 +249,7 @@ export default function CallDetailPage() {
       qc.invalidateQueries({ queryKey: ['call-detail', id] })
       toast.success('Status updated')
     },
-    onError: () => toast.error('Failed to update status'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to update status')),
   })
 
   const handleDelete = () => {

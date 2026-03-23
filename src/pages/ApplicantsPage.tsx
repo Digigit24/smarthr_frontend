@@ -6,6 +6,7 @@ import {
   Trash2, Loader2, Clock, Award, Tag,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -197,7 +198,7 @@ export default function ApplicantsPage() {
       qc.invalidateQueries({ queryKey: ['applicants'] })
       toast.success('Applicant deleted')
     },
-    onError: () => toast.error('Failed to delete applicant'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete applicant')),
   })
 
   const handleDelete = (id: string) => {

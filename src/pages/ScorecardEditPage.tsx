@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Star, Loader2, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -50,7 +51,7 @@ export default function ScorecardEditPage() {
       toast.success('Scorecard updated')
       navigate(`/scorecards/${id}`)
     },
-    onError: () => toast.error('Failed to update scorecard'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to update scorecard')),
   })
 
   if (isLoading) {

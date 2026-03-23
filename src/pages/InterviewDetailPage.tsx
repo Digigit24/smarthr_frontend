@@ -6,6 +6,7 @@ import {
   User, Mail, Video, XCircle, CheckCircle, Star, MessageSquare, ExternalLink,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -70,7 +71,7 @@ export default function InterviewDetailPage() {
   const cancelMutation = useMutation({
     mutationFn: () => interviewsService.cancel(id!),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['interviews'] }); qc.invalidateQueries({ queryKey: ['interview-detail', id] }); toast.success('Interview cancelled') },
-    onError: () => toast.error('Failed to cancel interview'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to cancel interview')),
   })
 
   const completeMutation = useMutation({
@@ -82,13 +83,13 @@ export default function InterviewDetailPage() {
       setCompleteOpen(false)
       toast.success('Interview completed')
     },
-    onError: () => toast.error('Failed to complete interview'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to complete interview')),
   })
 
   const deleteMutation = useMutation({
     mutationFn: () => interviewsService.delete(id!),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['interviews'] }); toast.success('Interview deleted'); navigate('/interviews') },
-    onError: () => toast.error('Failed to delete interview'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete interview')),
   })
 
   const { register: completeRegister, handleSubmit: handleCompleteSubmit } = useForm<CompleteData>({

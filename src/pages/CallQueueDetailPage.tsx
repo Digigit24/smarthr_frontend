@@ -7,6 +7,7 @@ import {
   Globe, SlidersHorizontal, ChevronDown, ChevronUp, AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { callQueuesService } from '@/services/callQueues'
 import type { CallQueueItem, CallQueueStatus } from '@/types'
@@ -91,33 +92,33 @@ export default function CallQueueDetailPage() {
       qc.invalidateQueries({ queryKey: ['call-queues'] })
       toast.success(`${res.created} items added to queue`)
     },
-    onError: () => toast.error('Failed to populate queue'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to populate queue')),
   })
 
   const startMutation = useMutation({
     mutationFn: () => callQueuesService.start(id!),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['queue', id] }); qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue started') },
-    onError: () => toast.error('Failed to start queue'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to start queue')),
   })
   const pauseMutation = useMutation({
     mutationFn: () => callQueuesService.pause(id!),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['queue', id] }); qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue paused') },
-    onError: () => toast.error('Failed to pause queue'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to pause queue')),
   })
   const resumeMutation = useMutation({
     mutationFn: () => callQueuesService.resume(id!),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['queue', id] }); qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue resumed') },
-    onError: () => toast.error('Failed to resume queue'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to resume queue')),
   })
   const cancelMutation = useMutation({
     mutationFn: () => callQueuesService.cancel(id!),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['queue', id] }); qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue cancelled') },
-    onError: () => toast.error('Failed to cancel queue'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to cancel queue')),
   })
   const deleteMutation = useMutation({
     mutationFn: () => callQueuesService.delete(id!),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue deleted'); navigate('/call-queues') },
-    onError: () => toast.error('Failed to delete queue'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete queue')),
   })
 
   if (isLoading) {

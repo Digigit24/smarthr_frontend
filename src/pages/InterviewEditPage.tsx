@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Pencil, Loader2, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,7 +49,7 @@ export default function InterviewEditPage() {
       toast.success('Interview updated')
       navigate(`/interviews/${id}`)
     },
-    onError: () => toast.error('Failed to update interview'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to update interview')),
   })
 
   if (isLoading) {

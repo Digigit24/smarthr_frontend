@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { ArrowLeft, Loader2, Pencil, Phone } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -47,7 +48,7 @@ export default function CallEditPage() {
       toast.success('Call status updated')
       navigate(-1)
     },
-    onError: () => toast.error('Failed to update call status'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to update call status')),
   })
 
   const handleSave = () => {

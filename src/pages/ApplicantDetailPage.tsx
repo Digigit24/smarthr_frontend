@@ -27,6 +27,7 @@ import { applicationsService } from '@/services/applications'
 import { jobsService } from '@/services/jobs'
 import type { ApplicantFormData } from '@/types'
 import { formatDate, getInitials, cn } from '@/lib/utils'
+import { extractApiError } from '@/lib/apiErrors'
 
 const APP_STATUS_COLORS: Record<string, string> = {
   APPLIED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -67,7 +68,7 @@ const applicantSchema = z.object({
 
 type ApplicantFormInput = z.infer<typeof applicantSchema>
 
-function ApplyForJob({ applicantId }: { applicantId: string }) {
+function ApplyForJob({ applicantId, existingApps }: { applicantId: string; existingApps: { job_id: string; created_at: string }[] }) {
   const qc = useQueryClient()
   const [selectedJobId, setSelectedJobId] = useState('')
   const [notes, setNotes] = useState('')
@@ -76,6 +77,21 @@ function ApplyForJob({ applicantId }: { applicantId: string }) {
     queryKey: ['jobs-list-for-apply'],
     queryFn: () => jobsService.list({ status: 'OPEN', ordering: 'title' }),
   })
+
+  // Check for duplicate within 30 days
+  const getDuplicateWarning = (): string | null => {
+    if (!selectedJobId || !existingApps) return null
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const dup = existingApps.find(
+      (app) => app.job_id === selectedJobId && new Date(app.created_at) > thirtyDaysAgo
+    )
+    if (dup) {
+      return `Already applied for this position on ${new Date(dup.created_at).toLocaleDateString()}. Cannot reapply within 30 days.`
+    }
+    return null
+  }
+  const duplicateWarning = getDuplicateWarning()
 
   const applyMutation = useMutation({
     mutationFn: () =>
@@ -92,7 +108,7 @@ function ApplyForJob({ applicantId }: { applicantId: string }) {
       setNotes('')
       toast.success('Application submitted successfully')
     },
-    onError: () => toast.error('Failed to submit application'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to submit application')),
   })
 
   return (
@@ -119,6 +135,11 @@ function ApplyForJob({ applicantId }: { applicantId: string }) {
             </SelectContent>
           </Select>
         </div>
+        {duplicateWarning && (
+          <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-2.5 text-xs text-red-700 dark:text-red-300">
+            {duplicateWarning}
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label className="text-[13px]">Notes</Label>
           <Textarea
@@ -130,7 +151,7 @@ function ApplyForJob({ applicantId }: { applicantId: string }) {
         </div>
         <Button
           className="w-full"
-          disabled={!selectedJobId || applyMutation.isPending}
+          disabled={!selectedJobId || applyMutation.isPending || !!duplicateWarning}
           onClick={() => applyMutation.mutate()}
         >
           {applyMutation.isPending ? (
@@ -177,7 +198,7 @@ export default function ApplicantDetailPage() {
       setEditing(false)
       toast.success('Applicant updated')
     },
-    onError: () => toast.error('Failed to update applicant'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to update applicant')),
   })
 
   const deleteMutation = useMutation({
@@ -187,7 +208,7 @@ export default function ApplicantDetailPage() {
       toast.success('Applicant deleted')
       navigate(-1)
     },
-    onError: () => toast.error('Failed to delete applicant'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete applicant')),
   })
 
   const {
@@ -599,10 +620,13 @@ export default function ApplicantDetailPage() {
                       <div
                         key={app.id}
                         className="rounded-lg border p-3.5 hover:bg-muted/30 transition-colors cursor-pointer"
-                        onClick={() => navigate(`/jobs/${app.job_id}/applications/${app.id}`)}
+                        onClick={() => navigate(`/applications/${app.id}`)}
                       >
                         <div className="flex items-center justify-between">
-                          <p className="font-medium text-sm truncate">{app.job_title}</p>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Briefcase className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <p className="font-medium text-sm truncate">{app.job_title}</p>
+                          </div>
                           <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-medium shrink-0 ml-2', APP_STATUS_COLORS[app.status])}>
                             {app.status.replace(/_/g, ' ')}
                           </span>
@@ -618,6 +642,13 @@ export default function ApplicantDetailPage() {
                             <Clock className="h-3 w-3" />
                             {formatDate(app.created_at)}
                           </span>
+                          <button
+                            className="flex items-center gap-1 text-primary hover:underline ml-auto"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${app.job_id}`) }}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            View Job
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -629,7 +660,7 @@ export default function ApplicantDetailPage() {
 
           {/* Right column — quick apply */}
           <div className="space-y-6">
-            <ApplyForJob applicantId={applicant.id} />
+            <ApplyForJob applicantId={applicant.id} existingApps={apps} />
           </div>
         </div>
       )}

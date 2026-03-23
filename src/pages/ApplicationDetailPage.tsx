@@ -8,6 +8,7 @@ import {
   CheckCircle2, XCircle, AlertCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -150,7 +151,7 @@ export default function ApplicationDetailPage() {
       toast.success('AI call triggered')
       qc.invalidateQueries({ queryKey: ['application-detail', appId] })
     },
-    onError: () => toast.error('Failed to trigger AI call'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to trigger AI call')),
   })
 
   const changeStatusMutation = useMutation({
@@ -162,7 +163,7 @@ export default function ApplicationDetailPage() {
       qc.invalidateQueries({ queryKey: ['applications'] })
       toast.success('Status updated')
     },
-    onError: () => toast.error('Failed to update status'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to update status')),
   })
 
   const goBack = () => {
@@ -214,7 +215,12 @@ export default function ApplicationDetailPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2.5 mb-1 flex-wrap">
-                  <h1 className="text-xl font-semibold">{fullName}</h1>
+                  <h1
+                    className="text-xl font-semibold hover:text-primary cursor-pointer transition-colors"
+                    onClick={(e) => { e.stopPropagation(); navigate(`/applicants/${app.applicant_id}`) }}
+                  >
+                    {fullName}
+                  </h1>
                   <span className={cn('inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium', statusConf.bg)}>
                     <span className={cn('w-1.5 h-1.5 rounded-full', statusConf.dot)} />
                     {app.status.replace(/_/g, ' ')}
@@ -252,16 +258,14 @@ export default function ApplicationDetailPage() {
                 <Phone className="h-3.5 w-3.5 mr-1.5" />
                 AI Call
               </Button>
-              {jobId && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/applicants/${app.applicant_id}`)}
-                >
-                  <User className="h-3.5 w-3.5 mr-1.5" />
-                  Profile
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/applicants/${app.applicant_id}`)}
+              >
+                <User className="h-3.5 w-3.5 mr-1.5" />
+                Profile
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -285,18 +289,27 @@ export default function ApplicationDetailPage() {
           {/* Applicant Info */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle
+                className="text-base flex items-center gap-2 cursor-pointer hover:text-primary transition-colors group"
+                onClick={() => navigate(`/applicants/${app.applicant_id}`)}
+              >
                 <div className="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                   <User className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                 </div>
                 Applicant Information
+                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-6 text-sm">
                 <div>
                   <p className="text-muted-foreground text-xs mb-0.5">Full Name</p>
-                  <p className="font-medium">{fullName}</p>
+                  <p
+                    className="font-medium text-primary hover:underline cursor-pointer"
+                    onClick={() => navigate(`/applicants/${app.applicant_id}`)}
+                  >
+                    {fullName}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs mb-0.5">Email</p>

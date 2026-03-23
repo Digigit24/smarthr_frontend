@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, GripVertical, Trash2, Search, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { useState, useRef, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -114,7 +115,7 @@ export default function PipelinePage() {
       qc.invalidateQueries({ queryKey: ['pipeline'] })
       toast.success('Default stages seeded')
     },
-    onError: () => toast.error('Failed to seed stages'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to seed stages')),
   })
 
   const createMutation = useMutation({
@@ -141,7 +142,7 @@ export default function PipelinePage() {
       qc.invalidateQueries({ queryKey: ['pipeline'] })
       toast.success('Stage deleted')
     },
-    onError: () => toast.error('Failed to delete stage'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete stage')),
   })
 
   const reorderMutation = useMutation({

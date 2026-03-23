@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import {
   ArrowLeft, Loader2, Save, Briefcase, MapPin, Clock,
 } from 'lucide-react'
@@ -65,7 +66,7 @@ export default function JobEditPage() {
       toast.success('Job updated successfully')
       navigate(-1)
     },
-    onError: () => toast.error('Failed to update job'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to update job')),
   })
 
   if (isLoading) {

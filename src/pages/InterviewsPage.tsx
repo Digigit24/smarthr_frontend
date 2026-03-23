@@ -7,6 +7,7 @@ import {
   ChevronLeft, ChevronRight, LayoutGrid, CalendarDays,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -250,11 +251,11 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
             const isWeekend = idx % 7 === 0 || idx % 7 === 6
 
             return (
-              <button
+              <div
                 key={key}
                 onClick={() => setSelectedDate(isSelected ? null : key)}
                 className={cn(
-                  'relative border-b border-r text-left p-1 sm:p-2 min-h-[52px] sm:min-h-[90px] transition-colors',
+                  'relative border-b border-r text-left p-1 sm:p-2 min-h-[52px] sm:min-h-[90px] transition-colors cursor-pointer',
                   'hover:bg-primary/5 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-primary/30',
                   isSelected && 'bg-primary/10 ring-1 ring-inset ring-primary/30',
                   isWeekend && !isSelected && 'bg-muted/10',
@@ -270,7 +271,7 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
 
                 {/* Interview dots / chips */}
                 {dayInterviews.length > 0 && (
-                  <div className="mt-0.5 sm:mt-1 space-y-0.5 overflow-hidden">
+                  <div className="mt-0.5 sm:mt-1 space-y-0.5">
                     {/* Mobile: show dots */}
                     <div className="flex gap-0.5 flex-wrap sm:hidden">
                       {dayInterviews.slice(0, 4).map((iv) => {
@@ -282,15 +283,17 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
                       )}
                     </div>
 
-                    {/* Desktop: show event chips */}
+                    {/* Desktop: show all event chips (cell grows to fit) */}
                     <div className="hidden sm:block space-y-0.5">
-                      {dayInterviews.slice(0, 3).map((iv) => {
+                      {dayInterviews.map((iv) => {
                         const cfg = STATUS_CONFIG[iv.status] || STATUS_CONFIG.SCHEDULED
                         return (
                           <div
                             key={iv.id}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/interviews/${iv.id}`) }}
                             className={cn(
-                              'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium truncate',
+                              'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium truncate cursor-pointer',
+                              'hover:ring-1 hover:ring-inset hover:ring-primary/40 transition-all',
                               cfg.color,
                             )}
                           >
@@ -301,13 +304,10 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
                           </div>
                         )
                       })}
-                      {dayInterviews.length > 3 && (
-                        <p className="text-[10px] text-muted-foreground pl-1.5">+{dayInterviews.length - 3} more</p>
-                      )}
                     </div>
                   </div>
                 )}
-              </button>
+              </div>
             )
           })}
         </div>
@@ -429,7 +429,7 @@ export default function InterviewsPage() {
       qc.invalidateQueries({ queryKey: ['interviews'] })
       toast.success('Interview deleted')
     },
-    onError: () => toast.error('Failed to delete interview'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete interview')),
   })
 
   // Client-side interviewer filter + status counts

@@ -6,6 +6,7 @@ import {
   Activity, PhoneOff, PhoneIncoming, PhoneCall,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -81,7 +82,7 @@ function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange
       setSelectedAppId('')
       setSelectedAgentId('')
     },
-    onError: () => toast.error('Failed to trigger call'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to trigger call')),
   })
 
   return (
@@ -237,7 +238,7 @@ export default function CallsPage() {
       qc.invalidateQueries({ queryKey: ['calls'] })
       toast.success('Call record deleted')
     },
-    onError: () => toast.error('Failed to delete call record'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete call record')),
   })
 
   const handleDelete = (id: string) => {

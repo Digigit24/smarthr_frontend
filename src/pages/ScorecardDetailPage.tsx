@@ -5,6 +5,7 @@ import {
   MessageSquare, Brain, Shield, Zap, Star, ThumbsUp, ThumbsDown, FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { scorecardsService } from '@/services/scorecards'
 import type { ScorecardRecommendation } from '@/types'
@@ -65,7 +66,7 @@ export default function ScorecardDetailPage() {
       toast.success('Scorecard deleted')
       navigate(-1)
     },
-    onError: () => toast.error('Failed to delete scorecard'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete scorecard')),
   })
 
   if (isLoading) {

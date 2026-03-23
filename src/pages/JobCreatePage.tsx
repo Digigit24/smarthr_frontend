@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { ArrowLeft, Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,7 +48,7 @@ export default function JobCreatePage() {
       toast.success('Job created successfully')
       navigate('/jobs')
     },
-    onError: () => toast.error('Failed to create job'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to create job')),
   })
 
   const {

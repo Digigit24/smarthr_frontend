@@ -7,6 +7,7 @@ import {
   DollarSign, Calendar, Award, FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -119,7 +120,7 @@ function VoiceConfigDialog({
       onSuccess()
       onOpenChange(false)
     },
-    onError: () => toast.error('Failed to save voice config'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to save voice config')),
   })
 
   return (
@@ -230,13 +231,13 @@ export default function JobDetailPage() {
       toast.success('Job deleted')
       navigate(-1)
     },
-    onError: () => toast.error('Failed to delete job'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete job')),
   })
 
   const triggerCallMutation = useMutation({
     mutationFn: (appId: string) => applicationsService.triggerAiCall(appId),
     onSuccess: () => toast.success('AI call triggered'),
-    onError: () => toast.error('Failed to trigger AI call'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to trigger AI call')),
   })
 
   const changeStatusMutation = useMutation({
@@ -246,7 +247,7 @@ export default function JobDetailPage() {
       qc.invalidateQueries({ queryKey: ['job-applications', id] })
       toast.success('Status updated')
     },
-    onError: () => toast.error('Failed to update status'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to update status')),
   })
 
   const handleDelete = () => {

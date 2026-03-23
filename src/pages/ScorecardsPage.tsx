@@ -6,6 +6,7 @@ import {
   ThumbsUp, ThumbsDown, TrendingUp,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -150,7 +151,7 @@ export default function ScorecardsPage() {
       qc.invalidateQueries({ queryKey: ['scorecards'] })
       toast.success('Scorecard deleted')
     },
-    onError: () => toast.error('Failed to delete scorecard'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete scorecard')),
   })
 
   const handleDelete = (id: string) => {

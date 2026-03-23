@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Loader2, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -65,7 +66,7 @@ export default function ApplicationEditPage() {
       toast.success('Application updated')
       navigate(-1)
     },
-    onError: () => toast.error('Failed to update application'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to update application')),
   })
 
   const {

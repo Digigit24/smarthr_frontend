@@ -6,6 +6,7 @@ import {
   Loader2, Eye, Pencil, Trash2, ArrowUpRight, Award, Calendar,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -183,7 +184,7 @@ export default function JobsPage() {
       qc.invalidateQueries({ queryKey: ['jobs'] })
       toast.success('Job deleted')
     },
-    onError: () => toast.error('Failed to delete job'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete job')),
   })
 
   const handleView = (job: JobListItem) => navigate(`/jobs/${job.id}`)

@@ -7,6 +7,7 @@ import {
   Zap, Briefcase,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -174,27 +175,27 @@ export default function CallQueuesPage() {
   const startMutation = useMutation({
     mutationFn: (id: string) => callQueuesService.start(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue started') },
-    onError: () => toast.error('Failed to start queue'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to start queue')),
   })
   const pauseMutation = useMutation({
     mutationFn: (id: string) => callQueuesService.pause(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue paused') },
-    onError: () => toast.error('Failed to pause queue'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to pause queue')),
   })
   const resumeMutation = useMutation({
     mutationFn: (id: string) => callQueuesService.resume(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue resumed') },
-    onError: () => toast.error('Failed to resume queue'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to resume queue')),
   })
   const cancelMutation = useMutation({
     mutationFn: (id: string) => callQueuesService.cancel(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue cancelled') },
-    onError: () => toast.error('Failed to cancel queue'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to cancel queue')),
   })
   const deleteMutation = useMutation({
     mutationFn: (id: string) => callQueuesService.delete(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue deleted') },
-    onError: () => toast.error('Failed to delete queue'),
+    onError: (err) => toast.error(extractApiError(err, 'Failed to delete queue')),
   })
 
   // Status counts
