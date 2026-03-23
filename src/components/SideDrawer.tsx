@@ -157,8 +157,9 @@ export function SideDrawer({
         side="right"
         className={cn('flex flex-col p-0 [&>button]:hidden', className)}
         style={{
+          width: isMobile ? '100vw' : `${drawerWidth}px`,
           maxWidth: isMobile ? '100vw' : `${drawerWidth}px`,
-          transition: isResizing ? 'none' : 'max-width 0.2s ease-in-out',
+          transition: isResizing ? 'none' : 'max-width 0.2s ease-in-out, width 0.2s ease-in-out',
         }}
       >
         {/* Resize Handle */}
@@ -177,7 +178,7 @@ export function SideDrawer({
 
         {/* Header */}
         <div className="flex-shrink-0 border-b border-border/60">
-          <div className="px-5 py-4 flex items-center justify-between gap-3">
+          <div className="px-4 sm:px-5 py-3 sm:py-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               {isMobile && showBackButton && (
                 <Button variant="ghost" size="icon" className="h-8 w-8 -ml-1" onClick={handleClose}>
@@ -221,7 +222,7 @@ export function SideDrawer({
             </div>
           </div>
           {description && (
-            <p className="px-5 pb-3 text-xs text-muted-foreground">{description}</p>
+            <p className="px-4 sm:px-5 pb-3 text-xs text-muted-foreground">{description}</p>
           )}
         </div>
 
@@ -236,14 +237,14 @@ export function SideDrawer({
             </div>
           )}
           <ScrollArea className="h-full">
-            <div className={cn('px-5 py-5', contentClassName)}>{children}</div>
+            <div className={cn('px-4 sm:px-5 py-4 sm:py-5', contentClassName)}>{children}</div>
           </ScrollArea>
         </div>
 
         {/* Footer */}
         {footerButtons && footerButtons.length > 0 && (
           <div className="flex-shrink-0 border-t border-border/60">
-            <div className="px-5 py-3">
+            <div className="px-4 sm:px-5 py-3">
               <div
                 className={cn(
                   'flex flex-col-reverse sm:flex-row flex-wrap gap-2',

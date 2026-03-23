@@ -81,7 +81,7 @@ export default function NotificationDetailPage() {
   const relatedRoute = getRelatedRoute(notification.data)
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Go Back
       </Button>
@@ -89,7 +89,7 @@ export default function NotificationDetailPage() {
       {/* Hero */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className={cn('h-2 bg-gradient-to-r', cfg.gradient)} />
-        <div className="p-4 sm:p-6">
+        <div className="p-3 sm:p-4 md:p-6">
           <div className="flex flex-col sm:flex-row sm:items-start gap-4">
             <div className={cn('h-14 w-14 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shrink-0', cfg.gradient)}>
               <CatIcon className="h-7 w-7" />
@@ -114,7 +114,7 @@ export default function NotificationDetailPage() {
                   </span>
                 )}
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold">{notification.title}</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{notification.title}</h1>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                 <Clock className="h-3.5 w-3.5" />
                 <span>Sent {formatDateTime(notification.sent_at)}</span>
@@ -128,7 +128,7 @@ export default function NotificationDetailPage() {
         {/* Main */}
         <div className="lg:col-span-2 space-y-4 sm:space-y-5">
           {/* Message */}
-          <div className="rounded-xl border bg-card p-4 sm:p-6">
+          <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-6">
             <div className="flex items-center gap-2 mb-4">
               <div className={cn('h-7 w-7 rounded-lg flex items-center justify-center', cfg.bg)}>
                 <MessageSquare className={cn('h-4 w-4', cfg.color.split(' ').pop())} />
@@ -142,7 +142,7 @@ export default function NotificationDetailPage() {
 
           {/* Related Data */}
           {Object.keys(notification.data || {}).length > 0 && (
-            <div className="rounded-xl border bg-card p-4 sm:p-6">
+            <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-6">
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-7 w-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
                   <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400" />
@@ -151,8 +151,8 @@ export default function NotificationDetailPage() {
               </div>
               <div className="space-y-2">
                 {Object.entries(notification.data).map(([key, value]) => (
-                  <div key={key} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-                    <span className="text-xs text-muted-foreground font-medium min-w-[100px] shrink-0">{key.replace(/_/g, ' ')}</span>
+                  <div key={key} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 flex-wrap">
+                    <span className="text-xs text-muted-foreground font-medium min-w-[80px] sm:min-w-[100px] shrink-0">{key.replace(/_/g, ' ')}</span>
                     <span className="text-sm font-medium break-all">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
                   </div>
                 ))}
@@ -183,39 +183,39 @@ export default function NotificationDetailPage() {
           )}
 
           {/* Details */}
-          <div className="rounded-xl border bg-card p-4 sm:p-5 space-y-3">
+          <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-5 space-y-3">
             <h3 className="font-semibold text-sm">Details</h3>
             <div className="space-y-2.5 text-sm">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <span className="text-muted-foreground">Category</span>
                 <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium', cfg.color)}>
                   {cfg.label}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <span className="text-muted-foreground">Channel</span>
                 <span className="font-medium inline-flex items-center gap-1">
                   <TypeIcon className="h-3.5 w-3.5" />
                   {notification.notification_type.replace(/_/g, ' ')}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <span className="text-muted-foreground">Status</span>
                 <span className={cn('font-medium', notification.is_read ? 'text-emerald-600' : 'text-blue-600')}>
                   {notification.is_read ? 'Read' : 'Unread'}
                 </span>
               </div>
               {notification.read_at && (
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-1">
                   <span className="text-muted-foreground">Read at</span>
                   <span className="font-medium text-xs">{formatDateTime(notification.read_at)}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <span className="text-muted-foreground">Sent</span>
                 <span className="font-medium text-xs">{formatDateTime(notification.sent_at)}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <span className="text-muted-foreground">Created</span>
                 <span className="font-medium text-xs">{formatDateTime(notification.created_at)}</span>
               </div>

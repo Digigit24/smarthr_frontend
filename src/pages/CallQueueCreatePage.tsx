@@ -120,7 +120,7 @@ export default function CallQueueCreatePage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
       {/* Back */}
       <Button variant="ghost" size="sm" onClick={() => navigate('/call-queues')} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to Queues
@@ -129,12 +129,12 @@ export default function CallQueueCreatePage() {
       {/* Header */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className="h-2 bg-gradient-to-r from-violet-500 to-purple-600" />
-        <div className="p-4 sm:p-6 flex items-center gap-4">
+        <div className="p-3 sm:p-4 md:p-6 flex items-center gap-3 sm:gap-4">
           <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white shrink-0">
             <ListChecks className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">Create Call Queue</h1>
+            <h1 className="text-lg sm:text-xl font-bold">Create Call Queue</h1>
             <p className="text-sm text-muted-foreground">Set up AI-powered call screening for a job</p>
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function CallQueueCreatePage() {
 
       <form onSubmit={handleSubmit((data) => createMutation.mutate(data))} className="space-y-4 sm:space-y-6">
         {/* Basic Info */}
-        <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-4">
+        <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-6 space-y-4">
           <h2 className="font-semibold text-sm flex items-center gap-2">
             <span className="h-5 w-5 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-bold">1</span>
             Basic Information
@@ -181,7 +181,7 @@ export default function CallQueueCreatePage() {
         </div>
 
         {/* Call Configuration */}
-        <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-4">
+        <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-6 space-y-4">
           <h2 className="font-semibold text-sm flex items-center gap-2">
             <span className="h-5 w-5 rounded bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 text-xs font-bold">2</span>
             Call Configuration
@@ -222,7 +222,7 @@ export default function CallQueueCreatePage() {
         </div>
 
         {/* Thresholds & Filters */}
-        <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-4">
+        <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-6 space-y-4">
           <h2 className="font-semibold text-sm flex items-center gap-2">
             <span className="h-5 w-5 rounded bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xs font-bold">3</span>
             Thresholds & Filters
@@ -265,10 +265,10 @@ export default function CallQueueCreatePage() {
 
         {/* Footer */}
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2 pb-4">
-          <Button type="button" variant="outline" onClick={() => navigate('/call-queues')} className="sm:w-auto">
+          <Button type="button" variant="outline" onClick={() => navigate('/call-queues')} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button type="submit" disabled={createMutation.isPending} className="sm:w-auto">
+          <Button type="submit" disabled={createMutation.isPending} className="w-full sm:w-auto">
             {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Create Queue
           </Button>

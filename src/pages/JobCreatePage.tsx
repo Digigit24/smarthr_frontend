@@ -71,14 +71,14 @@ export default function JobCreatePage() {
   })
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate('/jobs')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-xl font-semibold">Create New Job</h1>
+          <h1 className="text-lg sm:text-xl font-semibold">Create New Job</h1>
           <p className="text-sm text-muted-foreground">Fill in the details to create a new job posting</p>
         </div>
       </div>
@@ -191,11 +191,11 @@ export default function JobCreatePage() {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pb-6">
-          <Button type="button" variant="outline" onClick={() => navigate('/jobs')} disabled={createMutation.isPending}>
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pb-6">
+          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/jobs')} disabled={createMutation.isPending}>
             Cancel
           </Button>
-          <Button type="submit" disabled={createMutation.isPending}>
+          <Button type="submit" className="w-full sm:w-auto" disabled={createMutation.isPending}>
             {createMutation.isPending ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</>
             ) : (

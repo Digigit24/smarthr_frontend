@@ -281,23 +281,23 @@ export default function ApplicantDetailPage() {
       {/* Header */}
       <Card className="overflow-hidden">
         <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
-        <CardContent className="p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
+        <CardContent className="p-3 sm:p-4 md:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex items-start gap-3 sm:gap-4">
               <Button variant="ghost" size="icon" className="mt-1 shrink-0" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-md">
-                <span className="text-lg font-bold text-white">{getInitials(applicant.full_name)}</span>
+              <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-md">
+                <span className="text-sm sm:text-lg font-bold text-white">{getInitials(applicant.full_name)}</span>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h1 className="text-xl font-semibold">{applicant.full_name}</h1>
+                  <h1 className="text-lg sm:text-xl font-semibold">{applicant.full_name}</h1>
                   <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-medium border', SOURCE_COLORS[applicant.source])}>
                     {applicant.source}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                <div className="flex items-center flex-wrap gap-2 sm:gap-4 text-sm text-muted-foreground">
                   {applicant.current_role && (
                     <span className="flex items-center gap-1">
                       <Award className="h-3.5 w-3.5" />
@@ -327,25 +327,26 @@ export default function ApplicantDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 ml-auto sm:ml-0 shrink-0">
               {!editing ? (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setEditing(true)}>
                     <Pencil className="h-3.5 w-3.5 mr-1.5" />
                     Edit
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={handleDelete}>
+                  <Button variant="destructive" size="sm" className="w-full sm:w-auto" onClick={handleDelete}>
                     <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                     Delete
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => setEditing(false)}>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setEditing(false)}>
                     Cancel
                   </Button>
                   <Button
                     size="sm"
+                    className="w-full sm:w-auto"
                     disabled={updateMutation.isPending}
                     onClick={handleSubmit(onSubmit)}
                   >

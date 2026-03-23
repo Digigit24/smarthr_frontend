@@ -90,13 +90,13 @@ function SectionCard({ icon: Icon, title, color, children }: {
   }
   return (
     <div className="rounded-xl border bg-card shadow-sm">
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b">
+      <div className="flex items-center gap-2.5 px-3 sm:px-4 md:px-5 py-3 sm:py-4 border-b">
         <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center', colors[color])}>
           <Icon className="h-4 w-4" />
         </div>
         <h3 className="font-semibold text-sm">{title}</h3>
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-3 sm:p-4 md:p-5">{children}</div>
     </div>
   )
 }
@@ -130,7 +130,7 @@ export default function ProfilePage() {
   const deniedCount = permissionEntries.filter(([, v]) => v === false).length
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
       {/* Back button */}
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back
@@ -148,14 +148,14 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile info below banner */}
-        <div className="px-5 sm:px-8 pb-6 relative">
+        <div className="px-3 sm:px-5 md:px-8 pb-5 sm:pb-6 relative">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-14 sm:-mt-16">
             <div className="ring-4 ring-card rounded-full shadow-xl">
               <GradientAvatar name={displayName} size="xl" />
             </div>
             <div className="flex-1 min-w-0 pb-1 space-y-1.5">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{displayName}</h1>
+                <h1 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-tight">{displayName}</h1>
                 {user.is_super_admin && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 dark:from-amber-900/40 dark:to-orange-900/40 dark:text-amber-400 border border-amber-200/50 dark:border-amber-700/50">
                     <Crown className="h-3 w-3" /> Super Admin
@@ -174,18 +174,18 @@ export default function ProfilePage() {
                 </p>
               )}
             </div>
-            <div className="flex gap-2 shrink-0">
-              <Button variant="outline" size="sm" onClick={() => navigate('/settings')} className="gap-1.5">
+            <div className="flex gap-2 shrink-0 w-full sm:w-auto">
+              <Button variant="outline" size="sm" onClick={() => navigate('/settings')} className="gap-1.5 flex-1 sm:flex-initial">
                 <Settings className="h-4 w-4" /> Settings
               </Button>
-              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5" onClick={handleLogout}>
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5 flex-1 sm:flex-initial" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" /> Logout
               </Button>
             </div>
           </div>
 
           {/* Quick stats bar */}
-          <div className="flex flex-wrap gap-4 mt-6 pt-5 border-t">
+          <div className="flex flex-wrap gap-3 sm:gap-4 mt-4 sm:mt-6 pt-4 sm:pt-5 border-t">
             <div className="flex items-center gap-2 text-sm">
               <div className="h-2 w-2 rounded-full bg-emerald-500" />
               <span className="text-muted-foreground">Modules:</span>
@@ -215,7 +215,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
         {/* Left column — main info */}
         <div className="lg:col-span-2 space-y-5">
           {/* Personal Information */}
@@ -283,7 +283,7 @@ export default function ProfilePage() {
         <div className="space-y-5">
           {/* Enabled Modules */}
           <div className="rounded-xl border bg-card shadow-sm">
-            <div className="flex items-center justify-between px-5 py-4 border-b">
+            <div className="flex items-center justify-between px-3 sm:px-4 md:px-5 py-3 sm:py-4 border-b">
               <div className="flex items-center gap-2.5">
                 <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
                   <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -294,7 +294,7 @@ export default function ProfilePage() {
                 {enabledModules.length}
               </span>
             </div>
-            <div className="p-4">
+            <div className="p-3 sm:p-4">
               {enabledModules.length > 0 ? (
                 <div className="space-y-1.5">
                   {enabledModules.map((mod) => (
@@ -314,13 +314,13 @@ export default function ProfilePage() {
 
           {/* Preferences */}
           <div className="rounded-xl border bg-card shadow-sm">
-            <div className="flex items-center gap-2.5 px-5 py-4 border-b">
+            <div className="flex items-center gap-2.5 px-3 sm:px-4 md:px-5 py-3 sm:py-4 border-b">
               <div className="h-8 w-8 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
                 <Settings className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               </div>
               <h3 className="font-semibold text-sm">Preferences</h3>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-3 sm:p-4 space-y-4">
               {/* Theme */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
@@ -360,13 +360,13 @@ export default function ProfilePage() {
 
           {/* Security Summary */}
           <div className="rounded-xl border bg-card shadow-sm">
-            <div className="flex items-center gap-2.5 px-5 py-4 border-b">
+            <div className="flex items-center gap-2.5 px-3 sm:px-4 md:px-5 py-3 sm:py-4 border-b">
               <div className="h-8 w-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
                 <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               </div>
               <h3 className="font-semibold text-sm">Security Summary</h3>
             </div>
-            <div className="p-4 space-y-3">
+            <div className="p-3 sm:p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Admin Access</span>
                 <span className={cn(

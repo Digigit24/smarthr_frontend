@@ -103,21 +103,21 @@ export default function JobEditPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold">Edit Job</h1>
+              <h1 className="text-lg sm:text-xl font-semibold">Edit Job</h1>
               <span className={cn('px-2.5 py-0.5 rounded-full text-[11px] font-medium', JOB_STATUS_COLORS[job.status])}>
                 {job.status}
               </span>
             </div>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-0.5">
+            <div className="flex items-center flex-wrap gap-2 sm:gap-3 text-sm text-muted-foreground mt-0.5">
               <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" />{job.department}</span>
               <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{job.location}</span>
               <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />Created {formatDate(job.created_at)}</span>
@@ -292,11 +292,11 @@ function EditForm({
       </Card>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-end gap-3 pb-6">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pb-6">
+        <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={onCancel} disabled={isLoading}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
           {isLoading ? (
             <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
           ) : (

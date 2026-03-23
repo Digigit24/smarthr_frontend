@@ -41,7 +41,7 @@ function ScoreRing({ score, size = 120, stroke = 8 }: { score: number; size?: nu
           className={cn(color, 'transition-all duration-700')} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={cn('text-2xl font-bold', bgColor)}>{score.toFixed(1)}</span>
+        <span className={cn('text-xl sm:text-2xl font-bold', bgColor)}>{score.toFixed(1)}</span>
         <span className="text-[10px] text-muted-foreground">/ 100</span>
       </div>
     </div>
@@ -95,7 +95,7 @@ export default function ScorecardDetailPage() {
   const RecIcon = recCfg.icon
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
       {/* Back */}
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to Scorecards
@@ -104,7 +104,7 @@ export default function ScorecardDetailPage() {
       {/* Hero Header */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className={cn('h-2 bg-gradient-to-r', recCfg.gradient)} />
-        <div className="p-4 sm:p-6">
+        <div className="p-3 sm:p-4 md:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
             {/* Score Ring */}
             <div className="flex justify-center sm:justify-start">
@@ -118,7 +118,7 @@ export default function ScorecardDetailPage() {
                   {recCfg.label}
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold">AI Scorecard</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold">AI Scorecard</h1>
               <p className="text-sm text-muted-foreground mt-1">Scorecard ID: {id}</p>
             </div>
             {/* Actions */}
@@ -142,14 +142,14 @@ export default function ScorecardDetailPage() {
         {DIMENSION_CONFIG.map((dim) => {
           const val = parseFloat((card as unknown as Record<string, string>)[dim.key] || '0')
           return (
-            <div key={dim.key} className="rounded-xl border bg-card p-4">
+            <div key={dim.key} className="rounded-xl border bg-card p-3 sm:p-4">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className={cn('h-9 w-9 rounded-lg flex items-center justify-center', dim.bg)}>
                   <dim.icon className={cn('h-4.5 w-4.5', dim.color)} />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">{dim.label}</p>
-                  <p className="text-lg font-bold">{val.toFixed(1)}</p>
+                  <p className="text-base sm:text-lg font-bold">{val.toFixed(1)}</p>
                 </div>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -165,7 +165,7 @@ export default function ScorecardDetailPage() {
         <div className="lg:col-span-2 space-y-4 sm:space-y-5">
           {/* Summary */}
           {card.summary && (
-            <div className="rounded-xl border bg-card p-4 sm:p-5">
+            <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-7 w-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
                   <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -178,7 +178,7 @@ export default function ScorecardDetailPage() {
 
           {/* Strengths */}
           {card.strengths?.length > 0 && (
-            <div className="rounded-xl border bg-card p-4 sm:p-5">
+            <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-7 w-7 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
                   <ThumbsUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -199,7 +199,7 @@ export default function ScorecardDetailPage() {
 
           {/* Weaknesses */}
           {card.weaknesses?.length > 0 && (
-            <div className="rounded-xl border bg-card p-4 sm:p-5">
+            <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-7 w-7 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
                   <ThumbsDown className="h-4 w-4 text-red-500 dark:text-red-400" />
@@ -220,7 +220,7 @@ export default function ScorecardDetailPage() {
 
           {/* Detailed Feedback */}
           {card.detailed_feedback && Object.keys(card.detailed_feedback).length > 0 && (
-            <div className="rounded-xl border bg-card p-4 sm:p-5">
+            <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-7 w-7 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center">
                   <MessageSquare className="h-4 w-4 text-violet-600 dark:text-violet-400" />
@@ -242,7 +242,7 @@ export default function ScorecardDetailPage() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Score Overview */}
-          <div className="rounded-xl border bg-card p-4 sm:p-5">
+          <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-5">
             <h3 className="font-semibold text-sm mb-3">Score Breakdown</h3>
             <div className="space-y-3">
               {DIMENSION_CONFIG.map((dim) => {
@@ -259,13 +259,13 @@ export default function ScorecardDetailPage() {
               })}
               <div className="border-t pt-3 flex items-center justify-between">
                 <span className="text-xs font-medium">Overall</span>
-                <span className="text-lg font-bold">{overall.toFixed(1)}</span>
+                <span className="text-base sm:text-lg font-bold">{overall.toFixed(1)}</span>
               </div>
             </div>
           </div>
 
           {/* Recommendation */}
-          <div className={cn('rounded-xl border-2 p-4 sm:p-5',
+          <div className={cn('rounded-xl border-2 p-3 sm:p-4 md:p-5',
             overall >= 70 ? 'border-emerald-200 dark:border-emerald-800/50'
             : overall >= 40 ? 'border-amber-200 dark:border-amber-800/50'
             : 'border-red-200 dark:border-red-800/50'
@@ -280,7 +280,7 @@ export default function ScorecardDetailPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="rounded-xl border bg-card p-4 sm:p-5 space-y-2">
+          <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-5 space-y-2">
             <h3 className="font-semibold text-sm mb-3">Actions</h3>
             <Button variant="outline" className="w-full justify-start" size="sm" onClick={() => navigate(`/scorecards/${id}/edit`)}>
               <Pencil className="h-4 w-4 mr-2" /> Edit Scorecard

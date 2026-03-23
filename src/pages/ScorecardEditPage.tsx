@@ -87,7 +87,7 @@ export default function ScorecardEditPage() {
   const overall = parseFloat(card.overall_score)
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 max-w-3xl mx-auto space-y-4 sm:space-y-6">
       {/* Back */}
       <Button variant="ghost" size="sm" onClick={() => navigate(`/scorecards/${id}`)} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to Scorecard
@@ -96,19 +96,19 @@ export default function ScorecardEditPage() {
       {/* Header */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className="h-2 bg-gradient-to-r from-amber-400 to-orange-500" />
-        <div className="p-4 sm:p-6 flex items-center gap-4">
+        <div className="p-3 sm:p-4 md:p-6 flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shrink-0">
             <Star className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">Edit Scorecard</h1>
+            <h1 className="text-lg sm:text-xl font-bold">Edit Scorecard</h1>
             <p className="text-sm text-muted-foreground">Overall Score: <span className="font-semibold text-foreground">{overall.toFixed(1)}</span></p>
           </div>
         </div>
       </div>
 
       {/* Read-only scores */}
-      <div className="rounded-xl border bg-card p-4 sm:p-5">
+      <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-5">
         <p className="text-xs font-medium text-muted-foreground mb-3">Score Breakdown (read-only)</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
@@ -119,14 +119,14 @@ export default function ScorecardEditPage() {
           ].map((s) => (
             <div key={s.label} className={cn('rounded-lg p-3 text-center', s.color.split(' ').slice(0, 2).join(' '))}>
               <p className="text-xs text-muted-foreground">{s.label}</p>
-              <p className="text-lg font-bold">{parseFloat(s.value).toFixed(1)}</p>
+              <p className="text-base sm:text-lg font-bold">{parseFloat(s.value).toFixed(1)}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Editable fields */}
-      <div className="rounded-xl border bg-card p-4 sm:p-6 space-y-5">
+      <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-6 space-y-5">
         <div className="space-y-2">
           <Label>Recommendation</Label>
           <Select value={form.recommendation} onValueChange={(v) => { setForm(f => ({ ...f, recommendation: v })); setFieldErrors(fe => { const { recommendation, ...rest } = fe; return rest }) }}>
@@ -169,7 +169,7 @@ export default function ScorecardEditPage() {
 
       {/* Footer */}
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2 pb-4">
-        <Button type="button" variant="outline" onClick={() => navigate(`/scorecards/${id}`)} className="sm:w-auto">
+        <Button type="button" variant="outline" onClick={() => navigate(`/scorecards/${id}`)} className="w-full sm:w-auto">
           Cancel
         </Button>
         <Button

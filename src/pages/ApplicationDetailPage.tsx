@@ -200,13 +200,13 @@ export default function ApplicationDetailPage() {
   const fullName = `${app.applicant.first_name} ${app.applicant.last_name}`
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       {/* ── Hero Header Card ── */}
       <Card className="overflow-hidden">
         <div className={cn('h-1.5 bg-gradient-to-r', statusConf.gradient)} />
-        <CardContent className="p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
+        <CardContent className="p-3 sm:p-4 md:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex items-start gap-3 sm:gap-4">
               <Button variant="ghost" size="icon" className="mt-1 shrink-0" onClick={goBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
@@ -216,7 +216,7 @@ export default function ApplicationDetailPage() {
               <div>
                 <div className="flex items-center gap-2.5 mb-1 flex-wrap">
                   <h1
-                    className="text-xl font-semibold hover:text-primary cursor-pointer transition-colors"
+                    className="text-lg sm:text-xl font-semibold hover:text-primary cursor-pointer transition-colors"
                     onClick={(e) => { e.stopPropagation(); navigate(`/applicants/${app.applicant_id}`) }}
                   >
                     {fullName}
@@ -232,7 +232,7 @@ export default function ApplicationDetailPage() {
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
                   <span className="flex items-center gap-1">
                     <Briefcase className="h-3.5 w-3.5" />
                     {app.job.title}
@@ -248,10 +248,11 @@ export default function ApplicationDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
               <Button
                 variant="outline"
                 size="sm"
+                className="w-full sm:w-auto"
                 onClick={() => triggerCallMutation.mutate(app.id)}
                 disabled={triggerCallMutation.isPending}
               >
@@ -261,6 +262,7 @@ export default function ApplicationDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
+                className="w-full sm:w-auto"
                 onClick={() => navigate(`/applicants/${app.applicant_id}`)}
               >
                 <User className="h-3.5 w-3.5 mr-1.5" />
@@ -424,12 +426,12 @@ export default function ApplicationDetailPage() {
                       </div>
 
                       {/* Overall + Recommendation */}
-                      <div className="flex items-center justify-between pt-4 border-t">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t">
                         <div className="flex items-center gap-4">
                           <ScoreRing score={sc.overall_score} />
                           <div>
                             <p className="text-xs text-muted-foreground">Overall Assessment</p>
-                            <p className="text-lg font-bold mt-0.5">
+                            <p className="text-base sm:text-lg font-bold mt-0.5">
                               {parseFloat(sc.overall_score).toFixed(1)}
                               <span className="text-sm font-normal text-muted-foreground ml-1">/ 100</span>
                             </p>
@@ -506,7 +508,7 @@ export default function ApplicationDetailPage() {
               <CardContent className="space-y-3">
                 {app.call_records.map((cr) => (
                   <div key={cr.id} className="rounded-lg border p-4 space-y-3 hover:shadow-sm transition-shadow">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', CALL_STATUS_COLORS[cr.status])}>
                           {cr.status.replace(/_/g, ' ')}
@@ -592,7 +594,7 @@ export default function ApplicationDetailPage() {
               <CardContent className="space-y-3">
                 {app.interviews.map((iv) => (
                   <div key={iv.id} className="rounded-lg border p-4 space-y-3 hover:shadow-sm transition-shadow">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-semibold text-sm">{iv.interview_type.replace(/_/g, ' ')}</span>
                       <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', INTERVIEW_STATUS_COLORS[iv.status] || 'bg-gray-100 text-gray-700')}>
                         {iv.status}

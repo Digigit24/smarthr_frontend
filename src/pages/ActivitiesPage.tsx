@@ -132,7 +132,7 @@ function ActivityCard({ activity }: { activity: ActivityType }) {
 
       {/* Content */}
       <div className="flex-1 pb-6 min-w-0">
-        <div className="rounded-xl border bg-card p-4 hover:shadow-sm transition-shadow">
+        <div className="rounded-xl border bg-card p-3 sm:p-4 hover:shadow-sm transition-shadow">
           {/* Header */}
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 flex-wrap">

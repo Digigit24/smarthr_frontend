@@ -92,7 +92,7 @@ export default function ActivityDetailPage() {
   const metadataKeys = Object.keys(activity.metadata || {})
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Go Back
       </Button>
@@ -100,7 +100,7 @@ export default function ActivityDetailPage() {
       {/* Hero */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className={cn('h-2 bg-gradient-to-r', verbCfg.gradient)} />
-        <div className="p-4 sm:p-6">
+        <div className="p-3 sm:p-4 md:p-6">
           <div className="flex flex-col sm:flex-row sm:items-start gap-4">
             <div className={cn('h-14 w-14 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shrink-0', verbCfg.gradient)}>
               <VerbIcon className="h-7 w-7" />
@@ -113,7 +113,7 @@ export default function ActivityDetailPage() {
                 </span>
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{activity.resource_type}</span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold">{activity.resource_label}</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{activity.resource_label}</h1>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                 <Clock className="h-3.5 w-3.5" />
                 <span>{formatDateTime(activity.created_at)}</span>
@@ -133,7 +133,7 @@ export default function ActivityDetailPage() {
         <div className="lg:col-span-2 space-y-4 sm:space-y-5">
           {/* Changes */}
           {allChangeKeys.length > 0 && (
-            <div className="rounded-xl border bg-card p-4 sm:p-6">
+            <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-6">
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-7 w-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
                   <ArrowRightLeft className="h-4 w-4 text-amber-600 dark:text-amber-400" />
@@ -175,7 +175,7 @@ export default function ActivityDetailPage() {
 
           {/* Metadata */}
           {metadataKeys.length > 0 && (
-            <div className="rounded-xl border bg-card p-4 sm:p-6">
+            <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-6">
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-7 w-7 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
                   <Layers className="h-4 w-4 text-purple-600 dark:text-purple-400" />
@@ -184,8 +184,8 @@ export default function ActivityDetailPage() {
               </div>
               <div className="space-y-2">
                 {metadataKeys.map((key) => (
-                  <div key={key} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-                    <span className="text-xs text-muted-foreground font-medium min-w-[100px] shrink-0">{key}</span>
+                  <div key={key} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 flex-wrap">
+                    <span className="text-xs text-muted-foreground font-medium min-w-[80px] sm:min-w-[100px] shrink-0">{key}</span>
                     <span className="text-sm font-medium break-all">
                       {typeof activity.metadata[key] === 'object' ? JSON.stringify(activity.metadata[key]) : String(activity.metadata[key])}
                     </span>
@@ -207,7 +207,7 @@ export default function ActivityDetailPage() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Actor */}
-          <div className="rounded-xl border bg-card p-4 sm:p-5">
+          <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-5">
             <h3 className="font-semibold text-sm mb-3">Actor</h3>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
               <GradientAvatar email={activity.actor_email} />
@@ -222,24 +222,24 @@ export default function ActivityDetailPage() {
           </div>
 
           {/* Quick Info */}
-          <div className="rounded-xl border bg-card p-4 sm:p-5 space-y-3">
+          <div className="rounded-xl border bg-card p-3 sm:p-4 md:p-5 space-y-3">
             <h3 className="font-semibold text-sm">Details</h3>
             <div className="space-y-2.5 text-sm">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <span className="text-muted-foreground">Action</span>
                 <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium', verbCfg.color)}>
                   {verbCfg.label}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <span className="text-muted-foreground">Resource</span>
                 <span className="font-medium">{activity.resource_type}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <span className="text-muted-foreground">Changes</span>
                 <span className="font-medium">{allChangeKeys.length} fields</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <span className="text-muted-foreground">When</span>
                 <span className="font-medium text-xs">{formatDateTime(activity.created_at)}</span>
               </div>

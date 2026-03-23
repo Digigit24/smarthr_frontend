@@ -85,8 +85,8 @@ export default function ApplicantCreatePage() {
       {/* Header */}
       <Card className="overflow-hidden">
         <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between flex-wrap gap-3">
+        <CardContent className="p-3 sm:p-4 md:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" onClick={() => navigate('/applicants')}>
                 <ArrowLeft className="h-4 w-4" />
@@ -95,7 +95,7 @@ export default function ApplicantCreatePage() {
                 <UserPlus className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold">Add New Applicant</h1>
+                <h1 className="text-lg sm:text-xl font-semibold">Add New Applicant</h1>
                 <p className="text-sm text-muted-foreground">Create a new applicant record</p>
               </div>
             </div>
@@ -225,9 +225,10 @@ export default function ApplicantCreatePage() {
           </div>
 
           {/* Submit buttons */}
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" onClick={() => navigate('/applicants')}>Cancel</Button>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/applicants')}>Cancel</Button>
             <Button
+              className="w-full sm:w-auto"
               disabled={createMutation.isPending}
               onClick={handleSubmit(onSubmit)}
             >

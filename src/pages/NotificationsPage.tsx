@@ -71,7 +71,7 @@ function NotificationCard({
       )}
       onClick={() => onClick(n)}
     >
-      <div className="flex items-start gap-3 sm:gap-4 p-4 sm:p-5">
+      <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 md:p-5">
         {/* Icon */}
         <div className={cn(
           'h-10 w-10 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105',
@@ -183,7 +183,7 @@ export default function NotificationsPage() {
   const categoryCounts = notifications.reduce((acc, n) => { acc[n.category] = (acc[n.category] || 0) + 1; return acc }, {} as Record<string, number>)
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -191,7 +191,7 @@ export default function NotificationsPage() {
             <Bell className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">Notifications</h1>
+            <h1 className="text-lg sm:text-xl font-bold">Notifications</h1>
             <p className="text-sm text-muted-foreground">
               {unreadCount} unread on this page
             </p>

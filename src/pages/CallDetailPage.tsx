@@ -284,10 +284,10 @@ export default function CallDetailPage() {
   const transcriptMessages = call.transcript ? parseTranscript(call.transcript) : []
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 max-w-7xl mx-auto">
       {/* Hero Header */}
       <Card className="overflow-hidden border-0 shadow-md">
-        <div className={cn('bg-gradient-to-r p-5 sm:p-6', statusConf.gradient)}>
+        <div className={cn('bg-gradient-to-r p-3 sm:p-5 md:p-6', statusConf.gradient)}>
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-3 sm:gap-4">
               <Button variant="ghost" size="icon" className="mt-0.5 shrink-0 text-white/80 hover:text-white hover:bg-white/10" onClick={() => navigate(-1)}>
@@ -297,8 +297,8 @@ export default function CallDetailPage() {
                 <StatusIcon className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-bold text-white">{call.phone}</h1>
+                <div className="flex items-center gap-2 sm:gap-2.5 mb-1.5 flex-wrap">
+                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white">{call.phone}</h1>
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/20 text-white backdrop-blur-sm border border-white/20">
                     <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                     {call.status.replace(/_/g, ' ')}
@@ -319,18 +319,18 @@ export default function CallDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0 ml-auto sm:ml-0">
               {call.status === 'FAILED' && (
-                <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/20" variant="outline" onClick={() => retryMutation.mutate()} disabled={retryMutation.isPending}>
+                <Button size="sm" className="w-full sm:w-auto bg-white/20 hover:bg-white/30 text-white border-white/20" variant="outline" onClick={() => retryMutation.mutate()} disabled={retryMutation.isPending}>
                   <RefreshCw className={cn('h-3.5 w-3.5 mr-1.5', retryMutation.isPending && 'animate-spin')} />
                   Retry
                 </Button>
               )}
-              <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/20" variant="outline" onClick={() => navigate(`/calls/${call.id}/edit`)}>
+              <Button size="sm" className="w-full sm:w-auto bg-white/20 hover:bg-white/30 text-white border-white/20" variant="outline" onClick={() => navigate(`/calls/${call.id}/edit`)}>
                 <Pencil className="h-3.5 w-3.5 mr-1.5" />
                 Edit
               </Button>
-              <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-white/20" variant="outline" onClick={handleDelete}>
+              <Button size="sm" className="w-full sm:w-auto bg-white/20 hover:bg-white/30 text-white border-white/20" variant="outline" onClick={handleDelete}>
                 <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                 Delete
               </Button>
@@ -367,33 +367,33 @@ export default function CallDetailPage() {
       {/* Stat Cards Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="overflow-hidden">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
                 <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground font-medium">Duration</p>
-                <p className="text-lg font-bold">{call.duration > 0 ? formatDuration(call.duration) : '—'}</p>
+                <p className="text-base sm:text-lg font-bold">{call.duration > 0 ? formatDuration(call.duration) : '—'}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card className="overflow-hidden">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
                 <Radio className="h-5 w-5 text-violet-600 dark:text-violet-400" />
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground font-medium">Provider</p>
-                <p className="text-lg font-bold">{call.provider}</p>
+                <p className="text-base sm:text-lg font-bold">{call.provider}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card className="overflow-hidden">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
                 <Calendar className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -406,7 +406,7 @@ export default function CallDetailPage() {
           </CardContent>
         </Card>
         <Card className="overflow-hidden">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
               <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
                 call.scorecard ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-gray-100 dark:bg-gray-800'
@@ -417,7 +417,7 @@ export default function CallDetailPage() {
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground font-medium">Score</p>
-                <p className="text-lg font-bold">
+                <p className="text-base sm:text-lg font-bold">
                   {call.scorecard ? `${parseFloat(call.scorecard.overall_score).toFixed(0)}/100` : '—'}
                 </p>
               </div>
@@ -508,7 +508,7 @@ export default function CallDetailPage() {
                     AI Scorecard
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-5">
+                <CardContent className="space-y-5 px-3 sm:px-6">
                   {/* Score Dimensions */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <ScoreDimensionBar label="Communication" value={sc.communication_score} icon={MessageSquare} />
@@ -523,7 +523,7 @@ export default function CallDetailPage() {
                       <ScoreRing score={sc.overall_score} />
                       <div>
                         <p className="text-xs text-muted-foreground">Overall Assessment</p>
-                        <p className="text-lg font-bold mt-0.5">
+                        <p className="text-base sm:text-lg font-bold mt-0.5">
                           {parseFloat(sc.overall_score).toFixed(1)}
                           <span className="text-sm font-normal text-muted-foreground ml-1">/ 100</span>
                         </p>

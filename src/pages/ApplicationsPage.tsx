@@ -243,7 +243,7 @@ function KanbanBoard({
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -770,14 +770,14 @@ export default function ApplicationsPage() {
   }
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-3 sm:p-4 md:p-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold">Applications</h1>
+          <h1 className="text-base sm:text-lg font-semibold">Applications</h1>
           <p className="text-xs text-muted-foreground">{data?.count ?? 0} total</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-wrap">
           {selectedIds.size > 0 && (
             <>
               <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
@@ -786,7 +786,7 @@ export default function ApplicationsPage() {
                   bulkMutation.mutate({ application_ids: Array.from(selectedIds), action: 'change_status', status })
                 }
               >
-                <SelectTrigger className="w-44 h-9">
+                <SelectTrigger className="w-full sm:w-44 h-9">
                   <SelectValue placeholder="Change status..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -831,7 +831,7 @@ export default function ApplicationsPage() {
             </>
           )}
           <Select onValueChange={(v) => handleExport(v as 'csv' | 'xlsx')}>
-            <SelectTrigger className="w-32 h-9" disabled={isExporting}>
+            <SelectTrigger className="w-full sm:w-32 h-9" disabled={isExporting}>
               <Download className="h-3.5 w-3.5 mr-1.5" />
               <SelectValue placeholder="Export" />
             </SelectTrigger>
@@ -840,7 +840,7 @@ export default function ApplicationsPage() {
               <SelectItem value="xlsx">Export Excel</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={() => navigate('/applications/new')}>
+          <Button className="w-full sm:w-auto" onClick={() => navigate('/applications/new')}>
             <Plus className="h-4 w-4 mr-2" />
             New Application
           </Button>

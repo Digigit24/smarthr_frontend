@@ -156,8 +156,8 @@ export default function CallQueueDetailPage() {
       {/* Hero Header */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className={cn('h-2 bg-gradient-to-r', statusCfg.gradient)} />
-        <div className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+        <div className="p-3 sm:p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
             {/* Icon */}
             <div className={cn('h-14 w-14 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shrink-0', statusCfg.gradient)}>
               <ListChecks className="h-7 w-7" />
@@ -302,7 +302,7 @@ export default function CallQueueDetailPage() {
           {configExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </button>
         {configExpanded && (
-          <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t pt-4">
+          <div className="px-3 sm:px-4 md:px-5 pb-3 sm:pb-4 md:pb-5 border-t pt-3 sm:pt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { icon: SlidersHorizontal, label: 'Max Concurrent', value: String(queue.config.max_concurrent_calls), color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
@@ -385,7 +385,7 @@ export default function CallQueueDetailPage() {
                         {item.status}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span>#{item.position}</span>
                       {item.applicant_phone && <span>{item.applicant_phone}</span>}
                       <span>Attempts: {item.attempts}</span>
@@ -472,7 +472,7 @@ export default function CallQueueDetailPage() {
 
             {/* Pagination */}
             {(itemsData?.next || itemsData?.previous) && (
-              <div className="flex items-center justify-between p-4 border-t">
+              <div className="flex items-center justify-between p-3 sm:p-4 border-t">
                 <Button variant="outline" size="sm" disabled={!itemsData?.previous} onClick={() => setPage(p => p - 1)}>
                   Previous
                 </Button>
