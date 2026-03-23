@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select'
 import { activitiesService } from '@/services/activities'
 import type { Activity as ActivityType, ActivityVerb } from '@/types'
-import { formatDateTime, cn } from '@/lib/utils'
+import { formatDateTime, cn, extractCursor } from '@/lib/utils'
 
 const VERB_CONFIG: Record<ActivityVerb, { label: string; icon: typeof Activity; color: string; gradient: string; dot: string; bg: string }> = {
   created: { label: 'Created', icon: Plus, color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', gradient: 'from-emerald-500 to-teal-500', dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
@@ -195,10 +195,11 @@ export default function ActivitiesPage() {
   const [resourceTypeFilter, setResourceTypeFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
-  const [page, setPage] = useState(1)
+  const [cursor, setCursor] = useState<string | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(false)
 
-  const params: Record<string, string> = { page: String(page) }
+  const params: Record<string, string> = {}
+  if (cursor) params.cursor = cursor
   if (actorFilter) params.actor_email = actorFilter
   if (verbFilter) params.verb = verbFilter
   if (resourceTypeFilter) params.resource_type = resourceTypeFilter
@@ -206,12 +207,12 @@ export default function ActivitiesPage() {
   if (dateTo) params.created_before = dateTo
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['activities', actorFilter, verbFilter, resourceTypeFilter, dateFrom, dateTo, page],
+    queryKey: ['activities', actorFilter, verbFilter, resourceTypeFilter, dateFrom, dateTo, cursor],
     queryFn: () => activitiesService.list(params),
     refetchInterval: autoRefresh ? 10_000 : false,
   })
 
-  useEffect(() => { setPage(1) }, [actorFilter, verbFilter, resourceTypeFilter, dateFrom, dateTo])
+  useEffect(() => { setCursor(null) }, [actorFilter, verbFilter, resourceTypeFilter, dateFrom, dateTo])
 
   const activities = data?.results || []
 
@@ -228,7 +229,7 @@ export default function ActivitiesPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold">Activity Log</h1>
-            <p className="text-sm text-muted-foreground">{data?.count ?? 0} events · Audit trail for your tenant</p>
+            <p className="text-sm text-muted-foreground">Audit trail for your tenant</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -339,16 +340,13 @@ export default function ActivitiesPage() {
 
           {/* Pagination */}
           {(data?.next || data?.previous) && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              <p className="text-sm text-muted-foreground">{data?.count} total · Page {page}</p>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <Button variant="outline" size="sm" disabled={!data?.previous} onClick={() => setPage((p) => p - 1)} className="flex-1 sm:flex-none">
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-                </Button>
-                <Button variant="outline" size="sm" disabled={!data?.next} onClick={() => setPage((p) => p + 1)} className="flex-1 sm:flex-none">
-                  Next <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" disabled={!data?.previous} onClick={() => setCursor(extractCursor(data?.previous ?? null))} className="flex-1 sm:flex-none">
+                <ChevronLeft className="h-4 w-4 mr-1" /> Newer
+              </Button>
+              <Button variant="outline" size="sm" disabled={!data?.next} onClick={() => setCursor(extractCursor(data?.next ?? null))} className="flex-1 sm:flex-none">
+                Older <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
             </div>
           )}
         </>

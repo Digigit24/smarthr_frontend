@@ -28,6 +28,12 @@ export interface PaginatedResponse<T> {
   results: T[]
 }
 
+export interface CursorPaginatedResponse<T> {
+  next: string | null
+  previous: string | null
+  results: T[]
+}
+
 // ─── Enums ───────────────────────────────────────────────────────────────────
 export type JobType = 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP'
 export type ExperienceLevel = 'ENTRY' | 'MID' | 'SENIOR' | 'LEAD'

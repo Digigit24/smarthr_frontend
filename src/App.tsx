@@ -110,7 +110,7 @@ function AppLayout() {
     refetchInterval: 60_000,
   })
 
-  const unreadCount = notificationsData?.count ?? 0
+  const unreadCount = notificationsData?.results?.filter((n) => !n.is_read).length ?? 0
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

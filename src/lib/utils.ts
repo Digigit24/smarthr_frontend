@@ -49,3 +49,13 @@ export function getTimeBasedGreeting(): string {
   if (hour >= 17 && hour < 21) return 'Good Evening'
   return 'Good Night'
 }
+
+export function extractCursor(url: string | null): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url, 'http://placeholder')
+    return parsed.searchParams.get('cursor')
+  } catch {
+    return null
+  }
+}

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { notificationsService } from '@/services/notifications'
 import type { Notification, NotificationCategory } from '@/types'
-import { formatDateTime, cn } from '@/lib/utils'
+import { formatDateTime, cn, extractCursor } from '@/lib/utils'
 
 const CATEGORY_CONFIG: Record<NotificationCategory, { label: string; icon: typeof Bell; color: string; gradient: string; dot: string; bg: string }> = {
   APPLICATION: { label: 'Application', icon: FileText, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', gradient: 'from-blue-500 to-indigo-500', dot: 'bg-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
@@ -138,16 +138,17 @@ export default function NotificationsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
   const [readFilter, setReadFilter] = useState<string>('ALL')
-  const [page, setPage] = useState(1)
+  const [cursor, setCursor] = useState<string | null>(null)
 
-  const params: Record<string, string> = { page: String(page) }
+  const params: Record<string, string> = {}
+  if (cursor) params.cursor = cursor
   if (categoryFilter !== 'ALL') params.category = categoryFilter
   if (readFilter === 'UNREAD') params.is_read = 'false'
   if (readFilter === 'READ') params.is_read = 'true'
   if (searchQuery) params.search = searchQuery
 
   const { data, isLoading } = useQuery({
-    queryKey: ['notifications', categoryFilter, readFilter, searchQuery, page],
+    queryKey: ['notifications', categoryFilter, readFilter, searchQuery, cursor],
     queryFn: () => notificationsService.list(params),
   })
 
@@ -186,7 +187,7 @@ export default function NotificationsPage() {
           <div>
             <h1 className="text-xl font-bold">Notifications</h1>
             <p className="text-sm text-muted-foreground">
-              {data?.count ?? 0} total · {unreadCount} unread
+              {unreadCount} unread on this page
             </p>
           </div>
         </div>
@@ -212,14 +213,14 @@ export default function NotificationsPage() {
             placeholder="Search notifications..."
             className="pl-9"
             value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+            onChange={(e) => { setSearchQuery(e.target.value); setCursor(null) }}
           />
         </div>
         <div className="flex gap-1.5 bg-muted/50 rounded-lg p-1">
           {['ALL', 'UNREAD', 'READ'].map((v) => (
             <button
               key={v}
-              onClick={() => { setReadFilter(v); setPage(1) }}
+              onClick={() => { setReadFilter(v); setCursor(null) }}
               className={cn(
                 'px-3 py-1.5 rounded-md text-xs font-medium transition-all',
                 readFilter === v
@@ -241,7 +242,7 @@ export default function NotificationsPage() {
           return (
             <button
               key={tab.value}
-              onClick={() => { setCategoryFilter(tab.value); setPage(1) }}
+              onClick={() => { setCategoryFilter(tab.value); setCursor(null) }}
               className={cn(
                 'flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-xs font-medium transition-all border-b-2 -mb-px whitespace-nowrap',
                 categoryFilter === tab.value
@@ -290,28 +291,25 @@ export default function NotificationsPage() {
 
           {/* Pagination */}
           {(data?.next || data?.previous) && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              <p className="text-sm text-muted-foreground">{data?.count} total · Page {page}</p>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!data?.previous}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="flex-1 sm:flex-none"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!data?.next}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="flex-1 sm:flex-none"
-                >
-                  Next <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!data?.previous}
+                onClick={() => setCursor(extractCursor(data?.previous ?? null))}
+                className="flex-1 sm:flex-none"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" /> Newer
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!data?.next}
+                onClick={() => setCursor(extractCursor(data?.next ?? null))}
+                className="flex-1 sm:flex-none"
+              >
+                Older <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
             </div>
           )}
         </>

@@ -1,9 +1,9 @@
 import { get, post, patch } from './api'
-import type { Notification, PaginatedResponse } from '@/types'
+import type { Notification, CursorPaginatedResponse } from '@/types'
 
 export const notificationsService = {
   list: (params?: Record<string, string>) =>
-    get<PaginatedResponse<Notification>>('/notifications/', { params }),
+    get<CursorPaginatedResponse<Notification>>('/notifications/', { params }),
 
   get: (id: string) => get<Notification>(`/notifications/${id}/`),
 
