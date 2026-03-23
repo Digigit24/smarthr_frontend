@@ -11,21 +11,21 @@ import type { ActivityVerb } from '@/types'
 import { formatDateTime, cn } from '@/lib/utils'
 
 const VERB_CONFIG: Record<string, { label: string; icon: typeof Activity; color: string; gradient: string; dot: string; bg: string }> = {
-  CREATED: { label: 'Created', icon: Plus, color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', gradient: 'from-emerald-500 to-teal-500', dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-  UPDATED: { label: 'Updated', icon: Pencil, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', gradient: 'from-blue-500 to-indigo-500', dot: 'bg-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-  DELETED: { label: 'Deleted', icon: Trash2, color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', gradient: 'from-red-400 to-rose-500', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
-  STATUS_CHANGED: { label: 'Status Changed', icon: ArrowRightLeft, color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', gradient: 'from-amber-400 to-orange-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-  PUBLISHED: { label: 'Published', icon: Globe, color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', gradient: 'from-green-500 to-emerald-500', dot: 'bg-green-500', bg: 'bg-green-50 dark:bg-green-900/20' },
-  CLOSED: { label: 'Closed', icon: XCircle, color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', gradient: 'from-gray-400 to-gray-500', dot: 'bg-gray-400', bg: 'bg-gray-50 dark:bg-gray-800/50' },
-  TRIGGERED_CALL: { label: 'Triggered Call', icon: Phone, color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', gradient: 'from-violet-500 to-purple-500', dot: 'bg-violet-500', bg: 'bg-violet-50 dark:bg-violet-900/20' },
-  CALL_COMPLETED: { label: 'Call Completed', icon: PhoneOff, color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400', gradient: 'from-cyan-500 to-blue-500', dot: 'bg-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-900/20' },
-  CALL_FAILED: { label: 'Call Failed', icon: PhoneOff, color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', gradient: 'from-red-500 to-rose-500', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
-  INTERVIEW_SCHEDULED: { label: 'Interview Scheduled', icon: Calendar, color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400', gradient: 'from-indigo-500 to-blue-500', dot: 'bg-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-  INTERVIEW_COMPLETED: { label: 'Interview Done', icon: CalendarCheck, color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400', gradient: 'from-teal-500 to-emerald-500', dot: 'bg-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
-  INTERVIEW_CANCELLED: { label: 'Interview Cancelled', icon: CalendarX, color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', gradient: 'from-orange-400 to-red-500', dot: 'bg-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' },
-  SCORECARD_CREATED: { label: 'Scorecard Created', icon: ClipboardList, color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400', gradient: 'from-purple-500 to-violet-500', dot: 'bg-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' },
-  NOTE_ADDED: { label: 'Note Added', icon: StickyNote, color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', gradient: 'from-yellow-400 to-amber-500', dot: 'bg-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
-  BULK_ACTION: { label: 'Bulk Action', icon: Layers, color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', gradient: 'from-gray-500 to-gray-600', dot: 'bg-gray-500', bg: 'bg-gray-50 dark:bg-gray-800/50' },
+  created: { label: 'Created', icon: Plus, color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', gradient: 'from-emerald-500 to-teal-500', dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+  updated: { label: 'Updated', icon: Pencil, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', gradient: 'from-blue-500 to-indigo-500', dot: 'bg-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+  deleted: { label: 'Deleted', icon: Trash2, color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', gradient: 'from-red-400 to-rose-500', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
+  status_changed: { label: 'Status Changed', icon: ArrowRightLeft, color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', gradient: 'from-amber-400 to-orange-500', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+  published: { label: 'Published', icon: Globe, color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', gradient: 'from-green-500 to-emerald-500', dot: 'bg-green-500', bg: 'bg-green-50 dark:bg-green-900/20' },
+  closed: { label: 'Closed', icon: XCircle, color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', gradient: 'from-gray-400 to-gray-500', dot: 'bg-gray-400', bg: 'bg-gray-50 dark:bg-gray-800/50' },
+  triggered_call: { label: 'Triggered Call', icon: Phone, color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', gradient: 'from-violet-500 to-purple-500', dot: 'bg-violet-500', bg: 'bg-violet-50 dark:bg-violet-900/20' },
+  call_completed: { label: 'Call Completed', icon: PhoneOff, color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400', gradient: 'from-cyan-500 to-blue-500', dot: 'bg-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-900/20' },
+  call_failed: { label: 'Call Failed', icon: PhoneOff, color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', gradient: 'from-red-500 to-rose-500', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
+  interview_scheduled: { label: 'Interview Scheduled', icon: Calendar, color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400', gradient: 'from-indigo-500 to-blue-500', dot: 'bg-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+  interview_completed: { label: 'Interview Done', icon: CalendarCheck, color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400', gradient: 'from-teal-500 to-emerald-500', dot: 'bg-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
+  interview_cancelled: { label: 'Interview Cancelled', icon: CalendarX, color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', gradient: 'from-orange-400 to-red-500', dot: 'bg-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+  scorecard_created: { label: 'Scorecard Created', icon: ClipboardList, color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400', gradient: 'from-purple-500 to-violet-500', dot: 'bg-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+  note_added: { label: 'Note Added', icon: StickyNote, color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', gradient: 'from-yellow-400 to-amber-500', dot: 'bg-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
+  bulk_action: { label: 'Bulk Action', icon: Layers, color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', gradient: 'from-gray-500 to-gray-600', dot: 'bg-gray-500', bg: 'bg-gray-50 dark:bg-gray-800/50' },
 }
 
 const RESOURCE_ROUTES: Record<string, string> = {
@@ -83,7 +83,7 @@ export default function ActivityDetailPage() {
     )
   }
 
-  const verbCfg = VERB_CONFIG[activity.verb] || VERB_CONFIG.UPDATED
+  const verbCfg = VERB_CONFIG[activity.verb] || VERB_CONFIG.updated
   const VerbIcon = verbCfg.icon
   const resourceRoute = RESOURCE_ROUTES[activity.resource_type]
   const beforeKeys = Object.keys(activity.before || {})
