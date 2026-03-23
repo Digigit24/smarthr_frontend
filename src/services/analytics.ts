@@ -9,7 +9,7 @@ export const analyticsService = {
     get<TimelineItem[]>(`/analytics/timeline/?period=${period}`),
 
   export: (report: 'all' | 'funnel' | 'scores' | 'timeline', format: 'csv' | 'xlsx', period?: string) => {
-    const params = new URLSearchParams({ report, format })
+    const params = new URLSearchParams({ report, export_format: format })
     if (period) params.set('period', period)
     return download(`/analytics/export/?${params}`, `analytics-${report}.${format}`)
   },

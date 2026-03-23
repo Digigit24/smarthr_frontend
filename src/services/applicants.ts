@@ -27,7 +27,7 @@ export const applicantsService = {
 
   export: (filters: Record<string, string>, format: 'csv' | 'xlsx') =>
     download(
-      `/applicants/export/?${new URLSearchParams({ ...filters, format })}`,
+      `/applicants/export/?${new URLSearchParams({ ...filters, export_format: format })}`,
       `applicants.${format}`,
     ),
 }

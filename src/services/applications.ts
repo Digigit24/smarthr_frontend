@@ -43,7 +43,7 @@ export const applicationsService = {
 
   export: (filters: Record<string, string>, format: 'csv' | 'xlsx') =>
     download(
-      `/applications/export/?${new URLSearchParams({ ...filters, format })}`,
+      `/applications/export/?${new URLSearchParams({ ...filters, export_format: format })}`,
       `applications.${format}`,
     ),
 }
