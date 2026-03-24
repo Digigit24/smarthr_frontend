@@ -11,7 +11,7 @@ import {
   Mail, AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { extractApiError, applyFieldErrors } from '@/lib/apiErrors'
+import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -23,29 +23,8 @@ import {
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { SideDrawer } from '@/components/SideDrawer'
 import { interviewsService } from '@/services/interviews'
-import { applicationsService } from '@/services/applications'
-import type { InterviewListItem, InterviewStatus, InterviewType, InterviewFormData } from '@/types'
+import type { InterviewListItem, InterviewStatus, InterviewType } from '@/types'
 import { formatDateTime, cn } from '@/lib/utils'
-
-const createSchema = z.object({
-  application: z.string().min(1, 'Application required'),
-  interview_type: z.enum(['AI_VOICE', 'HR_SCREEN', 'TECHNICAL', 'CULTURE_FIT', 'FINAL']),
-  scheduled_at: z.string().min(1, 'Schedule time required'),
-  duration_minutes: z.coerce.number().min(15).max(480),
-  interviewer_name: z.string().min(1, 'Interviewer name required'),
-  interviewer_email: z.string().email('Valid email required'),
-  meeting_link: z.string().optional(),
-})
-
-type CreateFormData = z.infer<typeof createSchema>
-
-const INTERVIEW_TYPES: { value: InterviewType; label: string }[] = [
-  { value: 'AI_VOICE', label: 'AI Voice' },
-  { value: 'HR_SCREEN', label: 'HR Screen' },
-  { value: 'TECHNICAL', label: 'Technical' },
-  { value: 'CULTURE_FIT', label: 'Culture Fit' },
-  { value: 'FINAL', label: 'Final' },
-]
 
 const completeSchema = z.object({
   feedback: z.string().optional(),
@@ -448,7 +427,6 @@ export default function InterviewsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid')
   const [drawerInterviewId, setDrawerInterviewId] = useState<string | null>(null)
   const [completeOpen, setCompleteOpen] = useState(false)
-  const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['interviews', search, statusFilter, typeFilter, interviewerFilter, dateFrom, dateTo],
@@ -511,49 +489,6 @@ export default function InterviewsPage() {
     resetCompleteForm()
   }
 
-  // ── Create Interview form ──
-  const { data: applicationsData } = useQuery({
-    queryKey: ['applications', 'for-interview'],
-    queryFn: () => applicationsService.list({}),
-    enabled: createDrawerOpen,
-  })
-
-  const {
-    register: createRegister,
-    handleSubmit: handleCreateSubmit,
-    setValue: setCreateValue,
-    watch: watchCreate,
-    setError: setCreateError,
-    reset: resetCreateForm,
-    formState: { errors: createErrors },
-  } = useForm<CreateFormData>({
-    resolver: zodResolver(createSchema),
-    defaultValues: { interview_type: 'TECHNICAL', duration_minutes: 60 },
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (data: InterviewFormData) => interviewsService.create(data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['interviews'] })
-      toast.success('Interview scheduled')
-      setCreateDrawerOpen(false)
-      resetCreateForm()
-    },
-    onError: (err) => {
-      const msg = applyFieldErrors(err, setCreateError, 'Failed to schedule interview')
-      if (msg) toast.error(msg)
-    },
-  })
-
-  const onCreateSubmit = (data: CreateFormData) => {
-    const selectedApp = applicationsData?.results?.find((a) => a.id === data.application)
-    const payload: InterviewFormData = {
-      ...data,
-      applicant_name: selectedApp?.applicant_name || selectedApp?.applicant_email || '',
-    }
-    createMutation.mutate(payload)
-  }
-
   // Client-side interviewer filter + status counts
   const rawInterviews = data?.results || []
   const uniqueInterviewers = [...new Set(rawInterviews.map((iv) => iv.interviewer_name).filter(Boolean))].sort()
@@ -597,7 +532,7 @@ export default function InterviewsPage() {
               <span className="hidden sm:inline">Calendar</span>
             </button>
           </div>
-          <Button size="sm" onClick={() => { setCreateDrawerOpen(true); resetCreateForm() }} className="h-8 sm:h-9 text-xs sm:text-sm">
+          <Button size="sm" onClick={() => navigate('/interviews/new')} className="h-8 sm:h-9 text-xs sm:text-sm">
             <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
             <span className="hidden sm:inline">Schedule Interview</span>
             <span className="sm:hidden">Schedule</span>
@@ -701,7 +636,7 @@ export default function InterviewsPage() {
           </div>
           <p className="font-semibold text-sm">No interviews scheduled</p>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1 mb-4">Schedule your first interview to get started</p>
-          <Button onClick={() => { setCreateDrawerOpen(true); resetCreateForm() }}>
+          <Button onClick={() => navigate('/interviews/new')}>
             <Plus className="h-4 w-4 mr-2" /> Schedule Interview
           </Button>
         </div>
@@ -949,114 +884,6 @@ export default function InterviewsPage() {
             </div>
           )
         )}
-      </SideDrawer>
-
-      {/* Schedule Interview Side Drawer */}
-      <SideDrawer
-        open={createDrawerOpen}
-        onOpenChange={(open) => { if (!open) { setCreateDrawerOpen(false); resetCreateForm() } }}
-        title="Schedule Interview"
-        description="Set up a new interview for an applicant"
-        mode="create"
-        size="lg"
-        showBackButton
-        footerButtons={[
-          {
-            label: 'Cancel',
-            onClick: () => { setCreateDrawerOpen(false); resetCreateForm() },
-            variant: 'outline',
-          },
-          {
-            label: 'Schedule Interview',
-            onClick: handleCreateSubmit(onCreateSubmit),
-            loading: createMutation.isPending,
-            disabled: createMutation.isPending,
-            icon: Calendar,
-          },
-        ]}
-        footerAlignment="between"
-      >
-        <form id="create-interview-form" onSubmit={handleCreateSubmit(onCreateSubmit)} className="space-y-4 sm:space-y-5">
-          {/* Section 1: Interview Setup */}
-          <div className="space-y-3">
-            <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
-              <span className="h-5 w-5 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-[10px] sm:text-xs font-bold">1</span>
-              Interview Setup
-            </h3>
-            <div className="space-y-2.5">
-              <div className="space-y-1">
-                <Label className="text-[10px] sm:text-xs">Application <span className="text-destructive">*</span></Label>
-                <Select value={watchCreate('application')} onValueChange={(v) => setCreateValue('application', v)}>
-                  <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm"><SelectValue placeholder="Select an application..." /></SelectTrigger>
-                  <SelectContent>
-                    {applicationsData?.results?.map((app) => (
-                      <SelectItem key={app.id} value={app.id} className="text-xs sm:text-sm">
-                        {app.applicant_name || app.applicant_email} — {app.job_title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {createErrors.application && <p className="text-[10px] text-destructive">{createErrors.application.message}</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <Label className="text-[10px] sm:text-xs">Type</Label>
-                  <Select value={watchCreate('interview_type')} onValueChange={(v) => setCreateValue('interview_type', v as InterviewType)}>
-                    <SelectTrigger className="h-8 sm:h-9 text-xs sm:text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {INTERVIEW_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value} className="text-xs sm:text-sm">{t.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] sm:text-xs">Duration (min)</Label>
-                  <Input type="number" min="15" max="480" {...createRegister('duration_minutes')} className="h-8 sm:h-9 text-xs sm:text-sm" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: Schedule & Location */}
-          <div className="space-y-3">
-            <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
-              <span className="h-5 w-5 rounded bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 text-[10px] sm:text-xs font-bold">2</span>
-              Schedule & Location
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div className="space-y-1">
-                <Label className="text-[10px] sm:text-xs">Scheduled At <span className="text-destructive">*</span></Label>
-                <Input type="datetime-local" {...createRegister('scheduled_at')} className="h-8 sm:h-9 text-xs sm:text-sm" />
-                {createErrors.scheduled_at && <p className="text-[10px] text-destructive">{createErrors.scheduled_at.message}</p>}
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] sm:text-xs">Meeting Link</Label>
-                <Input placeholder="https://meet.google.com/..." {...createRegister('meeting_link')} className="h-8 sm:h-9 text-xs sm:text-sm" />
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Interviewer */}
-          <div className="space-y-3">
-            <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
-              <span className="h-5 w-5 rounded bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 text-[10px] sm:text-xs font-bold">3</span>
-              Interviewer
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div className="space-y-1">
-                <Label className="text-[10px] sm:text-xs">Name <span className="text-destructive">*</span></Label>
-                <Input placeholder="John Doe" {...createRegister('interviewer_name')} className="h-8 sm:h-9 text-xs sm:text-sm" />
-                {createErrors.interviewer_name && <p className="text-[10px] text-destructive">{createErrors.interviewer_name.message}</p>}
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] sm:text-xs">Email <span className="text-destructive">*</span></Label>
-                <Input type="email" placeholder="john@company.com" {...createRegister('interviewer_email')} className="h-8 sm:h-9 text-xs sm:text-sm" />
-                {createErrors.interviewer_email && <p className="text-[10px] text-destructive">{createErrors.interviewer_email.message}</p>}
-              </div>
-            </div>
-          </div>
-        </form>
       </SideDrawer>
     </div>
   )
