@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Search, Users, Mail, Phone, Briefcase, Eye, Pencil,
-  Trash2, Loader2, Clock, Award, Tag, Download,
+  Trash2, Loader2, Clock, Award, Tag, Download, Upload,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ApplicantImportDialog } from '@/components/ApplicantImportDialog'
 import { applicantsService } from '@/services/applicants'
 import type { ApplicantListItem } from '@/types'
 import { formatDate, getInitials, cn } from '@/lib/utils'
@@ -208,6 +209,7 @@ export default function ApplicantsPage() {
   }
 
   const [isExporting, setIsExporting] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   const handleExport = async (format: 'csv' | 'xlsx') => {
     setIsExporting(true)
@@ -233,6 +235,10 @@ export default function ApplicantsPage() {
           <p className="text-xs text-muted-foreground">{data?.count ?? 0} total applicants</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </Button>
           <Select onValueChange={(v) => handleExport(v as 'csv' | 'xlsx')}>
             <SelectTrigger className="w-full sm:w-32 h-9" disabled={isExporting}>
               <Download className="h-3.5 w-3.5 mr-1.5" />
@@ -317,6 +323,12 @@ export default function ApplicantsPage() {
           ))}
         </div>
       )}
+
+      <ApplicantImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImportComplete={() => qc.invalidateQueries({ queryKey: ['applicants'] })}
+      />
     </div>
   )
 }
