@@ -5,12 +5,13 @@ import {
   ArrowLeft, Loader2, Phone, Star, User, Briefcase, MapPin, Mail,
   Clock, FileText, Tag, Award, MessageSquare, Calendar, ExternalLink,
   ChevronDown, ChevronUp, Mic, Activity, TrendingUp, Shield, Zap,
-  CheckCircle2, XCircle, AlertCircle,
+  CheckCircle2, XCircle, AlertCircle, Pencil, Check, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
@@ -138,6 +139,8 @@ export default function ApplicationDetailPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [expandedCallId, setExpandedCallId] = useState<string | null>(null)
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [notesValue, setNotesValue] = useState('')
 
   const { data: app, isLoading } = useQuery({
     queryKey: ['application-detail', appId],
@@ -165,6 +168,21 @@ export default function ApplicationDetailPage() {
     },
     onError: (err) => toast.error(extractApiError(err, 'Failed to update status')),
   })
+
+  const notesMutation = useMutation({
+    mutationFn: (notes: string) => applicationsService.patch(appId!, { notes }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['application-detail', appId] })
+      setEditingNotes(false)
+      toast.success('Notes saved')
+    },
+    onError: (err) => toast.error(extractApiError(err, 'Failed to save notes')),
+  })
+
+  const startEditingNotes = () => {
+    setNotesValue(app?.notes || '')
+    setEditingNotes(true)
+  }
 
   const goBack = () => {
     if (jobId) {
@@ -734,21 +752,70 @@ export default function ApplicationDetailPage() {
           </Card>
 
           {/* Notes */}
-          {app.notes && (
-            <Card>
-              <CardHeader className="pb-3">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
                   <div className="w-6 h-6 rounded-md bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
                     <MessageSquare className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
                   </div>
                   Notes
                 </CardTitle>
-              </CardHeader>
-              <CardContent>
+                {!editingNotes && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEditingNotes} title="Edit notes">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {editingNotes ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={notesValue}
+                    onChange={(e) => setNotesValue(e.target.value)}
+                    rows={4}
+                    placeholder="Add notes about this application..."
+                    className="text-sm"
+                    autoFocus
+                  />
+                  <div className="flex items-center gap-2 justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setEditingNotes(false)}
+                      disabled={notesMutation.isPending}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" /> Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => notesMutation.mutate(notesValue)}
+                      disabled={notesMutation.isPending}
+                    >
+                      {notesMutation.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5 mr-1" />
+                      )}
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              ) : app.notes ? (
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">{app.notes}</p>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <p
+                  className="text-sm text-muted-foreground italic cursor-pointer hover:text-foreground transition-colors"
+                  onClick={startEditingNotes}
+                >
+                  Click to add notes...
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Metadata */}
           {app.metadata && Object.keys(app.metadata).length > 0 && (
