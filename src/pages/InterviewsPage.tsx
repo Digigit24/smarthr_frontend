@@ -1,23 +1,37 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import {
   Plus, Search, Calendar, Loader2, Trash2, Clock, User, Video,
   MessageSquare, Star, CheckCircle, ExternalLink, UserCheck, Briefcase,
-  ChevronLeft, ChevronRight, LayoutGrid, CalendarDays,
+  ChevronLeft, ChevronRight, LayoutGrid, CalendarDays, Pencil, XCircle,
+  Mail, AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { DateRangeFilter } from '@/components/DateRangeFilter'
+import { SideDrawer } from '@/components/SideDrawer'
 import { interviewsService } from '@/services/interviews'
 import type { InterviewListItem, InterviewStatus, InterviewType } from '@/types'
 import { formatDateTime, cn } from '@/lib/utils'
+
+const completeSchema = z.object({
+  feedback: z.string().optional(),
+  rating: z.coerce.number().min(1).max(5).optional(),
+})
+
+type CompleteData = z.infer<typeof completeSchema>
 
 const STATUS_CONFIG: Record<InterviewStatus, { label: string; color: string; gradient: string; dot: string }> = {
   SCHEDULED: { label: 'Scheduled', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', gradient: 'from-blue-500 to-indigo-500', dot: 'bg-blue-500' },
@@ -56,8 +70,7 @@ function GradientAvatar({ name }: { name: string }) {
   )
 }
 
-function InterviewCard({ iv }: { iv: InterviewListItem }) {
-  const navigate = useNavigate()
+function InterviewCard({ iv, onInterviewClick }: { iv: InterviewListItem; onInterviewClick: (id: string) => void }) {
   const statusCfg = STATUS_CONFIG[iv.status] || STATUS_CONFIG.SCHEDULED
   const typeCfg = TYPE_CONFIG[iv.interview_type] || TYPE_CONFIG.TECHNICAL
   const TypeIcon = typeCfg.icon
@@ -67,7 +80,7 @@ function InterviewCard({ iv }: { iv: InterviewListItem }) {
   return (
     <div
       className="group rounded-xl border bg-card overflow-hidden hover:shadow-md hover:border-border/80 transition-all duration-200 cursor-pointer"
-      onClick={() => navigate(`/interviews/${iv.id}`)}
+      onClick={() => onInterviewClick(iv.id)}
     >
       <div className={cn('h-1.5 bg-gradient-to-r', statusCfg.gradient)} />
       <div className="p-3 sm:p-5">
@@ -168,8 +181,7 @@ function formatTime(iso: string) {
 }
 
 /* ── Calendar View component ── */
-function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
-  const navigate = useNavigate()
+function CalendarView({ interviews, onInterviewClick }: { interviews: InterviewListItem[]; onInterviewClick: (id: string) => void }) {
   const today = new Date()
   const [calYear, setCalYear] = useState(today.getFullYear())
   const [calMonth, setCalMonth] = useState(today.getMonth())
@@ -294,7 +306,7 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
                         return (
                           <div
                             key={iv.id}
-                            onClick={(e) => { e.stopPropagation(); navigate(`/interviews/${iv.id}`) }}
+                            onClick={(e) => { e.stopPropagation(); onInterviewClick(iv.id) }}
                             className={cn(
                               'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium truncate cursor-pointer',
                               'hover:ring-1 hover:ring-inset hover:ring-primary/40 transition-all',
@@ -344,7 +356,7 @@ function CalendarView({ interviews }: { interviews: InterviewListItem[] }) {
                   <div
                     key={iv.id}
                     className="flex items-center gap-2.5 sm:gap-4 px-3 sm:px-5 py-2.5 sm:py-3 hover:bg-muted/30 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/interviews/${iv.id}`)}
+                    onClick={() => onInterviewClick(iv.id)}
                   >
                     {/* Time block */}
                     <div className="text-center shrink-0 w-12 sm:w-14">
@@ -413,6 +425,8 @@ export default function InterviewsPage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid')
+  const [drawerInterviewId, setDrawerInterviewId] = useState<string | null>(null)
+  const [completeOpen, setCompleteOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['interviews', search, statusFilter, typeFilter, interviewerFilter, dateFrom, dateTo],
@@ -431,10 +445,49 @@ export default function InterviewsPage() {
     mutationFn: (id: string) => interviewsService.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['interviews'] })
+      setDrawerInterviewId(null)
       toast.success('Interview deleted')
     },
     onError: (err) => toast.error(extractApiError(err, 'Failed to delete interview')),
   })
+
+  const { data: drawerInterview, isLoading: drawerLoading } = useQuery({
+    queryKey: ['interview-detail', drawerInterviewId],
+    queryFn: () => interviewsService.get(drawerInterviewId!),
+    enabled: !!drawerInterviewId,
+  })
+
+  const cancelMutation = useMutation({
+    mutationFn: () => interviewsService.cancel(drawerInterviewId!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['interviews'] })
+      qc.invalidateQueries({ queryKey: ['interview-detail', drawerInterviewId] })
+      toast.success('Interview cancelled')
+    },
+    onError: (err) => toast.error(extractApiError(err, 'Failed to cancel interview')),
+  })
+
+  const completeMutation = useMutation({
+    mutationFn: ({ feedback, rating }: { feedback: string; rating?: number }) =>
+      interviewsService.complete(drawerInterviewId!, feedback, rating),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['interviews'] })
+      qc.invalidateQueries({ queryKey: ['interview-detail', drawerInterviewId] })
+      setCompleteOpen(false)
+      toast.success('Interview completed')
+    },
+    onError: (err) => toast.error(extractApiError(err, 'Failed to complete interview')),
+  })
+
+  const { register: completeRegister, handleSubmit: handleCompleteSubmit, reset: resetCompleteForm } = useForm<CompleteData>({
+    resolver: zodResolver(completeSchema),
+  })
+
+  const handleInterviewClick = (id: string) => {
+    setDrawerInterviewId(id)
+    setCompleteOpen(false)
+    resetCompleteForm()
+  }
 
   // Client-side interviewer filter + status counts
   const rawInterviews = data?.results || []
@@ -590,12 +643,247 @@ export default function InterviewsPage() {
       ) : viewMode === 'grid' ? (
         <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {allInterviews.map((iv) => (
-            <InterviewCard key={iv.id} iv={iv} />
+            <InterviewCard key={iv.id} iv={iv} onInterviewClick={handleInterviewClick} />
           ))}
         </div>
       ) : (
-        <CalendarView interviews={allInterviews} />
+        <CalendarView interviews={allInterviews} onInterviewClick={handleInterviewClick} />
       )}
+
+      {/* Interview Detail Side Drawer */}
+      <SideDrawer
+        open={!!drawerInterviewId}
+        onOpenChange={(open) => { if (!open) { setDrawerInterviewId(null); setCompleteOpen(false); resetCompleteForm() } }}
+        title={drawerInterview ? `${TYPE_CONFIG[drawerInterview.interview_type]?.label || ''} Interview` : 'Interview Details'}
+        mode="view"
+        size="lg"
+        isLoading={drawerLoading}
+        loadingText="Loading interview..."
+        headerActions={drawerInterview ? [
+          {
+            icon: Pencil,
+            onClick: () => navigate(`/interviews/${drawerInterviewId}/edit`),
+            label: 'Edit',
+          },
+        ] : undefined}
+        footerButtons={drawerInterview ? [
+          ...(drawerInterview.status !== 'CANCELLED' && drawerInterview.status !== 'COMPLETED' ? [{
+            label: 'Cancel Interview',
+            onClick: () => cancelMutation.mutate(),
+            variant: 'outline' as const,
+            icon: XCircle,
+            disabled: cancelMutation.isPending,
+          }] : []),
+          ...((drawerInterview.status === 'SCHEDULED' || drawerInterview.status === 'IN_PROGRESS') ? [{
+            label: 'Complete',
+            onClick: () => setCompleteOpen(true),
+            icon: CheckCircle,
+          }] : []),
+        ] : undefined}
+        footerAlignment="between"
+      >
+        {drawerInterview ? (() => {
+          const statusCfg = STATUS_CONFIG[drawerInterview.status]
+          const typeCfg = TYPE_CONFIG[drawerInterview.interview_type]
+          const TypeIcon = typeCfg.icon
+          const scheduledDate = new Date(drawerInterview.scheduled_at)
+          const isUpcoming = scheduledDate > new Date() && drawerInterview.status !== 'CANCELLED' && drawerInterview.status !== 'COMPLETED'
+
+          return (
+            <div className="space-y-4">
+              {/* Status & Type badges */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', statusCfg.color)}>
+                  <span className={cn('h-1.5 w-1.5 rounded-full', statusCfg.dot)} />
+                  {statusCfg.label}
+                </span>
+                <span className={cn('inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium', typeCfg.bg, typeCfg.color)}>
+                  <TypeIcon className="h-3.5 w-3.5" />
+                  {typeCfg.label}
+                </span>
+                {isUpcoming && (
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {(() => {
+                      const diff = scheduledDate.getTime() - Date.now()
+                      const hours = Math.floor(diff / (1000 * 60 * 60))
+                      const days = Math.floor(hours / 24)
+                      if (days > 0) return `In ${days} day${days > 1 ? 's' : ''}`
+                      if (hours > 0) return `In ${hours} hour${hours > 1 ? 's' : ''}`
+                      return 'Starting soon'
+                    })()}
+                  </span>
+                )}
+              </div>
+
+              {/* Schedule & Details */}
+              <div className="rounded-lg border p-4 space-y-3">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  Interview Details
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30">
+                    <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-muted-foreground">Scheduled</p>
+                      <p className="text-xs font-medium truncate">{formatDateTime(drawerInterview.scheduled_at)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30">
+                    <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Duration</p>
+                      <p className="text-xs font-medium">{drawerInterview.duration_minutes} minutes</p>
+                    </div>
+                  </div>
+                  {drawerInterview.meeting_link && (
+                    <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30 col-span-2">
+                      <Video className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-muted-foreground">Meeting Link</p>
+                        <a href={drawerInterview.meeting_link} target="_blank" rel="noopener noreferrer"
+                          className="text-xs font-medium text-blue-600 hover:underline truncate block">
+                          Join Meeting <ExternalLink className="h-3 w-3 inline ml-1" />
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30">
+                    <CalendarDays className={cn('h-4 w-4 mt-0.5 shrink-0', drawerInterview.calendar_synced ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400')} />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Calendar Sync</p>
+                      <p className={cn('text-xs font-medium', drawerInterview.calendar_synced ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}>
+                        {drawerInterview.calendar_synced ? 'Synced' : 'Not synced'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Candidate & Interviewer */}
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="grid grid-cols-1 gap-3">
+                  {/* Candidate */}
+                  <div>
+                    <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                      <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      Candidate
+                    </h3>
+                    <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-muted/30">
+                      <GradientAvatar name={drawerInterview.applicant_name || drawerInterview.applicant_email || 'A'} />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{drawerInterview.applicant_name || 'Unknown'}</p>
+                        {drawerInterview.applicant_email && (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                            <Mail className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{drawerInterview.applicant_email}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Interviewer */}
+                  <div>
+                    <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                      <UserCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      Interviewer
+                    </h3>
+                    <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-muted/30">
+                      <GradientAvatar name={drawerInterview.interviewer_name || drawerInterview.interviewer_email} />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{drawerInterview.interviewer_name || 'No name'}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                          <Mail className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{drawerInterview.interviewer_email}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feedback & Rating */}
+              {(drawerInterview.feedback || drawerInterview.rating != null) && (
+                <div className="rounded-lg border p-4 space-y-3">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    Feedback & Rating
+                  </h3>
+                  {drawerInterview.rating != null && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={cn('h-4 w-4', i < drawerInterview.rating! ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />
+                        ))}
+                      </div>
+                      <span className="text-sm font-semibold text-amber-600">{drawerInterview.rating}/5</span>
+                    </div>
+                  )}
+                  {drawerInterview.feedback && (
+                    <div className="p-2.5 rounded-lg bg-muted/30">
+                      <p className="text-sm leading-relaxed">{drawerInterview.feedback}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Complete Interview inline form */}
+              {completeOpen && (
+                <div className="rounded-lg border-2 border-emerald-200 dark:border-emerald-800/50 p-4 space-y-3">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    Complete Interview
+                  </h3>
+                  <form
+                    onSubmit={handleCompleteSubmit((data) =>
+                      completeMutation.mutate({ feedback: data.feedback || '', rating: data.rating })
+                    )}
+                    className="space-y-3"
+                  >
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Feedback (optional)</Label>
+                      <Textarea rows={3} placeholder="Candidate showed excellent problem-solving skills..." {...completeRegister('feedback')} className="text-sm" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Rating (1-5)</Label>
+                      <Input type="number" min="1" max="5" placeholder="e.g. 4" {...completeRegister('rating')} className="w-24 text-sm" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setCompleteOpen(false)} className="text-xs">
+                        Cancel
+                      </Button>
+                      <Button type="submit" size="sm" disabled={completeMutation.isPending} className="text-xs">
+                        {completeMutation.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+                        Mark Complete
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Delete action */}
+              <div className="pt-2 border-t">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive text-xs w-full justify-start"
+                  onClick={() => { if (window.confirm('Delete this interview?')) deleteMutation.mutate(drawerInterviewId!) }}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Interview
+                </Button>
+              </div>
+            </div>
+          )
+        })() : (
+          !drawerLoading && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <AlertTriangle className="h-8 w-8 text-amber-500 mb-3" />
+              <p className="text-sm text-muted-foreground">Interview not found</p>
+            </div>
+          )
+        )}
+      </SideDrawer>
     </div>
   )
 }
