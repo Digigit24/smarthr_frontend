@@ -753,17 +753,17 @@ export default function ApplicationDetailPage() {
 
           {/* Notes */}
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2 sm:pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
-                    <MessageSquare className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                <CardTitle className="text-sm sm:text-base flex items-center gap-1.5 sm:gap-2">
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+                    <MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-sky-600 dark:text-sky-400" />
                   </div>
                   Notes
                 </CardTitle>
                 {!editingNotes && (
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEditingNotes} title="Edit notes">
-                    <Pencil className="h-3.5 w-3.5" />
+                  <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={startEditingNotes} title="Edit notes">
+                    <Pencil className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                   </Button>
                 )}
               </div>
@@ -774,44 +774,44 @@ export default function ApplicationDetailPage() {
                   <Textarea
                     value={notesValue}
                     onChange={(e) => setNotesValue(e.target.value)}
-                    rows={4}
+                    rows={3}
                     placeholder="Add notes about this application..."
-                    className="text-sm"
+                    className="text-xs sm:text-sm"
                     autoFocus
                   />
                   <div className="flex items-center gap-2 justify-end">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-xs"
+                      className="h-7 text-[10px] sm:text-xs"
                       onClick={() => setEditingNotes(false)}
                       disabled={notesMutation.isPending}
                     >
-                      <X className="h-3.5 w-3.5 mr-1" /> Cancel
+                      <X className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" /> Cancel
                     </Button>
                     <Button
                       size="sm"
-                      className="h-7 text-xs"
+                      className="h-7 text-[10px] sm:text-xs"
                       onClick={() => notesMutation.mutate(notesValue)}
                       disabled={notesMutation.isPending}
                     >
                       {notesMutation.isPending ? (
-                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        <Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 animate-spin" />
                       ) : (
-                        <Check className="h-3.5 w-3.5 mr-1" />
+                        <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
                       )}
                       Save
                     </Button>
                   </div>
                 </div>
               ) : app.notes ? (
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{app.notes}</p>
+                <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">{app.notes}</p>
               ) : (
                 <p
-                  className="text-sm text-muted-foreground italic cursor-pointer hover:text-foreground transition-colors"
+                  className="text-xs sm:text-sm text-muted-foreground italic cursor-pointer hover:text-foreground transition-colors"
                   onClick={startEditingNotes}
                 >
-                  Click to add notes...
+                  Tap to add notes...
                 </p>
               )}
             </CardContent>

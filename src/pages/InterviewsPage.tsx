@@ -657,6 +657,7 @@ export default function InterviewsPage() {
         title={drawerInterview ? `${TYPE_CONFIG[drawerInterview.interview_type]?.label || ''} Interview` : 'Interview Details'}
         mode="view"
         size="lg"
+        showBackButton
         isLoading={drawerLoading}
         loadingText="Loading interview..."
         headerActions={drawerInterview ? [
@@ -668,7 +669,7 @@ export default function InterviewsPage() {
         ] : undefined}
         footerButtons={drawerInterview ? [
           ...(drawerInterview.status !== 'CANCELLED' && drawerInterview.status !== 'COMPLETED' ? [{
-            label: 'Cancel Interview',
+            label: 'Cancel',
             onClick: () => cancelMutation.mutate(),
             variant: 'outline' as const,
             icon: XCircle,
@@ -690,69 +691,69 @@ export default function InterviewsPage() {
           const isUpcoming = scheduledDate > new Date() && drawerInterview.status !== 'CANCELLED' && drawerInterview.status !== 'COMPLETED'
 
           return (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* Status & Type badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', statusCfg.color)}>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className={cn('inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium', statusCfg.color)}>
                   <span className={cn('h-1.5 w-1.5 rounded-full', statusCfg.dot)} />
                   {statusCfg.label}
                 </span>
-                <span className={cn('inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium', typeCfg.bg, typeCfg.color)}>
-                  <TypeIcon className="h-3.5 w-3.5" />
+                <span className={cn('inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium', typeCfg.bg, typeCfg.color)}>
+                  <TypeIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                   {typeCfg.label}
                 </span>
                 {isUpcoming && (
-                  <span className="text-xs text-muted-foreground ml-auto">
+                  <span className="text-[10px] sm:text-xs text-muted-foreground ml-auto">
                     {(() => {
                       const diff = scheduledDate.getTime() - Date.now()
                       const hours = Math.floor(diff / (1000 * 60 * 60))
                       const days = Math.floor(hours / 24)
-                      if (days > 0) return `In ${days} day${days > 1 ? 's' : ''}`
-                      if (hours > 0) return `In ${hours} hour${hours > 1 ? 's' : ''}`
-                      return 'Starting soon'
+                      if (days > 0) return `In ${days}d`
+                      if (hours > 0) return `In ${hours}h`
+                      return 'Soon'
                     })()}
                   </span>
                 )}
               </div>
 
               {/* Schedule & Details */}
-              <div className="rounded-lg border p-4 space-y-3">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <div className="rounded-lg border p-3 sm:p-4 space-y-2.5 sm:space-y-3">
+                <h3 className="font-semibold text-xs sm:text-sm flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
                   Interview Details
                 </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30">
-                    <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  <div className="flex items-start gap-2 sm:gap-2.5 p-2 sm:p-2.5 rounded-lg bg-muted/30">
+                    <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-[10px] text-muted-foreground">Scheduled</p>
-                      <p className="text-xs font-medium truncate">{formatDateTime(drawerInterview.scheduled_at)}</p>
+                      <p className="text-[9px] sm:text-[10px] text-muted-foreground">Scheduled</p>
+                      <p className="text-[11px] sm:text-xs font-medium truncate">{formatDateTime(drawerInterview.scheduled_at)}</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30">
-                    <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-2 sm:gap-2.5 p-2 sm:p-2.5 rounded-lg bg-muted/30">
+                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-[10px] text-muted-foreground">Duration</p>
-                      <p className="text-xs font-medium">{drawerInterview.duration_minutes} minutes</p>
+                      <p className="text-[9px] sm:text-[10px] text-muted-foreground">Duration</p>
+                      <p className="text-[11px] sm:text-xs font-medium">{drawerInterview.duration_minutes} min</p>
                     </div>
                   </div>
                   {drawerInterview.meeting_link && (
-                    <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30 col-span-2">
-                      <Video className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+                    <div className="flex items-start gap-2 sm:gap-2.5 p-2 sm:p-2.5 rounded-lg bg-muted/30 sm:col-span-2">
+                      <Video className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[10px] text-muted-foreground">Meeting Link</p>
+                        <p className="text-[9px] sm:text-[10px] text-muted-foreground">Meeting Link</p>
                         <a href={drawerInterview.meeting_link} target="_blank" rel="noopener noreferrer"
-                          className="text-xs font-medium text-blue-600 hover:underline truncate block">
+                          className="text-[11px] sm:text-xs font-medium text-blue-600 hover:underline truncate block">
                           Join Meeting <ExternalLink className="h-3 w-3 inline ml-1" />
                         </a>
                       </div>
                     </div>
                   )}
-                  <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30">
-                    <CalendarDays className={cn('h-4 w-4 mt-0.5 shrink-0', drawerInterview.calendar_synced ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400')} />
+                  <div className="flex items-start gap-2 sm:gap-2.5 p-2 sm:p-2.5 rounded-lg bg-muted/30">
+                    <CalendarDays className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 shrink-0', drawerInterview.calendar_synced ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400')} />
                     <div>
-                      <p className="text-[10px] text-muted-foreground">Calendar Sync</p>
-                      <p className={cn('text-xs font-medium', drawerInterview.calendar_synced ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}>
+                      <p className="text-[9px] sm:text-[10px] text-muted-foreground">Calendar</p>
+                      <p className={cn('text-[11px] sm:text-xs font-medium', drawerInterview.calendar_synced ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}>
                         {drawerInterview.calendar_synced ? 'Synced' : 'Not synced'}
                       </p>
                     </div>
@@ -761,20 +762,20 @@ export default function InterviewsPage() {
               </div>
 
               {/* Candidate & Interviewer */}
-              <div className="rounded-lg border p-4 space-y-3">
-                <div className="grid grid-cols-1 gap-3">
+              <div className="rounded-lg border p-3 sm:p-4 space-y-2.5 sm:space-y-3">
+                <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
                   {/* Candidate */}
                   <div>
-                    <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
-                      <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <h3 className="font-semibold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
                       Candidate
                     </h3>
-                    <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-2 sm:gap-2.5 p-2 sm:p-2.5 rounded-lg bg-muted/30">
                       <GradientAvatar name={drawerInterview.applicant_name || drawerInterview.applicant_email || 'A'} />
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">{drawerInterview.applicant_name || 'Unknown'}</p>
+                        <p className="font-medium text-xs sm:text-sm truncate">{drawerInterview.applicant_name || 'Unknown'}</p>
                         {drawerInterview.applicant_email && (
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                          <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-muted-foreground mt-0.5">
                             <Mail className="h-3 w-3 shrink-0" />
                             <span className="truncate">{drawerInterview.applicant_email}</span>
                           </div>
@@ -784,15 +785,15 @@ export default function InterviewsPage() {
                   </div>
                   {/* Interviewer */}
                   <div>
-                    <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
-                      <UserCheck className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <h3 className="font-semibold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                      <UserCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
                       Interviewer
                     </h3>
-                    <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-2 sm:gap-2.5 p-2 sm:p-2.5 rounded-lg bg-muted/30">
                       <GradientAvatar name={drawerInterview.interviewer_name || drawerInterview.interviewer_email} />
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">{drawerInterview.interviewer_name || 'No name'}</p>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                        <p className="font-medium text-xs sm:text-sm truncate">{drawerInterview.interviewer_name || 'No name'}</p>
+                        <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-muted-foreground mt-0.5">
                           <Mail className="h-3 w-3 shrink-0" />
                           <span className="truncate">{drawerInterview.interviewer_email}</span>
                         </div>
@@ -804,24 +805,24 @@ export default function InterviewsPage() {
 
               {/* Feedback & Rating */}
               {(drawerInterview.feedback || drawerInterview.rating != null) && (
-                <div className="rounded-lg border p-4 space-y-3">
-                  <h3 className="font-semibold text-sm flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <div className="rounded-lg border p-3 sm:p-4 space-y-2.5 sm:space-y-3">
+                  <h3 className="font-semibold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2">
+                    <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 dark:text-amber-400" />
                     Feedback & Rating
                   </h3>
                   {drawerInterview.rating != null && (
                     <div className="flex items-center gap-2">
                       <div className="flex gap-0.5">
                         {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} className={cn('h-4 w-4', i < drawerInterview.rating! ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />
+                          <Star key={i} className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', i < drawerInterview.rating! ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />
                         ))}
                       </div>
-                      <span className="text-sm font-semibold text-amber-600">{drawerInterview.rating}/5</span>
+                      <span className="text-xs sm:text-sm font-semibold text-amber-600">{drawerInterview.rating}/5</span>
                     </div>
                   )}
                   {drawerInterview.feedback && (
-                    <div className="p-2.5 rounded-lg bg-muted/30">
-                      <p className="text-sm leading-relaxed">{drawerInterview.feedback}</p>
+                    <div className="p-2 sm:p-2.5 rounded-lg bg-muted/30">
+                      <p className="text-xs sm:text-sm leading-relaxed">{drawerInterview.feedback}</p>
                     </div>
                   )}
                 </div>
@@ -829,31 +830,31 @@ export default function InterviewsPage() {
 
               {/* Complete Interview inline form */}
               {completeOpen && (
-                <div className="rounded-lg border-2 border-emerald-200 dark:border-emerald-800/50 p-4 space-y-3">
-                  <h3 className="font-semibold text-sm flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <div className="rounded-lg border-2 border-emerald-200 dark:border-emerald-800/50 p-3 sm:p-4 space-y-2.5 sm:space-y-3">
+                  <h3 className="font-semibold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2">
+                    <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600 dark:text-emerald-400" />
                     Complete Interview
                   </h3>
                   <form
                     onSubmit={handleCompleteSubmit((data) =>
                       completeMutation.mutate({ feedback: data.feedback || '', rating: data.rating })
                     )}
-                    className="space-y-3"
+                    className="space-y-2.5 sm:space-y-3"
                   >
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Feedback (optional)</Label>
-                      <Textarea rows={3} placeholder="Candidate showed excellent problem-solving skills..." {...completeRegister('feedback')} className="text-sm" />
+                    <div className="space-y-1">
+                      <Label className="text-[10px] sm:text-xs">Feedback (optional)</Label>
+                      <Textarea rows={3} placeholder="Candidate showed excellent problem-solving skills..." {...completeRegister('feedback')} className="text-xs sm:text-sm" />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Rating (1-5)</Label>
-                      <Input type="number" min="1" max="5" placeholder="e.g. 4" {...completeRegister('rating')} className="w-24 text-sm" />
+                    <div className="space-y-1">
+                      <Label className="text-[10px] sm:text-xs">Rating (1-5)</Label>
+                      <Input type="number" min="1" max="5" placeholder="e.g. 4" {...completeRegister('rating')} className="w-20 sm:w-24 text-xs sm:text-sm" />
                     </div>
                     <div className="flex gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={() => setCompleteOpen(false)} className="text-xs">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setCompleteOpen(false)} className="text-[10px] sm:text-xs h-7 sm:h-8">
                         Cancel
                       </Button>
-                      <Button type="submit" size="sm" disabled={completeMutation.isPending} className="text-xs">
-                        {completeMutation.isPending && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+                      <Button type="submit" size="sm" disabled={completeMutation.isPending} className="text-[10px] sm:text-xs h-7 sm:h-8">
+                        {completeMutation.isPending && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />}
                         Mark Complete
                       </Button>
                     </div>
@@ -866,11 +867,11 @@ export default function InterviewsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-destructive hover:text-destructive text-xs w-full justify-start"
+                  className="text-destructive hover:text-destructive text-[10px] sm:text-xs w-full justify-start h-8"
                   onClick={() => { if (window.confirm('Delete this interview?')) deleteMutation.mutate(drawerInterviewId!) }}
                   disabled={deleteMutation.isPending}
                 >
-                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Interview
+                  <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5 sm:mr-2" /> Delete Interview
                 </Button>
               </div>
             </div>

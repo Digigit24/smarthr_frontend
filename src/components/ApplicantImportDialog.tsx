@@ -149,15 +149,15 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className={cn(
-        'sm:max-w-2xl max-h-[90vh] flex flex-col',
+        'w-[calc(100%-2rem)] sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col',
         step === 'map' && 'sm:max-w-3xl',
       )}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-purple-600" />
+          <DialogTitle className="flex items-center gap-2 text-sm sm:text-lg">
+            <FileSpreadsheet className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
             Import Applicants
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             {step === 'upload' && 'Upload an Excel (.xlsx) file to import applicants.'}
             {step === 'map' && 'Map your Excel columns to applicant fields.'}
             {step === 'result' && 'Import completed.'}
@@ -165,19 +165,20 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
         </DialogHeader>
 
         {/* Step indicators */}
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs">
           {(['upload', 'map', 'result'] as Step[]).map((s, i) => (
-            <div key={s} className="flex items-center gap-2">
-              {i > 0 && <div className="w-8 h-px bg-border" />}
+            <div key={s} className="flex items-center gap-1 sm:gap-2">
+              {i > 0 && <div className="w-4 sm:w-8 h-px bg-border" />}
               <div className={cn(
-                'flex items-center gap-1.5 px-2 py-1 rounded-full font-medium',
+                'flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium',
                 step === s ? 'bg-primary text-primary-foreground' :
                   (['upload', 'map', 'result'].indexOf(step) > i)
                     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                     : 'bg-muted text-muted-foreground'
               )}>
-                <span className="w-4 h-4 rounded-full bg-current/10 flex items-center justify-center text-[10px]">{i + 1}</span>
-                {s === 'upload' ? 'Upload' : s === 'map' ? 'Map Columns' : 'Results'}
+                <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-current/10 flex items-center justify-center text-[9px] sm:text-[10px]">{i + 1}</span>
+                <span className="hidden xs:inline">{s === 'upload' ? 'Upload' : s === 'map' ? 'Map' : 'Results'}</span>
+                <span className="xs:hidden">{i + 1}</span>
               </div>
             </div>
           ))}
@@ -190,7 +191,7 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
             <div className="space-y-4 py-2">
               <div
                 className={cn(
-                  'border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer',
+                  'border-2 border-dashed rounded-xl p-5 sm:p-8 text-center transition-colors cursor-pointer',
                   isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50',
                   file && 'border-emerald-300 bg-emerald-50/50 dark:border-emerald-700 dark:bg-emerald-900/10',
                 )}
@@ -210,18 +211,18 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
                   }}
                 />
                 {file ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <FileSpreadsheet className="h-10 w-10 text-emerald-600" />
-                    <p className="font-medium text-sm">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(file.size / 1024).toFixed(1)} KB — Click or drop to replace
+                  <div className="flex flex-col items-center gap-1.5 sm:gap-2">
+                    <FileSpreadsheet className="h-8 w-8 sm:h-10 sm:w-10 text-emerald-600" />
+                    <p className="font-medium text-xs sm:text-sm truncate max-w-full px-2">{file.name}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
+                      {(file.size / 1024).toFixed(1)} KB — Tap to replace
                     </p>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <Upload className="h-10 w-10 text-muted-foreground/50" />
-                    <p className="font-medium text-sm">Drop your .xlsx file here</p>
-                    <p className="text-xs text-muted-foreground">or click to browse</p>
+                  <div className="flex flex-col items-center gap-1.5 sm:gap-2">
+                    <Upload className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground/50" />
+                    <p className="font-medium text-xs sm:text-sm">Drop your .xlsx file here</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">or tap to browse</p>
                   </div>
                 )}
               </div>
@@ -230,12 +231,13 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
 
           {/* ── Step 2: Map Columns ── */}
           {step === 'map' && preview && (
-            <div className="space-y-4 py-2">
-              <p className="text-xs text-muted-foreground">
-                {preview.columns.length} columns found. Map each Excel column to an applicant field. Unmapped columns will be skipped.
+            <div className="space-y-3 sm:space-y-4 py-2">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
+                {preview.columns.length} columns found. Map each to an applicant field. Unmapped columns are skipped.
               </p>
 
-              <div className="border rounded-lg overflow-hidden">
+              {/* Desktop: table layout */}
+              <div className="hidden sm:block border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-muted/50 border-b">
@@ -292,7 +294,50 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
                 </table>
               </div>
 
-              <p className="text-[11px] text-muted-foreground">
+              {/* Mobile: card layout */}
+              <div className="sm:hidden space-y-2">
+                {preview.columns.map((col) => {
+                  const sampleValues = preview.sample_data
+                    .map(row => row[col])
+                    .filter(v => v != null && v !== '')
+                    .slice(0, 2)
+                  const currentMapping = mapping[col] || ''
+                  return (
+                    <div key={col} className="border rounded-lg p-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium text-xs truncate">{col}</p>
+                        {sampleValues.length > 0 && (
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{sampleValues.map(String).join(', ')}</p>
+                        )}
+                      </div>
+                      <Select
+                        value={currentMapping || '__skip__'}
+                        onValueChange={(v) => updateMapping(col, v)}
+                      >
+                        <SelectTrigger className="h-8 text-xs w-full">
+                          <SelectValue placeholder="Skip" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__skip__">
+                            <span className="text-muted-foreground">— Skip —</span>
+                          </SelectItem>
+                          {Object.entries(fields).map(([key, label]) => (
+                            <SelectItem
+                              key={key}
+                              value={key}
+                              disabled={usedFields.has(key) && currentMapping !== key}
+                            >
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground">
                 <MapPin className="h-3 w-3 inline mr-1" />
                 {Object.values(mapping).filter(v => v && v !== '__skip__').length} of {preview.columns.length} columns mapped
               </p>
@@ -301,25 +346,25 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
 
           {/* ── Step 3: Results ── */}
           {step === 'result' && result && (
-            <div className="space-y-4 py-2">
+            <div className="space-y-3 sm:space-y-4 py-2">
               {/* Summary cards */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-lg border p-3 text-center">
-                  <p className="text-2xl font-bold text-emerald-600">{result.imported}</p>
-                  <p className="text-xs text-muted-foreground">Imported</p>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="rounded-lg border p-2 sm:p-3 text-center">
+                  <p className="text-lg sm:text-2xl font-bold text-emerald-600">{result.imported}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Imported</p>
                 </div>
-                <div className="rounded-lg border p-3 text-center">
-                  <p className="text-2xl font-bold text-amber-600">{result.skipped}</p>
-                  <p className="text-xs text-muted-foreground">Skipped</p>
+                <div className="rounded-lg border p-2 sm:p-3 text-center">
+                  <p className="text-lg sm:text-2xl font-bold text-amber-600">{result.skipped}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Skipped</p>
                 </div>
-                <div className="rounded-lg border p-3 text-center">
-                  <p className="text-2xl font-bold text-red-600">{result.errors.length}</p>
-                  <p className="text-xs text-muted-foreground">Errors</p>
+                <div className="rounded-lg border p-2 sm:p-3 text-center">
+                  <p className="text-lg sm:text-2xl font-bold text-red-600">{result.errors.length}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Errors</p>
                 </div>
               </div>
 
-              <div className="rounded-lg border p-4 bg-muted/30">
-                <p className="text-sm">
+              <div className="rounded-lg border p-3 sm:p-4 bg-muted/30">
+                <p className="text-xs sm:text-sm">
                   <span className="font-medium">{result.total_rows}</span> total rows processed.
                 </p>
               </div>
@@ -327,23 +372,23 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
               {/* Error details */}
               {result.errors.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium flex items-center gap-1.5">
-                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <h4 className="text-xs sm:text-sm font-medium flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
                     Row Errors
                   </h4>
-                  <div className="border rounded-lg overflow-hidden max-h-48 overflow-y-auto">
-                    <table className="w-full text-xs">
+                  <div className="border rounded-lg overflow-hidden max-h-40 sm:max-h-48 overflow-y-auto">
+                    <table className="w-full text-[10px] sm:text-xs">
                       <thead>
                         <tr className="bg-muted/50 border-b">
-                          <th className="text-left px-3 py-1.5 font-medium">Row</th>
-                          <th className="text-left px-3 py-1.5 font-medium">Errors</th>
+                          <th className="text-left px-2 sm:px-3 py-1 sm:py-1.5 font-medium">Row</th>
+                          <th className="text-left px-2 sm:px-3 py-1 sm:py-1.5 font-medium">Errors</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {result.errors.map((err) => (
                           <tr key={err.row}>
-                            <td className="px-3 py-1.5 font-mono">{err.row}</td>
-                            <td className="px-3 py-1.5">
+                            <td className="px-2 sm:px-3 py-1 sm:py-1.5 font-mono">{err.row}</td>
+                            <td className="px-2 sm:px-3 py-1 sm:py-1.5">
                               {Object.entries(err.errors).map(([field, msgs]) => (
                                 <div key={field}>
                                   <span className="font-medium">{field}:</span>{' '}
