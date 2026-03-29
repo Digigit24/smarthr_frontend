@@ -1025,16 +1025,89 @@ export default function ApplicationsPage() {
           <p className="text-sm mt-1">Create your first application to get started</p>
         </div>
       ) : viewMode === 'kanban' ? (
-        <KanbanBoard
-          applications={data!.results}
-          onView={handleView}
-          onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
-          onTriggerCall={(id) => triggerCallMutation.mutate(id)}
-          onDelete={handleDelete}
-        />
+        isMobile ? (
+          <MobileKanbanView
+            applications={data!.results}
+            onView={handleView}
+            onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
+            onTriggerCall={(id) => triggerCallMutation.mutate(id)}
+            onDelete={handleDelete}
+          />
+        ) : (
+          <KanbanBoard
+            applications={data!.results}
+            onView={handleView}
+            onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
+            onTriggerCall={(id) => triggerCallMutation.mutate(id)}
+            onDelete={handleDelete}
+          />
+        )
       ) : (
         /* ── Table View ── */
-        <Card>
+        <>
+        {/* Mobile card view */}
+        <div className="space-y-3 sm:hidden">
+          {data?.results.map((app) => (
+            <Card key={app.id} className="p-3 cursor-pointer hover:shadow-sm transition-shadow" onClick={() => handleView(app)}>
+              <div className="flex items-start gap-2.5">
+                <div onClick={(e) => toggleSelect(app.id, e)} className="pt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(app.id)}
+                    onChange={() => {}}
+                    className="rounded border-border cursor-pointer"
+                  />
+                </div>
+                <div className={cn('w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0', getAvatarGradient(app.applicant_name))}>
+                  <span className="text-[10px] font-bold text-white">{getInitials(app.applicant_name)}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold truncate">{app.applicant_name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{app.applicant_email}</p>
+                </div>
+                <ScoreBadge score={app.score} />
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <Briefcase className="h-3 w-3 shrink-0" />
+                <span className="truncate">{app.job_title}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium', STATUS_COLORS[app.status])}>
+                  <span className={cn('w-1.5 h-1.5 rounded-full', STATUS_DOT_COLORS[app.status])} />
+                  {app.status.replace(/_/g, ' ')}
+                </span>
+                <span className="text-[10px] text-muted-foreground">{formatDate(app.created_at)}</span>
+              </div>
+              <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="View" onClick={() => handleView(app)}>
+                  <Eye className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={() => navigate(`/applications/${app.id}/edit`)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="AI Call" onClick={() => triggerCallMutation.mutate(app.id)}>
+                  <Phone className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" title="Delete" onClick={() => handleDelete(app.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+                <Select value={app.status} onValueChange={(status) => changeStatusMutation.mutate({ id: app.id, status })}>
+                  <SelectTrigger className="h-7 ml-auto w-auto gap-1 px-2 text-[11px] border-0 shadow-none">
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALL_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop table view */}
+        <Card className="hidden sm:block">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ minWidth: 800 }}>
               <thead>
@@ -1159,6 +1232,7 @@ export default function ApplicationsPage() {
             </table>
           </div>
         </Card>
+        </>
       )}
     </div>
   )

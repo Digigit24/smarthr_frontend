@@ -547,7 +547,48 @@ export default function JobDetailPage() {
               <p className="text-sm mt-1">Applications for this job will appear here</p>
             </div>
           ) : (
-            <Card>
+            <>
+            {/* Mobile card view */}
+            <div className="space-y-3 sm:hidden">
+              {applicationsData?.results.map((app) => (
+                <Card key={app.id} className="p-3 cursor-pointer hover:shadow-sm transition-shadow" onClick={() => handleViewApplication(app)}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate">{app.applicant_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{app.applicant_email}</p>
+                    </div>
+                    <ScoreBar score={app.score} />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className={cn('inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium', STATUS_COLORS[app.status])}>
+                      {app.status.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{formatDate(app.created_at)}</span>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" title="View" onClick={() => handleViewApplication(app)}>
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" title="AI Call" onClick={() => triggerCallMutation.mutate(app.id)}>
+                      <Phone className="h-3.5 w-3.5" />
+                    </Button>
+                    <Select value={app.status} onValueChange={(status) => changeStatusMutation.mutate({ appId: app.id, status })}>
+                      <SelectTrigger className="h-7 ml-auto w-auto gap-1 px-2 text-[11px] border-0 shadow-none">
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ALL_STATUSES.map((s) => (
+                          <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop table view */}
+            <Card className="hidden sm:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm" style={{ minWidth: 700 }}>
                   <thead>
@@ -622,6 +663,7 @@ export default function JobDetailPage() {
                 </table>
               </div>
             </Card>
+            </>
           )}
         </TabsContent>
       </Tabs>
