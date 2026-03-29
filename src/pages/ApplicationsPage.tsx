@@ -140,6 +140,7 @@ function KanbanBoard({
 
   // Touch drag refs (for mobile pointer-based DnD)
   const touchDragRef = useRef<{ appId: string; targetCol: string | null }>({ appId: '', targetCol: null })
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const handleDragStart = (e: React.DragEvent, appId: string) => {
     setDragItem(appId)
@@ -183,17 +184,42 @@ function KanbanBoard({
     touchDragRef.current = { appId, targetCol: null }
     setDragItem(appId)
 
+    let animFrameId: number | null = null
+
+    const autoScroll = (clientX: number) => {
+      const container = scrollContainerRef.current
+      if (!container) return
+      const rect = container.getBoundingClientRect()
+      const ZONE = 80  // px from edge that triggers scrolling
+      const MAX_SPEED = 14 // max px scrolled per frame
+      let speed = 0
+      if (clientX < rect.left + ZONE) {
+        speed = -MAX_SPEED * (1 - (clientX - rect.left) / ZONE)
+      } else if (clientX > rect.right - ZONE) {
+        speed = MAX_SPEED * (1 - (rect.right - clientX) / ZONE)
+      }
+      if (speed !== 0) {
+        container.scrollLeft += speed
+        animFrameId = requestAnimationFrame(() => autoScroll(clientX))
+      } else {
+        animFrameId = null
+      }
+    }
+
     const handlePointerMove = (me: PointerEvent) => {
+      if (animFrameId !== null) cancelAnimationFrame(animFrameId)
       const el = document.elementFromPoint(me.clientX, me.clientY)
       const colEl = el?.closest('[data-kanban-status]') as HTMLElement | null
       const status = colEl?.dataset.kanbanStatus ?? null
       touchDragRef.current.targetCol = status
       setDragOverCol(status)
+      autoScroll(me.clientX)
     }
 
     const handlePointerUp = () => {
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
+      if (animFrameId !== null) cancelAnimationFrame(animFrameId)
       const { appId: id, targetCol } = touchDragRef.current
       if (targetCol) {
         const app = applications.find((a) => a.id === id)
@@ -210,7 +236,7 @@ function KanbanBoard({
   }
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6">
+    <div ref={scrollContainerRef} className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6">
       {columns.map(({ status, items }) => (
         <div
           key={status}
