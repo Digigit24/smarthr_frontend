@@ -147,10 +147,12 @@ export default function ApplicationJobWizard({
       qc.invalidateQueries({ queryKey: ['applications'] })
       qc.invalidateQueries({ queryKey: ['applicants'] })
       toast.success('Application submitted successfully!')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const appId = result?.id ?? (result as any)?.application_id ?? (result as any)?.pk
       if (onSuccess) {
-        onSuccess(result.id)
+        onSuccess(appId)
       } else {
-        navigate(`/applications/${result.id}`)
+        navigate(appId ? `/applications/${appId}` : '/applications')
       }
     },
     onError: (err) => {
