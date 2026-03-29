@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import {
   ArrowLeft, ArrowRight, Check, Loader2, UserPlus, Search, User,
-  Briefcase, FileText, ChevronRight, Mail, Phone, Building,
+  Briefcase, FileText, ChevronRight, Mail, Building, Plus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -58,6 +58,8 @@ interface WizardProps {
   onCancel?: () => void
 }
 
+const WIZARD_STORAGE_KEY = 'wizard_state'
+
 export default function ApplicationJobWizard({
   preSelectedApplicantId,
   preSelectedApplicantName,
@@ -68,16 +70,26 @@ export default function ApplicationJobWizard({
   const navigate = useNavigate()
   const qc = useQueryClient()
 
+  // Restore state from sessionStorage if returning from job-create page
+  const savedState = (() => {
+    try { return JSON.parse(sessionStorage.getItem(WIZARD_STORAGE_KEY) || 'null') } catch { return null }
+  })()
+
   // ── Wizard state ──
-  const [step, setStep] = useState(preSelectedApplicantId ? 1 : 0)
+  const [step, setStep] = useState(savedState?.step ?? (preSelectedApplicantId ? 1 : 0))
   const [candidateMode, setCandidateMode] = useState<'existing' | 'new'>(
     preSelectedApplicantId ? 'existing' : 'existing'
   )
 
   // ── Step 1: Candidate ──
-  const [selectedApplicantId, setSelectedApplicantId] = useState(preSelectedApplicantId || '')
-  const [selectedApplicantName, setSelectedApplicantName] = useState(preSelectedApplicantName || '')
+  const [selectedApplicantId, setSelectedApplicantId] = useState(savedState?.applicantId ?? preSelectedApplicantId ?? '')
+  const [selectedApplicantName, setSelectedApplicantName] = useState(savedState?.applicantName ?? preSelectedApplicantName ?? '')
   const [applicantSearch, setApplicantSearch] = useState('')
+
+  // Clear saved state once restored
+  useEffect(() => {
+    if (savedState) sessionStorage.removeItem(WIZARD_STORAGE_KEY)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [newApplicant, setNewApplicant] = useState<ApplicantFormInput>({
     first_name: '',
     last_name: '',
@@ -125,7 +137,10 @@ export default function ApplicationJobWizard({
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ['applicants'] })
       setSelectedApplicantId(result.id)
-      setSelectedApplicantName(result.full_name)
+      // full_name may not be returned by the API — fall back to first+last
+      setSelectedApplicantName(
+        result.full_name || `${result.first_name} ${result.last_name}`.trim()
+      )
       setCandidateMode('existing')
       setStep(1)
     },
@@ -143,14 +158,28 @@ export default function ApplicationJobWizard({
   const createApplicationMutation = useMutation({
     mutationFn: (data: { job: string; applicant: string; status: string; notes?: string; resume_url?: string }) =>
       applicationsService.create(data as any),
-    onSuccess: (result) => {
+    onSuccess: async (result, variables) => {
       qc.invalidateQueries({ queryKey: ['applications'] })
       qc.invalidateQueries({ queryKey: ['applicants'] })
       toast.success('Application submitted successfully!')
+
+      // Try id directly from response first
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const appId = result?.id ?? (result as any)?.application_id ?? (result as any)?.pk
+      let appId: string | undefined = result?.id ?? (result as any)?.application_id ?? (result as any)?.pk
+
+      // If not in response, fetch the list and match by applicant + job
+      if (!appId) {
+        try {
+          const list = await applicationsService.list({ ordering: '-created_at' })
+          const match = list.results.find(
+            (a) => a.applicant_id === variables.applicant && a.job_id === variables.job
+          )
+          appId = match?.id
+        } catch { /* ignore, fall back to list page */ }
+      }
+
       if (onSuccess) {
-        onSuccess(appId)
+        onSuccess(appId ?? '')
       } else {
         navigate(appId ? `/applications/${appId}` : '/applications')
       }
@@ -472,16 +501,50 @@ export default function ApplicationJobWizard({
           {/* ── Step 1: Job ── */}
           {step === 1 && (
             <div className="space-y-5">
-              <div>
-                <h2 className="text-lg font-semibold mb-1">Select a Job Position</h2>
-                <p className="text-sm text-muted-foreground">
-                  Applying as <span className="font-medium text-foreground">{selectedApplicantName}</span>
-                </p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold mb-1">Select a Job Position</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Applying as <span className="font-medium text-foreground">{selectedApplicantName}</span>
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => {
+                    // Save wizard state so we can restore it when returning
+                    sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({
+                      step: 1,
+                      applicantId: selectedApplicantId,
+                      applicantName: selectedApplicantName,
+                    }))
+                    navigate('/jobs/new?returnTo=/applicants/new')
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Create New Job
+                </Button>
               </div>
 
               <div className="max-h-[400px] overflow-y-auto space-y-2 border rounded-lg p-2">
                 {jobs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">No open jobs available</p>
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    No open jobs available.{' '}
+                    <button
+                      className="text-primary hover:underline"
+                      onClick={() => {
+                        sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({
+                          step: 1,
+                          applicantId: selectedApplicantId,
+                          applicantName: selectedApplicantName,
+                        }))
+                        navigate('/jobs/new?returnTo=/applicants/new')
+                      }}
+                    >
+                      Create one
+                    </button>
+                  </p>
                 ) : (
                   jobs.map((job) => (
                     <button

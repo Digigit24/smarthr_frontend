@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -40,6 +40,8 @@ type JobForm = z.infer<typeof jobSchema>
 export default function JobCreatePage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const [searchParams] = useSearchParams()
+  const returnTo = searchParams.get('returnTo')
 
   const {
     register,
@@ -61,8 +63,9 @@ export default function JobCreatePage() {
     mutationFn: (data: JobFormData) => jobsService.create(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['jobs'] })
+      qc.invalidateQueries({ queryKey: ['jobs-wizard'] })
       toast.success('Job created successfully')
-      navigate('/jobs')
+      navigate(returnTo ?? '/jobs')
     },
     onError: (err) => {
       const msg = applyFieldErrors(err, setError, 'Failed to create job')
@@ -74,7 +77,7 @@ export default function JobCreatePage() {
     <div className="p-3 sm:p-4 md:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/jobs')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(returnTo ?? '/jobs')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -192,7 +195,7 @@ export default function JobCreatePage() {
 
         {/* Action Buttons */}
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pb-6">
-          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/jobs')} disabled={createMutation.isPending}>
+          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => navigate(returnTo ?? '/jobs')} disabled={createMutation.isPending}>
             Cancel
           </Button>
           <Button type="submit" className="w-full sm:w-auto" disabled={createMutation.isPending}>

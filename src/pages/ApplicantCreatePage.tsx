@@ -129,7 +129,7 @@ export default function ApplicantCreatePage() {
       {mode === 'applicant-and-apply' ? (
         <ApplicationJobWizard
           onCancel={() => navigate('/applicants')}
-          onSuccess={(id) => navigate(id ? `/applications/${id}` : '/applications')}
+          onSuccess={(id) => navigate(id && id !== 'undefined' ? `/applications/${id}` : '/applications')}
         />
       ) : (
         <>
