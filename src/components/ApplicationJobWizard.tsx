@@ -124,10 +124,10 @@ export default function ApplicationJobWizard({
     queryFn: () => jobsService.list({ status: 'OPEN', ordering: 'title' }),
   })
 
-  // Check existing applications for duplicate prevention
-  const { data: existingApps } = useQuery({
-    queryKey: ['applicant-apps-check', selectedApplicantId],
-    queryFn: () => applicantsService.applications(selectedApplicantId),
+  // Check existing applications for duplicate prevention (use embedded array from detail)
+  const { data: applicantDetail } = useQuery({
+    queryKey: ['applicant-detail', selectedApplicantId],
+    queryFn: () => applicantsService.get(selectedApplicantId),
     enabled: !!selectedApplicantId,
   })
 
@@ -235,10 +235,10 @@ export default function ApplicationJobWizard({
 
   // Check if applicant already applied for this job within 30 days
   const getDuplicateWarning = (): string | null => {
-    if (!existingApps?.results || !selectedJobId) return null
+    if (!applicantDetail?.applications || !selectedJobId) return null
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const recentDuplicate = existingApps.results.find(
+    const recentDuplicate = applicantDetail.applications.find(
       (app) => app.job_id === selectedJobId && new Date(app.created_at) > thirtyDaysAgo
     )
     if (recentDuplicate) {

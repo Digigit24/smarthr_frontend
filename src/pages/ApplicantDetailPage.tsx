@@ -102,7 +102,7 @@ function ApplyForJob({ applicantId, existingApps }: { applicantId: string; exist
         notes: notes || undefined,
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['applicant-applications', applicantId] })
+      qc.invalidateQueries({ queryKey: ['applicant-detail', applicantId] })
       qc.invalidateQueries({ queryKey: ['applications'] })
       setSelectedJobId('')
       setNotes('')
@@ -184,11 +184,6 @@ export default function ApplicantDetailPage() {
     enabled: !!id,
   })
 
-  const { data: appsData, isLoading: appsLoading } = useQuery({
-    queryKey: ['applicant-applications', id],
-    queryFn: () => applicantsService.applications(id!),
-    enabled: !!id,
-  })
 
   const updateMutation = useMutation({
     mutationFn: (data: ApplicantFormData) => applicantsService.update(id!, data),
@@ -274,7 +269,7 @@ export default function ApplicantDetailPage() {
     )
   }
 
-  const apps = appsData?.results || []
+  const apps = applicant?.applications || []
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -607,7 +602,7 @@ export default function ApplicantDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {appsLoading ? (
+                {isLoading ? (
                   <div className="space-y-2">
                     {Array.from({ length: 3 }).map((_, i) => (
                       <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />

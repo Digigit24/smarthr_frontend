@@ -183,6 +183,15 @@ export interface ApplicantListItem {
   created_at: string
 }
 
+export interface ApplicantApplication {
+  id: string
+  job_id: string
+  job_title: string
+  status: ApplicationStatus
+  score: string | null
+  created_at: string
+}
+
 export interface ApplicantDetail {
   id: string
   tenant_id: string
@@ -204,6 +213,7 @@ export interface ApplicantDetail {
   tags: string[]
   created_at: string
   updated_at: string
+  applications: ApplicantApplication[]
 }
 
 export interface ApplicantFormData {
