@@ -24,6 +24,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
+  LabelList,
   ResponsiveContainer,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -306,8 +308,8 @@ export default function DashboardPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                  <YAxis tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} className="text-muted-foreground" label={{ value: 'Date', position: 'insideBottom', offset: -5, fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 11 }} label={{ value: 'Count', angle: -90, position: 'insideLeft', fontSize: 12 }} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--popover))',
@@ -316,6 +318,7 @@ export default function DashboardPage() {
                       fontSize: 12,
                     }}
                   />
+                  <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 12 }} />
                   <Area
                     type="monotone"
                     dataKey="applications"
@@ -394,8 +397,8 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={scores || []}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="range" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="range" tick={{ fontSize: 11 }} label={{ value: 'Score Range', position: 'insideBottom', offset: -5, fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 11 }} label={{ value: 'Candidates', angle: -90, position: 'insideLeft', fontSize: 12 }} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--popover))',
@@ -404,7 +407,10 @@ export default function DashboardPage() {
                       fontSize: 12,
                     }}
                   />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Candidates" />
+                  <Legend verticalAlign="top" height={36} iconType="square" wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Candidates">
+                    <LabelList dataKey="count" position="top" fontSize={11} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
               </div>
