@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, MutationCache, useQuery } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { UniversalSidebar } from '@/components/UniversalSidebar'
@@ -40,6 +40,8 @@ import ActivitiesPage from '@/pages/ActivitiesPage'
 import ActivityDetailPage from '@/pages/ActivityDetailPage'
 import ProfilePage from '@/pages/ProfilePage'
 
+const ANALYTICS_QUERY_KEYS = ['analytics-dashboard', 'analytics-funnel', 'analytics-timeline', 'analytics-scores']
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -47,6 +49,13 @@ const queryClient = new QueryClient({
       staleTime: 30_000,
     },
   },
+  mutationCache: new MutationCache({
+    onSuccess: () => {
+      ANALYTICS_QUERY_KEYS.forEach((key) => {
+        queryClient.invalidateQueries({ queryKey: [key] })
+      })
+    },
+  }),
 })
 
 const PAGE_TITLES: Record<string, string> = {
