@@ -45,7 +45,7 @@ type ApplicantFormInput = z.infer<typeof applicantSchema>
 export default function ApplicantCreatePage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const [mode, setMode] = useState<'applicant-only' | 'applicant-and-apply'>('applicant-only')
+  const [mode, setMode] = useState<'applicant-only' | 'applicant-and-apply'>('applicant-and-apply')
 
   const {
     register,
@@ -101,7 +101,7 @@ export default function ApplicantCreatePage() {
             </div>
             {/* Mode toggle */}
             <div className="flex rounded-lg border bg-muted/30 p-0.5">
-              <button
+              {/* <button
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all',
                   mode === 'applicant-only' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
@@ -110,7 +110,7 @@ export default function ApplicantCreatePage() {
               >
                 <UserPlus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Applicant Only</span>
-              </button>
+              </button> */}
               <button
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all',

@@ -138,6 +138,9 @@ function KanbanBoard({
   const [dragItem, setDragItem] = useState<string | null>(null)
   const [dragOverCol, setDragOverCol] = useState<string | null>(null)
 
+  // Touch drag refs (for mobile pointer-based DnD)
+  const touchDragRef = useRef<{ appId: string; targetCol: string | null }>({ appId: '', targetCol: null })
+
   const handleDragStart = (e: React.DragEvent, appId: string) => {
     setDragItem(appId)
     e.dataTransfer.effectAllowed = 'move'
@@ -172,11 +175,46 @@ function KanbanBoard({
     setDragOverCol(null)
   }
 
+  // Touch drag: initiate from the grip handle so it doesn't conflict with scroll
+  const handleGripPointerDown = (e: React.PointerEvent, appId: string) => {
+    if (e.pointerType !== 'touch') return
+    e.preventDefault()
+    e.stopPropagation()
+    touchDragRef.current = { appId, targetCol: null }
+    setDragItem(appId)
+
+    const handlePointerMove = (me: PointerEvent) => {
+      const el = document.elementFromPoint(me.clientX, me.clientY)
+      const colEl = el?.closest('[data-kanban-status]') as HTMLElement | null
+      const status = colEl?.dataset.kanbanStatus ?? null
+      touchDragRef.current.targetCol = status
+      setDragOverCol(status)
+    }
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      const { appId: id, targetCol } = touchDragRef.current
+      if (targetCol) {
+        const app = applications.find((a) => a.id === id)
+        if (app && app.status !== targetCol) {
+          onChangeStatus(id, targetCol)
+        }
+      }
+      setDragItem(null)
+      setDragOverCol(null)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+  }
+
   return (
     <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6">
       {columns.map(({ status, items }) => (
         <div
           key={status}
+          data-kanban-status={status}
           className="flex-shrink-0 w-[260px] sm:w-[280px]"
           onDragOver={(e) => handleDragOver(e, status)}
           onDragLeave={handleDragLeave}
@@ -215,7 +253,11 @@ function KanbanBoard({
                 >
                   {/* Drag handle + name row */}
                   <div className="flex items-start gap-2">
-                    <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 mt-0.5 shrink-0 group-hover:text-muted-foreground/70" />
+                    <GripVertical
+                      className="h-3.5 w-3.5 text-muted-foreground/40 mt-0.5 shrink-0 group-hover:text-muted-foreground/70 touch-none"
+                      style={{ touchAction: 'none' }}
+                      onPointerDown={(e) => handleGripPointerDown(e, app.id)}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <div className={cn('w-6 h-6 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0', getAvatarGradient(app.applicant_name))}>
@@ -271,6 +313,20 @@ function KanbanBoard({
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
+                    <Select
+                      value={app.status}
+                      onValueChange={(status) => { onChangeStatus(app.id, status) }}
+                    >
+                      <SelectTrigger className="h-6 ml-auto w-auto gap-1 px-1.5 text-[10px] border-0 shadow-none sm:hidden" onClick={(e) => e.stopPropagation()}>
+                        <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', STATUS_DOT_COLORS[app.status])} />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ALL_STATUSES.map((s) => (
+                          <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               ))
@@ -943,23 +999,13 @@ export default function ApplicationsPage() {
           <p className="text-sm mt-1">Create your first application to get started</p>
         </div>
       ) : viewMode === 'kanban' ? (
-        isMobile ? (
-          <MobileKanbanView
-            applications={data!.results}
-            onView={handleView}
-            onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
-            onTriggerCall={(id) => triggerCallMutation.mutate(id)}
-            onDelete={handleDelete}
-          />
-        ) : (
-          <KanbanBoard
-            applications={data!.results}
-            onView={handleView}
-            onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
-            onTriggerCall={(id) => triggerCallMutation.mutate(id)}
-            onDelete={handleDelete}
-          />
-        )
+        <KanbanBoard
+          applications={data!.results}
+          onView={handleView}
+          onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
+          onTriggerCall={(id) => triggerCallMutation.mutate(id)}
+          onDelete={handleDelete}
+        />
       ) : (
         /* ── Table View ── */
         <Card>
