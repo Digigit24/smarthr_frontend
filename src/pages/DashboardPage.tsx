@@ -25,9 +25,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  FunnelChart,
-  Funnel,
-  LabelList,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -36,7 +33,6 @@ import {
 } from '@/components/ui/select'
 import { analyticsService } from '@/services/analytics'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
 
 const COLOR_MAP: Record<string, { bg: string; border: string }> = {
   'text-blue-500': { bg: 'bg-blue-500/10', border: 'border-l-blue-500' },
@@ -304,6 +300,10 @@ export default function DashboardPage() {
                       <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                     </linearGradient>
+                    <linearGradient id="hireGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                    </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} className="text-muted-foreground" />
@@ -331,6 +331,14 @@ export default function DashboardPage() {
                     fill="url(#callGrad)"
                     strokeWidth={2}
                     name="Calls"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="hires"
+                    stroke="#22c55e"
+                    fill="url(#hireGrad)"
+                    strokeWidth={2}
+                    name="Hires"
                   />
                 </AreaChart>
               </ResponsiveContainer>
