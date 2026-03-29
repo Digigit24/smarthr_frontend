@@ -288,6 +288,7 @@ export interface ScorecardSummary {
   summary: string
   strengths: string[]
   weaknesses: string[]
+  detailed_feedback: Record<string, string>
   created_at: string
 }
 
@@ -324,8 +325,12 @@ export interface ApplicationDetail {
     id: string
     first_name: string
     last_name: string
+    full_name: string
     email: string
     phone: string
+    resume_url: string
+    linkedin_url: string
+    portfolio_url: string
     skills: string[]
     experience_years: number
     current_role: string
@@ -355,6 +360,9 @@ export interface ApplicationFormData {
 export interface CallRecordListItem {
   id: string
   application_id: string
+  applicant_name: string
+  applicant_email: string
+  job_title: string
   provider: CallProvider
   status: CallStatus
   phone: string
@@ -386,6 +394,9 @@ export interface CallRecordDetail {
   tenant_id: string
   owner_user_id: string
   application_id: string
+  applicant_name: string
+  applicant_email: string
+  job_title: string
   provider: CallProvider
   voice_agent_id: string
   provider_call_id: string
@@ -485,6 +496,8 @@ export interface ScorecardListItem {
 export interface InterviewListItem {
   id: string
   application_id: string
+  job_id: string
+  job_title: string
   interview_type: InterviewType
   scheduled_at: string
   duration_minutes: number
@@ -503,6 +516,8 @@ export interface InterviewDetail {
   tenant_id: string
   owner_user_id: string
   application_id: string
+  job_id: string
+  job_title: string
   interview_type: InterviewType
   scheduled_at: string
   duration_minutes: number
