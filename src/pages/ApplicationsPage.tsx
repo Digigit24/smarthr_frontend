@@ -366,8 +366,6 @@ function KanbanBoard({
 
 /* ──────────────────── Swipeable Card (touch) ──────────────────── */
 
-const SWIPE_THRESHOLD = 60
-
 function SwipeableCard({
   app,
   onView,
@@ -381,108 +379,14 @@ function SwipeableCard({
   onTriggerCall: (id: string) => void
   onDelete: (id: string) => void
 }) {
-  const cardRef = useRef<HTMLDivElement>(null)
-  const touchStartX = useRef(0)
-  const touchStartY = useRef(0)
-  const [swipeOffset, setSwipeOffset] = useState(0)
-  const [isSwiping, setIsSwiping] = useState(false)
-
-  const currentIdx = ALL_STATUSES.indexOf(app.status as ApplicationStatus)
-  const prevStatus = currentIdx > 0 ? ALL_STATUSES[currentIdx - 1] : null
-  const nextStatus = currentIdx < ALL_STATUSES.length - 1 ? ALL_STATUSES[currentIdx + 1] : null
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX
-    touchStartY.current = e.touches[0].clientY
-    setIsSwiping(false)
-  }, [])
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    const dx = e.touches[0].clientX - touchStartX.current
-    const dy = e.touches[0].clientY - touchStartY.current
-
-    // Only track horizontal swipes (ignore vertical scroll)
-    if (!isSwiping && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) return
-    if (Math.abs(dx) > 10) setIsSwiping(true)
-
-    if (!isSwiping && Math.abs(dx) < 10) return
-
-    // Clamp: don't swipe if no status in that direction
-    const clampedDx =
-      (!prevStatus && dx < 0) || (!nextStatus && dx > 0)
-        ? dx * 0.15 // rubber-band effect
-        : dx
-
-    setSwipeOffset(clampedDx)
-  }, [isSwiping, prevStatus, nextStatus])
-
-  const handleTouchEnd = useCallback(() => {
-    if (Math.abs(swipeOffset) >= SWIPE_THRESHOLD) {
-      if (swipeOffset > 0 && nextStatus) {
-        onChangeStatus(app.id, nextStatus)
-      } else if (swipeOffset < 0 && prevStatus) {
-        onChangeStatus(app.id, prevStatus)
-      }
-    }
-    setSwipeOffset(0)
-    setIsSwiping(false)
-  }, [swipeOffset, nextStatus, prevStatus, app.id, onChangeStatus])
-
-  const targetStatus =
-    Math.abs(swipeOffset) >= SWIPE_THRESHOLD
-      ? swipeOffset > 0
-        ? nextStatus
-        : prevStatus
-      : null
+  const [showStatusPicker, setShowStatusPicker] = useState(false)
 
   return (
-    <div className="relative overflow-hidden rounded-lg">
-      {/* Swipe background indicators */}
-      {isSwiping && (
-        <>
-          {/* Left background (swipe left → previous status) */}
-          <div className={cn(
-            'absolute inset-y-0 left-0 w-full flex items-center px-4 rounded-lg transition-colors',
-            targetStatus && swipeOffset < 0
-              ? 'bg-amber-100 dark:bg-amber-900/30'
-              : 'bg-muted/40',
-          )}>
-            {prevStatus && (
-              <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
-                <ChevronLeft className="h-4 w-4" />
-                <span>{prevStatus.replace(/_/g, ' ')}</span>
-              </div>
-            )}
-          </div>
-          {/* Right background (swipe right → next status) */}
-          <div className={cn(
-            'absolute inset-y-0 right-0 w-full flex items-center justify-end px-4 rounded-lg transition-colors',
-            targetStatus && swipeOffset > 0
-              ? 'bg-emerald-100 dark:bg-emerald-900/30'
-              : 'bg-muted/40',
-          )}>
-            {nextStatus && (
-              <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                <span>{nextStatus.replace(/_/g, ' ')}</span>
-                <ChevronRight className="h-4 w-4" />
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
+    <div className="relative rounded-lg">
       {/* Card */}
       <div
-        ref={cardRef}
         className="relative rounded-lg border bg-card p-3 transition-shadow active:shadow-md"
-        style={{
-          transform: `translateX(${swipeOffset}px)`,
-          transition: isSwiping ? 'none' : 'transform 0.25s ease-out',
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onClick={() => !isSwiping && onView(app)}
+        onClick={() => !showStatusPicker && onView(app)}
       >
         <div className="flex items-start gap-2.5">
           <div className={cn('w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0', getAvatarGradient(app.applicant_name))}>
@@ -504,16 +408,6 @@ function SwipeableCard({
             <Clock className="h-2.5 w-2.5" />
             {formatDate(app.created_at)}
           </span>
-        </div>
-
-        {/* Swipe hint */}
-        <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground/50">
-          {prevStatus ? (
-            <span className="flex items-center gap-0.5"><ChevronLeft className="h-3 w-3" />{prevStatus.replace(/_/g, ' ')}</span>
-          ) : <span />}
-          {nextStatus ? (
-            <span className="flex items-center gap-0.5">{nextStatus.replace(/_/g, ' ')}<ChevronRight className="h-3 w-3" /></span>
-          ) : <span />}
         </div>
 
         {/* Action row */}
@@ -545,21 +439,51 @@ function SwipeableCard({
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
-          <Select
-            value={app.status}
-            onValueChange={(status) => onChangeStatus(app.id, status)}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 ml-auto gap-1 px-2 text-[11px]"
+            onClick={(e) => { e.stopPropagation(); setShowStatusPicker(!showStatusPicker) }}
           >
-            <SelectTrigger className="h-7 ml-auto w-auto gap-1 px-2 text-[11px] border-0 shadow-none">
-              <span className={cn('w-1.5 h-1.5 rounded-full', STATUS_DOT_COLORS[app.status])} />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ALL_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <span className={cn('w-1.5 h-1.5 rounded-full', STATUS_DOT_COLORS[app.status])} />
+            Move to
+            <ChevronDown className={cn('h-3 w-3 transition-transform', showStatusPicker && 'rotate-180')} />
+          </Button>
         </div>
+
+        {/* Status picker grid */}
+        {showStatusPicker && (
+          <div
+            className="mt-2 pt-2 border-t border-border/50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="grid grid-cols-2 gap-1.5">
+              {ALL_STATUSES.map((s) => {
+                const isCurrent = s === app.status
+                return (
+                  <button
+                    key={s}
+                    disabled={isCurrent}
+                    className={cn(
+                      'flex items-center gap-1.5 px-2.5 py-2 rounded-md text-[11px] font-medium text-left transition-colors',
+                      isCurrent
+                        ? 'bg-muted/60 text-muted-foreground cursor-default'
+                        : 'bg-muted/30 hover:bg-muted active:bg-muted/80',
+                    )}
+                    onClick={() => {
+                      onChangeStatus(app.id, s)
+                      setShowStatusPicker(false)
+                    }}
+                  >
+                    <span className={cn('w-2 h-2 rounded-full shrink-0', STATUS_DOT_COLORS[s])} />
+                    <span className="truncate">{s.replace(/_/g, ' ')}</span>
+                    {isCurrent && <span className="ml-auto text-[9px] text-muted-foreground/70">current</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -599,11 +523,9 @@ function MobileKanbanView({
 
   return (
     <div className="space-y-3">
-      {/* Swipe instruction */}
+      {/* Instruction */}
       <div className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground bg-muted/30 rounded-lg">
-        <ChevronLeft className="h-3.5 w-3.5" />
-        <span>Swipe cards to change status</span>
-        <ChevronRight className="h-3.5 w-3.5" />
+        <span>Tap "Move to" on a card to change its stage</span>
       </div>
 
       {groups.map(({ status, items }) => {
