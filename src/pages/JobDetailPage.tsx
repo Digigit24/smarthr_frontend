@@ -367,13 +367,12 @@ export default function JobDetailPage() {
           <TabsTrigger value="applications">
             Applications ({applicationsData?.count ?? 0})
           </TabsTrigger>
+          <TabsTrigger value="voice-config">Voice Configuration</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-5 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            {/* Left column - details */}
-            <div className="space-y-5">
+          <div className="space-y-5">
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
@@ -442,61 +441,60 @@ export default function JobDetailPage() {
                   <p className="text-sm whitespace-pre-wrap">{job.requirements}</p>
                 </CardContent>
               </Card>
-            </div>
-
-            {/* Right column - voice config & actions */}
-            <div className="space-y-5">
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Bot className="h-4 w-4 text-violet-500" />
-                      Voice Configuration
-                    </CardTitle>
-                    <Button variant="outline" size="sm" onClick={() => setVoiceConfigOpen(true)}>
-                      Configure
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {job.voice_agent_id ? (
-                    <div className="text-sm space-y-1.5">
-                      <div>
-                        <span className="text-muted-foreground text-xs">Agent: </span>
-                        <span className="font-medium">{agentData?.name || job.voice_agent_id}</span>
-                      </div>
-                      {job.voice_agent_provider && (
-                        <div>
-                          <span className="text-muted-foreground text-xs">Provider: </span>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 rounded-full text-[11px] font-medium">
-                            <Bot className="h-3 w-3" />
-                            {job.voice_agent_provider}
-                          </span>
-                        </div>
-                      )}
-                      {job.voice_agent_config?.auto_shortlist_threshold != null && (
-                        <div className="text-[13px] text-muted-foreground">
-                          {"Shortlist >= "}{job.voice_agent_config.auto_shortlist_threshold}{" / "}
-                          {"Reject <= "}{job.voice_agent_config.auto_reject_threshold}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-[13px] text-muted-foreground">No voice agent configured</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={() => navigate(`/call-queues?job_id=${job.id}&voice_agent_id=${job.voice_agent_id || ''}`)}
-              >
-                <ListChecks className="h-4 w-4" />
-                Create AI Call Queue for this Job
-              </Button>
-            </div>
           </div>
+        </TabsContent>
+
+        {/* Voice Configuration Tab */}
+        <TabsContent value="voice-config" className="space-y-5 mt-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Bot className="h-4 w-4 text-violet-500" />
+                  Voice Configuration
+                </CardTitle>
+                <Button variant="outline" size="sm" onClick={() => setVoiceConfigOpen(true)}>
+                  Configure
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {job.voice_agent_id ? (
+                <div className="text-sm space-y-1.5">
+                  <div>
+                    <span className="text-muted-foreground text-xs">Agent: </span>
+                    <span className="font-medium">{agentData?.name || job.voice_agent_id}</span>
+                  </div>
+                  {job.voice_agent_provider && (
+                    <div>
+                      <span className="text-muted-foreground text-xs">Provider: </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 rounded-full text-[11px] font-medium">
+                        <Bot className="h-3 w-3" />
+                        {job.voice_agent_provider}
+                      </span>
+                    </div>
+                  )}
+                  {job.voice_agent_config?.auto_shortlist_threshold != null && (
+                    <div className="text-[13px] text-muted-foreground">
+                      {"Shortlist >= "}{job.voice_agent_config.auto_shortlist_threshold}{" / "}
+                      {"Reject <= "}{job.voice_agent_config.auto_reject_threshold}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[13px] text-muted-foreground">No voice agent configured</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => navigate(`/call-queues?job_id=${job.id}&voice_agent_id=${job.voice_agent_id || ''}`)}
+          >
+            <ListChecks className="h-4 w-4" />
+            Create AI Call Queue for this Job
+          </Button>
         </TabsContent>
 
         {/* Applications Tab */}
