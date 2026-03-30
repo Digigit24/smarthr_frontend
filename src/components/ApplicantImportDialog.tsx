@@ -46,6 +46,7 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
   const [fields, setFields] = useState<Record<string, string>>({})
   const [mapping, setMapping] = useState<Record<string, string>>({})
   const [result, setResult] = useState<ImportResponse | null>(null)
+  const [includeUnmapped, setIncludeUnmapped] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const reset = () => {
@@ -55,6 +56,7 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
     setFields({})
     setMapping({})
     setResult(null)
+    setIncludeUnmapped(true)
     setIsUploading(false)
     setIsImporting(false)
   }
@@ -89,16 +91,20 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
       ])
       setFields(fieldsRes.fields)
       setPreview(previewRes)
-      // Auto-map columns that exactly match field labels (case-insensitive)
+      // Use backend suggested_mapping, fall back to client-side label matching
       const autoMapping: Record<string, string> = {}
-      const labelToKey: Record<string, string> = {}
-      for (const [key, label] of Object.entries(fieldsRes.fields) as [string, string][]) {
-        labelToKey[label.toLowerCase()] = key
-        labelToKey[key.toLowerCase()] = key
-      }
-      for (const col of previewRes.columns) {
-        const match = labelToKey[col.toLowerCase()]
-        if (match) autoMapping[col] = match
+      if (previewRes.suggested_mapping && Object.keys(previewRes.suggested_mapping).length > 0) {
+        Object.assign(autoMapping, previewRes.suggested_mapping)
+      } else {
+        const labelToKey: Record<string, string> = {}
+        for (const [key, label] of Object.entries(fieldsRes.fields) as [string, string][]) {
+          labelToKey[label.toLowerCase()] = key
+          labelToKey[key.toLowerCase()] = key
+        }
+        for (const col of previewRes.columns) {
+          const match = labelToKey[col.toLowerCase()]
+          if (match) autoMapping[col] = match
+        }
       }
       setMapping(autoMapping)
       setStep('map')
@@ -120,7 +126,7 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
     }
     setIsImporting(true)
     try {
-      const res = await applicantsService.importApplicants(file, activeMappings)
+      const res = await applicantsService.importApplicants(file, activeMappings, includeUnmapped)
       setResult(res)
       setStep('result')
       onImportComplete()
@@ -233,7 +239,7 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
           {step === 'map' && preview && (
             <div className="space-y-3 sm:space-y-4 py-2">
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {preview.columns.length} columns found. Map each to an applicant field. Unmapped columns are skipped.
+                {preview.columns.length} columns found. Map each to an applicant field.
               </p>
 
               {/* Desktop: table layout */}
@@ -337,10 +343,21 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
                 })}
               </div>
 
-              <p className="text-[10px] sm:text-[11px] text-muted-foreground">
-                <MapPin className="h-3 w-3 inline mr-1" />
-                {Object.values(mapping).filter(v => v && v !== '__skip__').length} of {preview.columns.length} columns mapped
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground">
+                  <MapPin className="h-3 w-3 inline mr-1" />
+                  {Object.values(mapping).filter(v => v && v !== '__skip__').length} of {preview.columns.length} columns mapped
+                </p>
+                <label className="flex items-center gap-2 text-[10px] sm:text-[11px] text-muted-foreground cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={includeUnmapped}
+                    onChange={(e) => setIncludeUnmapped(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  Save unmapped columns as custom data
+                </label>
+              </div>
             </div>
           )}
 

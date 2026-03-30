@@ -180,6 +180,7 @@ export interface ApplicantListItem {
   current_role: string
   current_company: string
   tags: string[]
+  custom_fields: Record<string, unknown>
   created_at: string
 }
 
@@ -211,6 +212,7 @@ export interface ApplicantDetail {
   notes: string
   source: ApplicantSource
   tags: string[]
+  custom_fields: Record<string, unknown>
   created_at: string
   updated_at: string
   applications: ApplicantApplication[]

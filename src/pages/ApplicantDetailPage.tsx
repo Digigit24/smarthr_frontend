@@ -593,6 +593,28 @@ export default function ApplicantDetailPage() {
               </Card>
             )}
 
+            {/* Custom Fields */}
+            {applicant.custom_fields && Object.keys(applicant.custom_fields).length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-purple-500" />
+                    Additional Info
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    {Object.entries(applicant.custom_fields).map(([key, value]) => (
+                      <div key={key}>
+                        <p className="text-xs text-muted-foreground mb-0.5">{key}</p>
+                        <p className="font-medium">{value != null ? String(value) : '—'}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Applications */}
             <Card>
               <CardHeader className="pb-3">
