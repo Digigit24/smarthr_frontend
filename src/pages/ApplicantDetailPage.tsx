@@ -7,7 +7,7 @@ import { z } from 'zod'
 import {
   ArrowLeft, Mail, Phone, Briefcase, MapPin, Star, Loader2,
   Pencil, Trash2, SendHorizonal, ExternalLink, FileText,
-  Calendar, Clock, Award, Tag, Link2, User,
+  Calendar, Clock, Award, Tag, Link2, User, Plus, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -177,6 +177,7 @@ export default function ApplicantDetailPage() {
   const [searchParams] = useSearchParams()
   const qc = useQueryClient()
   const [editing, setEditing] = useState(searchParams.get('edit') === 'true')
+  const [customFields, setCustomFields] = useState<{ key: string; value: string }[]>([])
 
   const { data: applicant, isLoading } = useQuery({
     queryKey: ['applicant-detail', id],
@@ -240,10 +241,15 @@ export default function ApplicantDetailPage() {
   }
 
   const onSubmit = (data: ApplicantFormInput) => {
+    const cfObj: Record<string, string> = {}
+    for (const { key, value } of customFields) {
+      if (key.trim()) cfObj[key.trim()] = value
+    }
     updateMutation.mutate({
       ...data,
       phone: data.phone || '',
       skills: data.skills ? data.skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
+      custom_fields: cfObj,
     })
   }
 
@@ -325,7 +331,14 @@ export default function ApplicantDetailPage() {
             <div className="flex items-center gap-2 ml-auto sm:ml-0 shrink-0">
               {!editing ? (
                 <>
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setEditing(true)}>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => {
+                    setCustomFields(
+                      applicant.custom_fields
+                        ? Object.entries(applicant.custom_fields).map(([k, v]) => ({ key: k, value: String(v ?? '') }))
+                        : []
+                    )
+                    setEditing(true)
+                  }}>
                     <Pencil className="h-3.5 w-3.5 mr-1.5" />
                     Edit
                   </Button>
@@ -432,6 +445,61 @@ export default function ApplicantDetailPage() {
               <div className="space-y-1.5">
                 <Label>Notes</Label>
                 <Textarea rows={3} {...register('notes')} />
+              </div>
+
+              {/* Custom Fields */}
+              <div className="space-y-2 pt-2 border-t">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Custom Fields</Label>
+                  <span className="text-[10px] text-muted-foreground">{customFields.length}/20</span>
+                </div>
+                {customFields.map((cf, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Input
+                      className="h-8 text-xs flex-1"
+                      placeholder="Field name"
+                      maxLength={100}
+                      value={cf.key}
+                      onChange={(e) => {
+                        const next = [...customFields]
+                        next[idx] = { ...next[idx], key: e.target.value }
+                        setCustomFields(next)
+                      }}
+                    />
+                    <Input
+                      className="h-8 text-xs flex-1"
+                      placeholder="Value"
+                      maxLength={1000}
+                      value={cf.value}
+                      onChange={(e) => {
+                        const next = [...customFields]
+                        next[idx] = { ...next[idx], value: e.target.value }
+                        setCustomFields(next)
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => setCustomFields(customFields.filter((_, i) => i !== idx))}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+                {customFields.length < 20 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => setCustomFields([...customFields, { key: '', value: '' }])}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add Custom Field
+                  </Button>
+                )}
               </div>
             </form>
           </CardContent>
@@ -599,14 +667,16 @@ export default function ApplicantDetailPage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <FileText className="h-4 w-4 text-purple-500" />
-                    Additional Info
+                    Additional Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                     {Object.entries(applicant.custom_fields).map(([key, value]) => (
                       <div key={key}>
-                        <p className="text-xs text-muted-foreground mb-0.5">{key}</p>
+                        <p className="text-xs text-muted-foreground mb-0.5">
+                          {key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                        </p>
                         <p className="font-medium">{value != null ? String(value) : '—'}</p>
                       </div>
                     ))}

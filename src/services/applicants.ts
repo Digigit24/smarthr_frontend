@@ -59,11 +59,10 @@ export const applicantsService = {
     }).then(res => res.data)
   },
 
-  importApplicants: (file: File, mapping: Record<string, string>, includeUnmapped = true) => {
+  importApplicants: (file: File, mapping: Record<string, string>) => {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('mapping', JSON.stringify(mapping))
-    formData.append('include_unmapped', String(includeUnmapped))
     return api.post<ImportResponse>('/applicants/import/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(res => res.data)

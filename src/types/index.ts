@@ -233,6 +233,7 @@ export interface ApplicantFormData {
   notes?: string
   source: ApplicantSource
   tags?: string[]
+  custom_fields?: Record<string, string>
 }
 
 // ─── Pipeline ────────────────────────────────────────────────────────────────

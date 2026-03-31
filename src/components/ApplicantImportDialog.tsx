@@ -6,6 +6,7 @@ import {
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,14 @@ import {
 
 type Step = 'upload' | 'map' | 'result'
 
+const MAX_CUSTOM_FIELDS = 20
+const MAX_CUSTOM_KEY_LENGTH = 100
+
+interface ColumnMapping {
+  type: 'skip' | 'field' | 'custom'
+  value: string // field key or custom key name
+}
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -44,9 +53,8 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
   const [isImporting, setIsImporting] = useState(false)
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null)
   const [fields, setFields] = useState<Record<string, string>>({})
-  const [mapping, setMapping] = useState<Record<string, string>>({})
+  const [columnMappings, setColumnMappings] = useState<Record<string, ColumnMapping>>({})
   const [result, setResult] = useState<ImportResponse | null>(null)
-  const [includeUnmapped, setIncludeUnmapped] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const reset = () => {
@@ -54,9 +62,8 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
     setFile(null)
     setPreview(null)
     setFields({})
-    setMapping({})
+    setColumnMappings({})
     setResult(null)
-    setIncludeUnmapped(true)
     setIsUploading(false)
     setIsImporting(false)
   }
@@ -91,11 +98,19 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
       ])
       setFields(fieldsRes.fields)
       setPreview(previewRes)
-      // Use backend suggested_mapping, fall back to client-side label matching
-      const autoMapping: Record<string, string> = {}
-      if (previewRes.suggested_mapping && Object.keys(previewRes.suggested_mapping).length > 0) {
-        Object.assign(autoMapping, previewRes.suggested_mapping)
+
+      // Build initial mappings from backend suggested_mapping, fall back to label matching
+      const initial: Record<string, ColumnMapping> = {}
+      const suggested = previewRes.suggested_mapping || {}
+
+      if (Object.keys(suggested).length > 0) {
+        for (const col of previewRes.columns) {
+          if (suggested[col] && fieldsRes.fields[suggested[col]]) {
+            initial[col] = { type: 'field', value: suggested[col] }
+          }
+        }
       } else {
+        // Client-side fallback: match by label
         const labelToKey: Record<string, string> = {}
         for (const [key, label] of Object.entries(fieldsRes.fields) as [string, string][]) {
           labelToKey[label.toLowerCase()] = key
@@ -103,10 +118,11 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
         }
         for (const col of previewRes.columns) {
           const match = labelToKey[col.toLowerCase()]
-          if (match) autoMapping[col] = match
+          if (match) initial[col] = { type: 'field', value: match }
         }
       }
-      setMapping(autoMapping)
+
+      setColumnMappings(initial)
       setStep('map')
     } catch (err) {
       toast.error(extractApiError(err, 'Failed to preview file'))
@@ -115,18 +131,55 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
     }
   }
 
+  // Count custom fields currently mapped
+  const customFieldCount = Object.values(columnMappings).filter(m => m.type === 'custom' && m.value).length
+
+  // Standard fields already used by other columns
+  const usedFields = new Set(
+    Object.values(columnMappings)
+      .filter(m => m.type === 'field')
+      .map(m => m.value)
+  )
+
+  const updateColumnMapping = (column: string, type: ColumnMapping['type'], value: string) => {
+    setColumnMappings(prev => {
+      const next = { ...prev }
+      if (type === 'skip') {
+        delete next[column]
+      } else {
+        next[column] = { type, value }
+      }
+      return next
+    })
+  }
+
+  // Build the API mapping object: { "Col": "field_key" | "custom:key_name" }
+  const buildApiMapping = (): Record<string, string> => {
+    const result: Record<string, string> = {}
+    for (const [col, m] of Object.entries(columnMappings)) {
+      if (m.type === 'field' && m.value) {
+        result[col] = m.value
+      } else if (m.type === 'custom' && m.value) {
+        result[col] = `custom:${m.value}`
+      }
+    }
+    return result
+  }
+
+  const activeMappingCount = Object.values(columnMappings).filter(
+    m => (m.type === 'field' || m.type === 'custom') && m.value
+  ).length
+
   const handleImport = async () => {
     if (!file) return
-    const activeMappings = Object.fromEntries(
-      Object.entries(mapping).filter(([, v]) => v && v !== '__skip__')
-    ) as Record<string, string>
-    if (Object.keys(activeMappings).length === 0) {
+    const apiMapping = buildApiMapping()
+    if (Object.keys(apiMapping).length === 0) {
       toast.error('Map at least one column before importing')
       return
     }
     setIsImporting(true)
     try {
-      const res = await applicantsService.importApplicants(file, activeMappings, includeUnmapped)
+      const res = await applicantsService.importApplicants(file, apiMapping)
       setResult(res)
       setStep('result')
       onImportComplete()
@@ -137,20 +190,71 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
     }
   }
 
-  const updateMapping = (column: string, fieldKey: string) => {
-    setMapping(prev => {
-      const next = { ...prev }
-      if (fieldKey === '__skip__' || !fieldKey) {
-        delete next[column]
-      } else {
-        next[column] = fieldKey
-      }
-      return next
-    })
+  // Determine the select value for a column
+  const getSelectValue = (col: string): string => {
+    const m = columnMappings[col]
+    if (!m) return '__skip__'
+    if (m.type === 'field') return m.value
+    if (m.type === 'custom') return '__custom__'
+    return '__skip__'
   }
 
-  // Fields already mapped by other columns
-  const usedFields = new Set(Object.values(mapping).filter(v => v && v !== '__skip__'))
+  const handleSelectChange = (col: string, value: string) => {
+    if (value === '__skip__') {
+      updateColumnMapping(col, 'skip', '')
+    } else if (value === '__custom__') {
+      updateColumnMapping(col, 'custom', '')
+    } else {
+      updateColumnMapping(col, 'field', value)
+    }
+  }
+
+  const renderFieldSelect = (col: string) => {
+    const selectVal = getSelectValue(col)
+    const currentMapping = columnMappings[col]
+    const isCustom = currentMapping?.type === 'custom'
+    const customKeysTaken = isCustom ? customFieldCount - (currentMapping.value ? 1 : 0) : customFieldCount
+    const customLimitReached = customKeysTaken >= MAX_CUSTOM_FIELDS
+
+    return (
+      <div className="flex flex-col gap-1.5">
+        <Select value={selectVal} onValueChange={(v) => handleSelectChange(col, v)}>
+          <SelectTrigger className="h-8 text-xs w-full">
+            <SelectValue placeholder="Skip" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__skip__">
+              <span className="text-muted-foreground">-- Skip --</span>
+            </SelectItem>
+            {Object.entries(fields).map(([key, label]) => (
+              <SelectItem
+                key={key}
+                value={key}
+                disabled={usedFields.has(key) && selectVal !== key}
+              >
+                {label}
+              </SelectItem>
+            ))}
+            <SelectItem value="__custom__" disabled={!isCustom && customLimitReached}>
+              Custom Field{customLimitReached && !isCustom ? ' (limit reached)' : ''}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        {isCustom && (
+          <Input
+            className="h-8 text-xs"
+            placeholder="e.g. expected_salary"
+            maxLength={MAX_CUSTOM_KEY_LENGTH}
+            value={currentMapping.value}
+            onChange={(e) => {
+              const key = e.target.value.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase()
+              updateColumnMapping(col, 'custom', key)
+            }}
+          />
+        )}
+      </div>
+    )
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -239,7 +343,7 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
           {step === 'map' && preview && (
             <div className="space-y-3 sm:space-y-4 py-2">
               <p className="text-[10px] sm:text-xs text-muted-foreground">
-                {preview.columns.length} columns found. Map each to an applicant field.
+                {preview.columns.length} columns found. Map each to a standard field, custom field, or skip.
               </p>
 
               {/* Desktop: table layout */}
@@ -258,7 +362,6 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
                         .map(row => row[col])
                         .filter(v => v != null && v !== '')
                         .slice(0, 2)
-                      const currentMapping = mapping[col] || ''
                       return (
                         <tr key={col} className="hover:bg-muted/30">
                           <td className="px-3 py-2 font-medium text-xs">{col}</td>
@@ -270,28 +373,7 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
                             )}
                           </td>
                           <td className="px-3 py-2">
-                            <Select
-                              value={currentMapping || '__skip__'}
-                              onValueChange={(v) => updateMapping(col, v)}
-                            >
-                              <SelectTrigger className="h-8 text-xs w-full">
-                                <SelectValue placeholder="Skip" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__skip__">
-                                  <span className="text-muted-foreground">— Skip —</span>
-                                </SelectItem>
-                                {Object.entries(fields).map(([key, label]) => (
-                                  <SelectItem
-                                    key={key}
-                                    value={key}
-                                    disabled={usedFields.has(key) && currentMapping !== key}
-                                  >
-                                    {label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            {renderFieldSelect(col)}
                           </td>
                         </tr>
                       )
@@ -307,7 +389,6 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
                     .map(row => row[col])
                     .filter(v => v != null && v !== '')
                     .slice(0, 2)
-                  const currentMapping = mapping[col] || ''
                   return (
                     <div key={col} className="border rounded-lg p-2.5 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
@@ -316,47 +397,22 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
                           <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{sampleValues.map(String).join(', ')}</p>
                         )}
                       </div>
-                      <Select
-                        value={currentMapping || '__skip__'}
-                        onValueChange={(v) => updateMapping(col, v)}
-                      >
-                        <SelectTrigger className="h-8 text-xs w-full">
-                          <SelectValue placeholder="Skip" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__skip__">
-                            <span className="text-muted-foreground">— Skip —</span>
-                          </SelectItem>
-                          {Object.entries(fields).map(([key, label]) => (
-                            <SelectItem
-                              key={key}
-                              value={key}
-                              disabled={usedFields.has(key) && currentMapping !== key}
-                            >
-                              {label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {renderFieldSelect(col)}
                     </div>
                   )
                 })}
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
                 <p className="text-[10px] sm:text-[11px] text-muted-foreground">
                   <MapPin className="h-3 w-3 inline mr-1" />
-                  {Object.values(mapping).filter(v => v && v !== '__skip__').length} of {preview.columns.length} columns mapped
+                  {activeMappingCount} of {preview.columns.length} columns mapped
                 </p>
-                <label className="flex items-center gap-2 text-[10px] sm:text-[11px] text-muted-foreground cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={includeUnmapped}
-                    onChange={(e) => setIncludeUnmapped(e.target.checked)}
-                    className="rounded border-border"
-                  />
-                  Save unmapped columns as custom data
-                </label>
+                {customFieldCount > 0 && (
+                  <p className="text-[10px] sm:text-[11px] text-muted-foreground">
+                    {customFieldCount}/{MAX_CUSTOM_FIELDS} custom fields used
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -446,7 +502,7 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
               </Button>
               <Button
                 onClick={handleImport}
-                disabled={isImporting || Object.values(mapping).filter(v => v && v !== '__skip__').length === 0}
+                disabled={isImporting || activeMappingCount === 0}
               >
                 {isImporting ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
