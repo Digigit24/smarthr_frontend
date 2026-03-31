@@ -249,7 +249,7 @@ export default function JobsPage() {
           <Input placeholder="Search jobs..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter || 'ALL'} onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}>
-          <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-40"><SelectValue placeholder="All statuses" /></SelectTrigger>
+          <SelectTrigger className="w-full min-[400px]:w-40"><SelectValue placeholder="All statuses" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All statuses</SelectItem>
             <SelectItem value="DRAFT">Draft</SelectItem>
@@ -259,7 +259,7 @@ export default function JobsPage() {
           </SelectContent>
         </Select>
         <Select value={jobTypeFilter || 'ALL'} onValueChange={(v) => setJobTypeFilter(v === 'ALL' ? '' : v)}>
-          <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-40"><SelectValue placeholder="All types" /></SelectTrigger>
+          <SelectTrigger className="w-full min-[400px]:w-40"><SelectValue placeholder="All types" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All types</SelectItem>
             <SelectItem value="FULL_TIME">Full Time</SelectItem>
@@ -269,7 +269,7 @@ export default function JobsPage() {
           </SelectContent>
         </Select>
         <Select value={expLevelFilter || 'ALL'} onValueChange={(v) => setExpLevelFilter(v === 'ALL' ? '' : v)}>
-          <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-40"><SelectValue placeholder="All levels" /></SelectTrigger>
+          <SelectTrigger className="w-full min-[400px]:w-40"><SelectValue placeholder="All levels" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All levels</SelectItem>
             <SelectItem value="ENTRY">Entry</SelectItem>
@@ -279,7 +279,7 @@ export default function JobsPage() {
           </SelectContent>
         </Select>
         <Select value={ordering} onValueChange={setOrdering}>
-          <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-44"><SelectValue placeholder="Sort by" /></SelectTrigger>
+          <SelectTrigger className="w-full min-[400px]:w-44"><SelectValue placeholder="Sort by" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="-created_at">Newest first</SelectItem>
             <SelectItem value="created_at">Oldest first</SelectItem>

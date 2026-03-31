@@ -866,7 +866,7 @@ export default function ApplicationsPage() {
           value={statusFilter || 'ALL'}
           onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}
         >
-          <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-48">
+          <SelectTrigger className="w-full min-[400px]:w-48">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -877,7 +877,7 @@ export default function ApplicationsPage() {
           </SelectContent>
         </Select>
         <Select value={ordering} onValueChange={setOrdering}>
-          <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-44">
+          <SelectTrigger className="w-full min-[400px]:w-44">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>

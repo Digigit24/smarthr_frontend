@@ -87,7 +87,7 @@ function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Trigger AI Call</DialogTitle>
         </DialogHeader>
@@ -269,7 +269,7 @@ export default function CallsPage() {
           <Input placeholder="Search by phone..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter || 'ALL'} onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}>
-          <SelectTrigger className="w-[calc(50%-4px)] min-[400px]:w-44">
+          <SelectTrigger className="w-full min-[400px]:w-44">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -280,7 +280,7 @@ export default function CallsPage() {
           </SelectContent>
         </Select>
         <Select value={providerFilter || 'ALL'} onValueChange={(v) => setProviderFilter(v === 'ALL' ? '' : v)}>
-          <SelectTrigger className="w-[calc(50%-4px)] min-[400px]:w-40">
+          <SelectTrigger className="w-full min-[400px]:w-40">
             <SelectValue placeholder="All providers" />
           </SelectTrigger>
           <SelectContent>
@@ -333,7 +333,7 @@ export default function CallsPage() {
           {/* Desktop Table View */}
           <Card className="hidden sm:block">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm" style={{ minWidth: 750 }}>
+              <table className="w-full text-sm" style={{ minWidth: 650 }}>
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Phone</th>

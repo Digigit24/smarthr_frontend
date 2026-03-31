@@ -125,7 +125,7 @@ function VoiceConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Configure Voice Agent</DialogTitle>
         </DialogHeader>
@@ -513,7 +513,7 @@ export default function JobDetailPage() {
               value={appStatusFilter || 'ALL'}
               onValueChange={(v) => setAppStatusFilter(v === 'ALL' ? '' : v)}
             >
-              <SelectTrigger className="w-[calc(50%-6px)] min-[400px]:w-48">
+              <SelectTrigger className="w-full min-[400px]:w-48">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -588,7 +588,7 @@ export default function JobDetailPage() {
             {/* Desktop table view */}
             <Card className="hidden sm:block">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm" style={{ minWidth: 700 }}>
+                <table className="w-full text-sm" style={{ minWidth: 600 }}>
                   <thead>
                     <tr className="border-b bg-muted/50">
                       <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Applicant</th>

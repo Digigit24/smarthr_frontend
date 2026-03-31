@@ -242,7 +242,7 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
         </Select>
         {isCustom && (
           <Input
-            className="h-8 text-xs"
+            className="h-9 sm:h-8 text-xs"
             placeholder="e.g. expected_salary"
             maxLength={MAX_CUSTOM_KEY_LENGTH}
             value={currentMapping.value}

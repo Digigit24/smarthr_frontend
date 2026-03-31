@@ -454,9 +454,9 @@ export default function ApplicantDetailPage() {
                   <span className="text-[10px] text-muted-foreground">{customFields.length}/20</span>
                 </div>
                 {customFields.map((cf, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
+                  <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2">
                     <Input
-                      className="h-8 text-xs flex-1"
+                      className="h-9 text-xs flex-1"
                       placeholder="Field name"
                       maxLength={100}
                       value={cf.key}
@@ -466,26 +466,28 @@ export default function ApplicantDetailPage() {
                         setCustomFields(next)
                       }}
                     />
-                    <Input
-                      className="h-8 text-xs flex-1"
-                      placeholder="Value"
-                      maxLength={1000}
-                      value={cf.value}
-                      onChange={(e) => {
-                        const next = [...customFields]
-                        next[idx] = { ...next[idx], value: e.target.value }
-                        setCustomFields(next)
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => setCustomFields(customFields.filter((_, i) => i !== idx))}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-1">
+                      <Input
+                        className="h-9 text-xs flex-1"
+                        placeholder="Value"
+                        maxLength={1000}
+                        value={cf.value}
+                        onChange={(e) => {
+                          const next = [...customFields]
+                          next[idx] = { ...next[idx], value: e.target.value }
+                          setCustomFields(next)
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => setCustomFields(customFields.filter((_, i) => i !== idx))}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
                 {customFields.length < 20 && (
