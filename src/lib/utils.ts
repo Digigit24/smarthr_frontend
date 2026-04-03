@@ -50,6 +50,41 @@ export function getTimeBasedGreeting(): string {
   return 'Good Night'
 }
 
+/**
+ * Normalize a phone number:
+ * - Strip trailing ".0" (Excel float artifact)
+ * - Strip non-digit characters except leading +
+ * - Prepend +91 if no country code present
+ */
+export function normalizePhone(phone: string | null | undefined): string {
+  if (!phone) return ''
+  let p = String(phone).trim()
+  // Remove Excel float suffix like ".0"
+  p = p.replace(/\.0$/, '')
+  // If it already starts with +, keep it as-is after cleaning
+  if (p.startsWith('+')) {
+    return '+' + p.slice(1).replace(/[^0-9]/g, '')
+  }
+  // Strip all non-digits
+  p = p.replace(/[^0-9]/g, '')
+  if (!p) return ''
+  // If it already has country code (starts with 91 and is 12 digits), add +
+  if (p.startsWith('91') && p.length === 12) {
+    return '+' + p
+  }
+  // Otherwise prepend +91
+  return '+91' + p
+}
+
+/**
+ * Format phone for WhatsApp wa.me link (digits only, with country code).
+ */
+export function phoneForWhatsApp(phone: string | null | undefined): string {
+  const normalized = normalizePhone(phone)
+  // Strip the + for wa.me URL
+  return normalized.replace(/^\+/, '')
+}
+
 export function extractCursor(url: string | null): string | null {
   if (!url) return null
   try {

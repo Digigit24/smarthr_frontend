@@ -24,7 +24,7 @@ import { applicationsService } from '@/services/applications'
 import { jobsService } from '@/services/jobs'
 import { extractApiError, extractFieldErrors } from '@/lib/apiErrors'
 import type { ApplicantFormData } from '@/types'
-import { cn } from '@/lib/utils'
+import { cn, normalizePhone } from '@/lib/utils'
 
 const STEPS = [
   { label: 'Candidate', icon: User },
@@ -228,7 +228,7 @@ export default function ApplicationJobWizard({
       // Create the applicant
       createApplicantMutation.mutate({
         ...result.data,
-        phone: result.data.phone || '',
+        phone: normalizePhone(result.data.phone),
         skills: result.data.skills ? result.data.skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
       })
       return
@@ -473,11 +473,15 @@ export default function ApplicationJobWizard({
                     </div>
                     <div className="space-y-1.5">
                       <Label>Phone</Label>
-                      <Input
-                        placeholder="+1 415 555 0001"
-                        value={newApplicant.phone}
-                        onChange={(e) => setNewApplicant({ ...newApplicant, phone: e.target.value })}
-                      />
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">+91</span>
+                        <Input
+                          className="rounded-l-none"
+                          placeholder="8767514691"
+                          value={newApplicant.phone}
+                          onChange={(e) => setNewApplicant({ ...newApplicant, phone: e.target.value })}
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

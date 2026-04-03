@@ -27,7 +27,7 @@ import { applicantsService } from '@/services/applicants'
 import { applicationsService } from '@/services/applications'
 import { jobsService } from '@/services/jobs'
 import type { ApplicantFormData } from '@/types'
-import { formatDate, getInitials, cn } from '@/lib/utils'
+import { formatDate, getInitials, cn, normalizePhone, phoneForWhatsApp } from '@/lib/utils'
 import { extractApiError } from '@/lib/apiErrors'
 
 const APP_STATUS_COLORS: Record<string, string> = {
@@ -248,7 +248,7 @@ export default function ApplicantDetailPage() {
     }
     updateMutation.mutate({
       ...data,
-      phone: data.phone || '',
+      phone: normalizePhone(data.phone),
       skills: data.skills ? data.skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
       custom_fields: cfObj,
     })
@@ -319,9 +319,9 @@ export default function ApplicantDetailPage() {
                   {applicant.phone && (
                     <span className="flex items-center gap-1">
                       <Phone className="h-3.5 w-3.5" />
-                      {applicant.phone}
+                      {normalizePhone(applicant.phone)}
                       <a
-                        href={`https://wa.me/${applicant.phone.replace(/[^0-9]/g, '')}`}
+                        href={`https://wa.me/${phoneForWhatsApp(applicant.phone)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Chat on WhatsApp"
@@ -408,7 +408,10 @@ export default function ApplicantDetailPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Phone</Label>
-                  <Input {...register('phone')} />
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">+91</span>
+                    <Input className="rounded-l-none" placeholder="8767514691" {...register('phone')} />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Source</Label>
@@ -538,10 +541,10 @@ export default function ApplicantDetailPage() {
                   <div>
                     <p className="text-muted-foreground text-xs mb-0.5">Phone</p>
                     <p className="font-medium flex items-center gap-1.5">
-                      {applicant.phone || '—'}
+                      {normalizePhone(applicant.phone) || '—'}
                       {applicant.phone && (
                         <a
-                          href={`https://wa.me/${applicant.phone.replace(/[^0-9]/g, '')}`}
+                          href={`https://wa.me/${phoneForWhatsApp(applicant.phone)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Chat on WhatsApp"

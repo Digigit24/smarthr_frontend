@@ -22,7 +22,7 @@ import {
 import { ApplicantImportDialog } from '@/components/ApplicantImportDialog'
 import { applicantsService } from '@/services/applicants'
 import type { ApplicantListItem } from '@/types'
-import { formatDate, getInitials, cn } from '@/lib/utils'
+import { formatDate, getInitials, cn, normalizePhone, phoneForWhatsApp } from '@/lib/utils'
 
 const SOURCE_COLORS: Record<string, { bg: string; dot: string }> = {
   MANUAL: { bg: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700', dot: 'bg-gray-400' },
@@ -50,16 +50,17 @@ function getAvatarGradient(name: string) {
 function WhatsAppButton({ phone, size = 'sm' }: { phone: string; size?: 'sm' | 'md' }) {
   const sizeClass = size === 'md' ? 'h-8 w-8' : 'h-7 w-7'
   const iconClass = size === 'md' ? 'h-4 w-4' : 'h-3.5 w-3.5'
+  const waNumber = phoneForWhatsApp(phone)
   return (
     <a
-      href={phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}` : '#'}
-      target={phone ? '_blank' : undefined}
+      href={waNumber ? `https://wa.me/${waNumber}` : '#'}
+      target={waNumber ? '_blank' : undefined}
       rel="noopener noreferrer"
       title="Chat on WhatsApp"
       className={`inline-flex items-center justify-center rounded-md text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors ${sizeClass}`}
       onClick={(e) => {
         e.stopPropagation()
-        if (!phone) {
+        if (!waNumber) {
           e.preventDefault()
           toast.error('No phone number available for this applicant')
         }
@@ -132,7 +133,7 @@ function ApplicantCard({
           {applicant.phone && (
             <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
               <Phone className="h-3 w-3 shrink-0" />
-              <span>{applicant.phone}</span>
+              <span>{normalizePhone(applicant.phone)}</span>
             </div>
           )}
         </div>
@@ -476,7 +477,7 @@ export default function ApplicantsPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-[13px] text-muted-foreground whitespace-nowrap">
-                          {applicant.phone || '—'}
+                          {normalizePhone(applicant.phone) || '—'}
                         </td>
                         <td className="px-4 py-3 text-[13px] text-muted-foreground max-w-[180px]">
                           <span className="truncate block">

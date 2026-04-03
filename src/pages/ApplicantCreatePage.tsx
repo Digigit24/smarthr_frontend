@@ -22,7 +22,7 @@ import { applicantsService } from '@/services/applicants'
 import { applyFieldErrors } from '@/lib/apiErrors'
 import ApplicationJobWizard from '@/components/ApplicationJobWizard'
 import type { ApplicantFormData } from '@/types'
-import { cn } from '@/lib/utils'
+import { cn, normalizePhone } from '@/lib/utils'
 
 const applicantSchema = z.object({
   first_name: z.string().min(1, 'First name required'),
@@ -75,7 +75,7 @@ export default function ApplicantCreatePage() {
   const onSubmit = (data: ApplicantFormInput) => {
     createMutation.mutate({
       ...data,
-      phone: data.phone || '',
+      phone: normalizePhone(data.phone),
       skills: data.skills ? data.skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
     })
   }
@@ -161,7 +161,10 @@ export default function ApplicantCreatePage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label>Phone</Label>
-                      <Input placeholder="+1 415 555 0001" {...register('phone')} />
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">+91</span>
+                        <Input className="rounded-l-none" placeholder="8767514691" {...register('phone')} />
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <Label>Source</Label>

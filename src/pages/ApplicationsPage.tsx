@@ -25,7 +25,7 @@ import { applicationsService } from '@/services/applications'
 import type { BulkActionPayload, BulkActionResponse } from '@/services/applications'
 import { callQueuesService } from '@/services/callQueues'
 import type { ApplicationListItem, ApplicationStatus, CallQueue, PaginatedResponse } from '@/types'
-import { formatDate, getInitials, cn } from '@/lib/utils'
+import { formatDate, getInitials, cn, phoneForWhatsApp } from '@/lib/utils'
 
 const STATUS_COLORS: Record<string, string> = {
   APPLIED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -1003,7 +1003,7 @@ export default function ApplicationsPage() {
               </div>
               <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                 <a
-                  href={app.applicant_phone ? `https://wa.me/${app.applicant_phone.replace(/[^0-9]/g, '')}` : '#'}
+                  href={app.applicant_phone ? `https://wa.me/${phoneForWhatsApp(app.applicant_phone)}` : '#'}
                   target={app.applicant_phone ? '_blank' : undefined}
                   rel="noopener noreferrer"
                   title="Chat on WhatsApp"
@@ -1114,7 +1114,7 @@ export default function ApplicationsPage() {
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-0.5">
                         <a
-                          href={app.applicant_phone ? `https://wa.me/${app.applicant_phone.replace(/[^0-9]/g, '')}` : '#'}
+                          href={app.applicant_phone ? `https://wa.me/${phoneForWhatsApp(app.applicant_phone)}` : '#'}
                           target={app.applicant_phone ? '_blank' : undefined}
                           rel="noopener noreferrer"
                           title="Chat on WhatsApp"
