@@ -985,21 +985,7 @@ export default function ApplicationsPage() {
                   <span className="text-[10px] font-bold text-white">{getInitials(app.applicant_name)}</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-semibold truncate">{app.applicant_name}</p>
-                    {app.applicant_phone && (
-                      <a
-                        href={`https://wa.me/${app.applicant_phone.replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Chat on WhatsApp"
-                        className="inline-flex items-center justify-center text-green-600 hover:text-green-700 transition-colors shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <WhatsAppIcon className="h-3.5 w-3.5" />
-                      </a>
-                    )}
-                  </div>
+                  <p className="text-sm font-semibold truncate">{app.applicant_name}</p>
                   <p className="text-xs text-muted-foreground truncate">{app.applicant_email}</p>
                 </div>
                 <ScoreBadge score={app.score} />
@@ -1016,6 +1002,17 @@ export default function ApplicationsPage() {
                 <span className="text-[10px] text-muted-foreground">{formatDate(app.created_at)}</span>
               </div>
               <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                {app.applicant_phone && (
+                  <a
+                    href={`https://wa.me/${app.applicant_phone.replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Chat on WhatsApp"
+                    className="inline-flex items-center justify-center h-7 w-7 rounded-md text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                  >
+                    <WhatsAppIcon className="h-3.5 w-3.5" />
+                  </a>
+                )}
                 <Button variant="ghost" size="icon" className="h-7 w-7" title="View" onClick={() => handleView(app)}>
                   <Eye className="h-3.5 w-3.5" />
                 </Button>
@@ -1087,21 +1084,7 @@ export default function ApplicationsPage() {
                           <span className="text-[10px] font-bold text-white">{getInitials(app.applicant_name)}</span>
                         </div>
                         <div>
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-medium text-[13px]">{app.applicant_name}</p>
-                            {app.applicant_phone && (
-                              <a
-                                href={`https://wa.me/${app.applicant_phone.replace(/[^0-9]/g, '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="Chat on WhatsApp"
-                                className="inline-flex items-center justify-center text-green-600 hover:text-green-700 transition-colors shrink-0"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <WhatsAppIcon className="h-3.5 w-3.5" />
-                              </a>
-                            )}
-                          </div>
+                          <p className="font-medium text-[13px]">{app.applicant_name}</p>
                           <p className="text-[11px] text-muted-foreground">{app.applicant_email}</p>
                         </div>
                       </div>
@@ -1126,6 +1109,17 @@ export default function ApplicationsPage() {
                     </td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-0.5">
+                        {app.applicant_phone && (
+                          <a
+                            href={`https://wa.me/${app.applicant_phone.replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Chat on WhatsApp"
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-md text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                          >
+                            <WhatsAppIcon className="h-4 w-4" />
+                          </a>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"

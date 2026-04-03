@@ -47,18 +47,20 @@ function getAvatarGradient(name: string) {
   return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length]
 }
 
-function WhatsAppButton({ phone }: { phone: string }) {
+function WhatsAppButton({ phone, size = 'sm' }: { phone: string; size?: 'sm' | 'md' }) {
   if (!phone) return null
+  const sizeClass = size === 'md' ? 'h-8 w-8' : 'h-7 w-7'
+  const iconClass = size === 'md' ? 'h-4 w-4' : 'h-3.5 w-3.5'
   return (
     <a
       href={`https://wa.me/${phone.replace(/[^0-9]/g, '')}`}
       target="_blank"
       rel="noopener noreferrer"
       title="Chat on WhatsApp"
-      className="inline-flex items-center justify-center text-green-600 hover:text-green-700 transition-colors"
+      className={`inline-flex items-center justify-center rounded-md text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors ${sizeClass}`}
       onClick={(e) => e.stopPropagation()}
     >
-      <WhatsAppIcon className="h-3.5 w-3.5" />
+      <WhatsAppIcon className={iconClass} />
     </a>
   )
 }
@@ -94,10 +96,7 @@ function ApplicantCard({
               </span>
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <p className="font-semibold text-sm truncate">{applicant.full_name}</p>
-                <WhatsAppButton phone={applicant.phone} />
-              </div>
+              <p className="font-semibold text-sm truncate">{applicant.full_name}</p>
               {applicant.current_role ? (
                 <p className="text-[12px] text-muted-foreground truncate">{applicant.current_role}{applicant.current_company ? ` at ${applicant.current_company}` : ''}</p>
               ) : (
@@ -106,6 +105,7 @@ function ApplicantCard({
             </div>
           </div>
           <div className="flex items-center gap-0.5 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+            <WhatsAppButton phone={applicant.phone} />
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-500" title="View" onClick={onView}>
               <Eye className="h-3.5 w-3.5" />
             </Button>
@@ -391,10 +391,7 @@ export default function ApplicantsPage() {
                       <span className="text-[10px] font-bold text-white">{getInitials(applicant.full_name)}</span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-semibold truncate">{applicant.full_name}</p>
-                        <WhatsAppButton phone={applicant.phone} />
-                      </div>
+                      <p className="text-sm font-semibold truncate">{applicant.full_name}</p>
                       <p className="text-xs text-muted-foreground truncate">{applicant.email}</p>
                     </div>
                   </div>
@@ -412,6 +409,7 @@ export default function ApplicantsPage() {
                     <span className="text-[10px] text-muted-foreground">{formatDate(applicant.created_at)}</span>
                   </div>
                   <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <WhatsAppButton phone={applicant.phone} />
                     <Button variant="ghost" size="icon" className="h-7 w-7" title="View" onClick={() => navigate(`/applicants/${applicant.id}`)}>
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
@@ -457,10 +455,7 @@ export default function ApplicantsPage() {
                               <span className="text-[10px] font-bold text-white">{getInitials(applicant.full_name)}</span>
                             </div>
                             <div>
-                              <div className="flex items-center gap-1.5">
-                                <p className="font-medium text-[13px]">{applicant.full_name}</p>
-                                <WhatsAppButton phone={applicant.phone} />
-                              </div>
+                              <p className="font-medium text-[13px]">{applicant.full_name}</p>
                               <p className="text-[11px] text-muted-foreground">{applicant.email}</p>
                             </div>
                           </div>
@@ -488,6 +483,7 @@ export default function ApplicantsPage() {
                         </td>
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-0.5">
+                            <WhatsAppButton phone={applicant.phone} size="md" />
                             <Button
                               variant="ghost"
                               size="icon"
