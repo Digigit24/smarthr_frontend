@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Search, Users, Mail, Phone, Briefcase, Eye, Pencil,
   Trash2, Loader2, Clock, Award, Tag, Download, Upload,
-  LayoutGrid, LayoutList,
+  LayoutGrid, LayoutList, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
@@ -209,16 +209,26 @@ export default function ApplicantsPage() {
   const [sourceFilter, setSourceFilter] = useState('')
   const [ordering, setOrdering] = useState('-created_at')
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['applicants', search, sourceFilter, ordering],
+    queryKey: ['applicants', search, sourceFilter, ordering, page],
     queryFn: () =>
       applicantsService.list({
         ...(search && { search }),
         ...(sourceFilter && { source: sourceFilter }),
         ordering,
+        page: String(page),
       }),
   })
+
+  const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0
+
+  // Reset to page 1 when filters change
+  const handleSearch = (v: string) => { setSearch(v); setPage(1) }
+  const handleSourceFilter = (v: string) => { setSourceFilter(v === 'ALL' ? '' : v); setPage(1) }
+  const handleOrdering = (v: string) => { setOrdering(v); setPage(1) }
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => applicantsService.delete(id),
@@ -291,12 +301,12 @@ export default function ApplicantsPage() {
             placeholder="Search by name, email..."
             className="pl-9"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
         <Select
           value={sourceFilter || 'ALL'}
-          onValueChange={(v) => setSourceFilter(v === 'ALL' ? '' : v)}
+          onValueChange={handleSourceFilter}
         >
           <SelectTrigger className="w-full min-[400px]:w-40">
             <SelectValue placeholder="All sources" />
@@ -310,7 +320,7 @@ export default function ApplicantsPage() {
             <SelectItem value="IMPORT">Import</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={ordering} onValueChange={setOrdering}>
+        <Select value={ordering} onValueChange={handleOrdering}>
           <SelectTrigger className="w-full min-[400px]:w-44">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
@@ -526,6 +536,52 @@ export default function ApplicantsPage() {
             </div>
           </Card>
         </>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1.5 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 p-0"
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+            .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+              if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis')
+              acc.push(p)
+              return acc
+            }, [])
+            .map((p, idx) =>
+              p === 'ellipsis' ? (
+                <span key={`ellipsis-${idx}`} className="px-1 text-muted-foreground text-sm">...</span>
+              ) : (
+                <Button
+                  key={p}
+                  variant={p === page ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-8 w-8 p-0 text-xs"
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </Button>
+              )
+            )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 p-0"
+            disabled={page === totalPages}
+            onClick={() => setPage(page + 1)}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       )}
 
       <ApplicantImportDialog
