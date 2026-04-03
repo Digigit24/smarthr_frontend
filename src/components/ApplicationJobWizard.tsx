@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import {
   ArrowLeft, ArrowRight, Check, Loader2, UserPlus, Search, User,
-  Briefcase, FileText, ChevronRight, Mail, Building, Plus,
+  Briefcase, FileText, ChevronRight, ChevronLeft, Mail, Building, Plus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -113,11 +113,18 @@ export default function ApplicationJobWizard({
   const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({})
 
   // ── Queries ──
+  const [applicantPage, setApplicantPage] = useState(1)
+
   const { data: applicantsData } = useQuery({
-    queryKey: ['applicants-wizard', applicantSearch],
-    queryFn: () => applicantsService.list({ search: applicantSearch, ordering: 'first_name' }),
+    queryKey: ['applicants-wizard', applicantSearch, applicantPage],
+    queryFn: () => applicantsService.list({ search: applicantSearch, ordering: 'first_name', page: String(applicantPage) }),
     enabled: candidateMode === 'existing',
   })
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setApplicantPage(1)
+  }, [applicantSearch])
 
   const { data: jobsData } = useQuery({
     queryKey: ['jobs-wizard'],
@@ -399,6 +406,36 @@ export default function ApplicationJobWizard({
                       ))
                     )}
                   </div>
+                  {/* Pagination */}
+                  {applicantsData && applicantsData.count > 0 && (applicantsData.next || applicantsData.previous) && (
+                    <div className="flex items-center justify-between pt-2">
+                      <p className="text-xs text-muted-foreground">
+                        Page {applicantPage} of {Math.ceil(applicantsData.count / 20)} ({applicantsData.count} total)
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          disabled={!applicantsData.previous}
+                          onClick={() => setApplicantPage(applicantPage - 1)}
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5 mr-0.5" />
+                          Prev
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          disabled={!applicantsData.next}
+                          onClick={() => setApplicantPage(applicantPage + 1)}
+                        >
+                          Next
+                          <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* New applicant form */
