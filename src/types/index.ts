@@ -260,6 +260,7 @@ export interface ApplicationListItem {
   applicant_id: string
   applicant_name: string
   applicant_email: string
+  applicant_phone: string
   status: ApplicationStatus
   score: string | null
   created_at: string

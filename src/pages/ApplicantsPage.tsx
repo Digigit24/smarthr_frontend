@@ -4,9 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Search, Users, Mail, Phone, Briefcase, Eye, Pencil,
   Trash2, Loader2, Clock, Award, Tag, Download, Upload,
+  LayoutGrid, LayoutList,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
+import { WhatsAppIcon } from '@/components/WhatsAppIcon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -45,6 +47,22 @@ function getAvatarGradient(name: string) {
   return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length]
 }
 
+function WhatsAppButton({ phone }: { phone: string }) {
+  if (!phone) return null
+  return (
+    <a
+      href={`https://wa.me/${phone.replace(/[^0-9]/g, '')}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Chat on WhatsApp"
+      className="inline-flex items-center justify-center text-green-600 hover:text-green-700 transition-colors"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <WhatsAppIcon className="h-3.5 w-3.5" />
+    </a>
+  )
+}
+
 function ApplicantCard({
   applicant,
   onView,
@@ -76,7 +94,10 @@ function ApplicantCard({
               </span>
             </div>
             <div className="min-w-0">
-              <p className="font-semibold text-sm truncate">{applicant.full_name}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="font-semibold text-sm truncate">{applicant.full_name}</p>
+                <WhatsAppButton phone={applicant.phone} />
+              </div>
               {applicant.current_role ? (
                 <p className="text-[12px] text-muted-foreground truncate">{applicant.current_role}{applicant.current_company ? ` at ${applicant.current_company}` : ''}</p>
               ) : (
@@ -182,6 +203,7 @@ export default function ApplicantsPage() {
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
   const [ordering, setOrdering] = useState('-created_at')
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
 
   const { data, isLoading } = useQuery({
     queryKey: ['applicants', search, sourceFilter, ordering],
@@ -256,7 +278,7 @@ export default function ApplicantsPage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters + View Toggle */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -296,9 +318,37 @@ export default function ApplicantsPage() {
             <SelectItem value="experience_years">Least experienced</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* View Toggle */}
+        <div className="flex items-center border rounded-lg overflow-hidden ml-auto">
+          <button
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors',
+              viewMode === 'grid'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background text-muted-foreground hover:bg-muted'
+            )}
+            onClick={() => setViewMode('grid')}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            Grid
+          </button>
+          <button
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors',
+              viewMode === 'table'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background text-muted-foreground hover:bg-muted'
+            )}
+            onClick={() => setViewMode('table')}
+          >
+            <LayoutList className="h-3.5 w-3.5" />
+            Table
+          </button>
+        </div>
       </div>
 
-      {/* Grid */}
+      {/* Content */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -310,7 +360,8 @@ export default function ApplicantsPage() {
           <p className="font-medium">No applicants found</p>
           <p className="text-sm mt-1">Add your first applicant to get started</p>
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
+        /* ── Grid / Card View ── */
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data?.results.map((applicant) => (
             <ApplicantCard
@@ -322,6 +373,158 @@ export default function ApplicantsPage() {
             />
           ))}
         </div>
+      ) : (
+        /* ── Table View ── */
+        <>
+          {/* Mobile card list */}
+          <div className="space-y-3 sm:hidden">
+            {data?.results.map((applicant) => {
+              const source = SOURCE_COLORS[applicant.source] || SOURCE_COLORS.MANUAL
+              return (
+                <Card
+                  key={applicant.id}
+                  className="p-3 cursor-pointer hover:shadow-sm transition-shadow"
+                  onClick={() => navigate(`/applicants/${applicant.id}`)}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className={cn('w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0', getAvatarGradient(applicant.full_name))}>
+                      <span className="text-[10px] font-bold text-white">{getInitials(applicant.full_name)}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-semibold truncate">{applicant.full_name}</p>
+                        <WhatsAppButton phone={applicant.phone} />
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{applicant.email}</p>
+                    </div>
+                  </div>
+                  {applicant.current_role && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <Briefcase className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{applicant.current_role}{applicant.current_company ? ` at ${applicant.current_company}` : ''}</span>
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border', source.bg)}>
+                      <span className={cn('w-1.5 h-1.5 rounded-full', source.dot)} />
+                      {applicant.source}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{formatDate(applicant.created_at)}</span>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" title="View" onClick={() => navigate(`/applicants/${applicant.id}`)}>
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={() => navigate(`/applicants/${applicant.id}?edit=true`)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" title="Delete" onClick={() => handleDelete(applicant.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <Card className="hidden sm:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" style={{ minWidth: 800 }}>
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Applicant</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Phone</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Role</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Source</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Experience</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Added</th>
+                    <th className="px-4 py-2.5 text-left font-medium text-muted-foreground text-[13px]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {data?.results.map((applicant) => {
+                    const source = SOURCE_COLORS[applicant.source] || SOURCE_COLORS.MANUAL
+                    return (
+                      <tr
+                        key={applicant.id}
+                        className="group hover:bg-muted/30 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/applicants/${applicant.id}`)}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className={cn('w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center shrink-0', getAvatarGradient(applicant.full_name))}>
+                              <span className="text-[10px] font-bold text-white">{getInitials(applicant.full_name)}</span>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-medium text-[13px]">{applicant.full_name}</p>
+                                <WhatsAppButton phone={applicant.phone} />
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">{applicant.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-[13px] text-muted-foreground whitespace-nowrap">
+                          {applicant.phone || '—'}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] text-muted-foreground max-w-[180px]">
+                          <span className="truncate block">
+                            {applicant.current_role || '—'}
+                            {applicant.current_role && applicant.current_company ? ` at ${applicant.current_company}` : ''}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border', source.bg)}>
+                            <span className={cn('w-1.5 h-1.5 rounded-full', source.dot)} />
+                            {applicant.source}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-[13px] text-muted-foreground whitespace-nowrap">
+                          {applicant.experience_years > 0 ? `${applicant.experience_years} yrs` : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] text-muted-foreground whitespace-nowrap">
+                          {formatDate(applicant.created_at)}
+                        </td>
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-blue-500"
+                              title="View"
+                              onClick={() => navigate(`/applicants/${applicant.id}`)}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-amber-500"
+                              title="Edit"
+                              onClick={() => navigate(`/applicants/${applicant.id}?edit=true`)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              title="Delete"
+                              onClick={() => handleDelete(applicant.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
       )}
 
       <ApplicantImportDialog

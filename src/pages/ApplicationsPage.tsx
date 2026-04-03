@@ -7,6 +7,7 @@ import {
   GripVertical, Clock, User, Briefcase, Download, ListPlus,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { WhatsAppIcon } from '@/components/WhatsAppIcon'
 import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -984,7 +985,21 @@ export default function ApplicationsPage() {
                   <span className="text-[10px] font-bold text-white">{getInitials(app.applicant_name)}</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold truncate">{app.applicant_name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-semibold truncate">{app.applicant_name}</p>
+                    {app.applicant_phone && (
+                      <a
+                        href={`https://wa.me/${app.applicant_phone.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Chat on WhatsApp"
+                        className="inline-flex items-center justify-center text-green-600 hover:text-green-700 transition-colors shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <WhatsAppIcon className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground truncate">{app.applicant_email}</p>
                 </div>
                 <ScoreBadge score={app.score} />
@@ -1072,7 +1087,21 @@ export default function ApplicationsPage() {
                           <span className="text-[10px] font-bold text-white">{getInitials(app.applicant_name)}</span>
                         </div>
                         <div>
-                          <p className="font-medium text-[13px]">{app.applicant_name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-medium text-[13px]">{app.applicant_name}</p>
+                            {app.applicant_phone && (
+                              <a
+                                href={`https://wa.me/${app.applicant_phone.replace(/[^0-9]/g, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Chat on WhatsApp"
+                                className="inline-flex items-center justify-center text-green-600 hover:text-green-700 transition-colors shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <WhatsAppIcon className="h-3.5 w-3.5" />
+                              </a>
+                            )}
+                          </div>
                           <p className="text-[11px] text-muted-foreground">{app.applicant_email}</p>
                         </div>
                       </div>
