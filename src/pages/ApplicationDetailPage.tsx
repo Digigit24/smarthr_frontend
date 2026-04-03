@@ -8,6 +8,7 @@ import {
   CheckCircle2, XCircle, AlertCircle, Pencil, Check, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { WhatsAppIcon } from '@/components/WhatsAppIcon'
 import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -337,7 +338,20 @@ export default function ApplicationDetailPage() {
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs mb-0.5">Phone</p>
-                  <p className="font-medium">{app.applicant.phone || '—'}</p>
+                  <p className="font-medium flex items-center gap-1.5">
+                    {app.applicant.phone || '—'}
+                    {app.applicant.phone && (
+                      <a
+                        href={`https://wa.me/${app.applicant.phone.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Chat on WhatsApp"
+                        className="inline-flex items-center justify-center text-green-600 hover:text-green-700 transition-colors"
+                      >
+                        <WhatsAppIcon className="h-4 w-4" />
+                      </a>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs mb-0.5">Source</p>
@@ -541,7 +555,20 @@ export default function ApplicationDetailPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                       <div>
                         <p className="text-muted-foreground mb-0.5">Phone</p>
-                        <p className="font-medium">{cr.phone}</p>
+                        <p className="font-medium flex items-center gap-1.5">
+                          {cr.phone}
+                          {cr.phone && (
+                            <a
+                              href={`https://wa.me/${cr.phone.replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Chat on WhatsApp"
+                              className="inline-flex items-center justify-center text-green-600 hover:text-green-700 transition-colors"
+                            >
+                              <WhatsAppIcon className="h-3.5 w-3.5" />
+                            </a>
+                          )}
+                        </p>
                       </div>
                       {cr.started_at && (
                         <div>
