@@ -464,7 +464,7 @@ export default function ApplicantDetailPage() {
                   <span className="text-[10px] text-muted-foreground">{customFields.length}/20</span>
                 </div>
                 {customFields.map((cf, idx) => (
-                  <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2">
+                  <div key={`cf-${idx}-${cf.key}`} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2">
                     <Input
                       className="h-9 text-xs flex-1"
                       placeholder="Field name"

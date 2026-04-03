@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Star, Search, Loader2, Trash2, MessageSquare, Brain, Shield, Zap,
-  ThumbsUp, ThumbsDown, TrendingUp, Download,
+  ThumbsUp, ThumbsDown, TrendingUp, Download, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
@@ -132,9 +132,11 @@ export default function ScorecardsPage() {
   const [ordering, setOrdering] = useState('-overall_score')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['scorecards', search, recFilter, ordering, dateFrom, dateTo],
+    queryKey: ['scorecards', search, recFilter, ordering, dateFrom, dateTo, page],
     queryFn: () =>
       scorecardsService.list({
         ...(search && { search }),
@@ -142,8 +144,11 @@ export default function ScorecardsPage() {
         ...(dateFrom && { created_at_gte: dateFrom }),
         ...(dateTo && { created_at_lte: dateTo }),
         ordering,
+        page: String(page),
       }),
   })
+
+  const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => scorecardsService.delete(id),
@@ -218,7 +223,7 @@ export default function ScorecardsPage() {
             return (
               <button
                 key={r}
-                onClick={() => setRecFilter(recFilter === r ? '' : r)}
+                onClick={() => { setRecFilter(recFilter === r ? '' : r); setPage(1) }}
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
                   recFilter === r ? 'ring-2 ring-offset-1 ring-primary/30 ' + cfg.color : cfg.color + ' border-transparent hover:shadow-sm'
@@ -240,11 +245,11 @@ export default function ScorecardsPage() {
             placeholder="Search scorecards..."
             className="pl-9"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
           />
         </div>
         <div className="flex flex-wrap gap-3">
-          <Select value={recFilter || 'ALL'} onValueChange={(v) => setRecFilter(v === 'ALL' ? '' : v)}>
+          <Select value={recFilter || 'ALL'} onValueChange={(v) => { setRecFilter(v === 'ALL' ? '' : v); setPage(1) }}>
             <SelectTrigger className="w-full sm:w-44">
               <SelectValue placeholder="All recommendations" />
             </SelectTrigger>
@@ -257,7 +262,7 @@ export default function ScorecardsPage() {
               <SelectItem value="STRONG_NO">Strong No</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={ordering} onValueChange={setOrdering}>
+          <Select value={ordering} onValueChange={(v) => { setOrdering(v); setPage(1) }}>
             <SelectTrigger className="w-full sm:w-44">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
@@ -271,9 +276,9 @@ export default function ScorecardsPage() {
           <DateRangeFilter
             fromDate={dateFrom}
             toDate={dateTo}
-            onFromChange={setDateFrom}
-            onToChange={setDateTo}
-            onClear={() => { setDateFrom(''); setDateTo('') }}
+            onFromChange={(v) => { setDateFrom(v); setPage(1) }}
+            onToChange={(v) => { setDateTo(v); setPage(1) }}
+            onClear={() => { setDateFrom(''); setDateTo(''); setPage(1) }}
           />
         </div>
       </div>
@@ -297,6 +302,34 @@ export default function ScorecardsPage() {
           {data?.results.map((sc) => (
             <ScorecardCard key={sc.id} sc={sc} onDelete={handleDelete} />
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1.5 pt-2">
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page === 1} onClick={() => setPage(page - 1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+            .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+              if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis')
+              acc.push(p)
+              return acc
+            }, [])
+            .map((p, idx) =>
+              p === 'ellipsis' ? (
+                <span key={`ellipsis-${idx}`} className="px-1 text-muted-foreground text-sm">...</span>
+              ) : (
+                <Button key={p} variant={p === page ? 'default' : 'outline'} size="sm" className="h-8 w-8 p-0 text-xs" onClick={() => setPage(p)}>
+                  {p}
+                </Button>
+              )
+            )}
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       )}
     </div>

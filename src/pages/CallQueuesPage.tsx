@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Search, ListChecks, MoreHorizontal, Play, Pause, Square,
-  Phone, ChevronRight, Users, CheckCircle, XCircle, Clock, Loader2,
+  Phone, ChevronRight, ChevronLeft, Users, CheckCircle, XCircle, Clock, Loader2,
   Zap, Briefcase,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -161,16 +161,21 @@ export default function CallQueuesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [ordering, setOrdering] = useState('-created_at')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['call-queues', search, statusFilter, ordering],
+    queryKey: ['call-queues', search, statusFilter, ordering, page],
     queryFn: () =>
       callQueuesService.list({
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
         ordering,
+        page: String(page),
       }),
   })
+
+  const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0
 
   const startMutation = useMutation({
     mutationFn: (id: string) => callQueuesService.start(id),
@@ -230,7 +235,7 @@ export default function CallQueuesPage() {
             return (
               <button
                 key={s}
-                onClick={() => setStatusFilter(statusFilter === s ? '' : s)}
+                onClick={() => { setStatusFilter(statusFilter === s ? '' : s); setPage(1) }}
                 className={cn(
                   'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
                   statusFilter === s
@@ -254,11 +259,11 @@ export default function CallQueuesPage() {
             placeholder="Search queues..."
             className="pl-9"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
           />
         </div>
         <div className="flex gap-3">
-          <Select value={statusFilter || 'ALL'} onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}>
+          <Select value={statusFilter || 'ALL'} onValueChange={(v) => { setStatusFilter(v === 'ALL' ? '' : v); setPage(1) }}>
             <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
@@ -269,7 +274,7 @@ export default function CallQueuesPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={ordering} onValueChange={setOrdering}>
+          <Select value={ordering} onValueChange={(v) => { setOrdering(v); setPage(1) }}>
             <SelectTrigger className="w-full sm:w-44">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
@@ -313,6 +318,34 @@ export default function CallQueuesPage() {
               onDelete={deleteMutation.mutate}
             />
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1.5 pt-2">
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page === 1} onClick={() => setPage(page - 1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+            .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+              if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis')
+              acc.push(p)
+              return acc
+            }, [])
+            .map((p, idx) =>
+              p === 'ellipsis' ? (
+                <span key={`ellipsis-${idx}`} className="px-1 text-muted-foreground text-sm">...</span>
+              ) : (
+                <Button key={p} variant={p === page ? 'default' : 'outline'} size="sm" className="h-8 w-8 p-0 text-xs" onClick={() => setPage(p)}>
+                  {p}
+                </Button>
+              )
+            )}
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       )}
     </div>

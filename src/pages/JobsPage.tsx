@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Plus, Search, Briefcase, MapPin, Users, Clock, Bot,
   Loader2, Eye, Pencil, Trash2, ArrowUpRight, Award, Calendar, Download,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
@@ -163,9 +164,11 @@ export default function JobsPage() {
   const [ordering, setOrdering] = useState('-created_at')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['jobs', search, statusFilter, jobTypeFilter, expLevelFilter, ordering, dateFrom, dateTo],
+    queryKey: ['jobs', search, statusFilter, jobTypeFilter, expLevelFilter, ordering, dateFrom, dateTo, page],
     queryFn: () =>
       jobsService.list({
         ...(search && { search }),
@@ -175,8 +178,11 @@ export default function JobsPage() {
         ...(dateFrom && { created_at_gte: dateFrom }),
         ...(dateTo && { created_at_lte: dateTo }),
         ordering,
+        page: String(page),
       }),
   })
+
+  const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => jobsService.delete(id),
@@ -246,9 +252,9 @@ export default function JobsPage() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search jobs..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Search jobs..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
-        <Select value={statusFilter || 'ALL'} onValueChange={(v) => setStatusFilter(v === 'ALL' ? '' : v)}>
+        <Select value={statusFilter || 'ALL'} onValueChange={(v) => { setStatusFilter(v === 'ALL' ? '' : v); setPage(1) }}>
           <SelectTrigger className="w-full min-[400px]:w-40"><SelectValue placeholder="All statuses" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All statuses</SelectItem>
@@ -258,7 +264,7 @@ export default function JobsPage() {
             <SelectItem value="CLOSED">Closed</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={jobTypeFilter || 'ALL'} onValueChange={(v) => setJobTypeFilter(v === 'ALL' ? '' : v)}>
+        <Select value={jobTypeFilter || 'ALL'} onValueChange={(v) => { setJobTypeFilter(v === 'ALL' ? '' : v); setPage(1) }}>
           <SelectTrigger className="w-full min-[400px]:w-40"><SelectValue placeholder="All types" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All types</SelectItem>
@@ -268,7 +274,7 @@ export default function JobsPage() {
             <SelectItem value="INTERNSHIP">Internship</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={expLevelFilter || 'ALL'} onValueChange={(v) => setExpLevelFilter(v === 'ALL' ? '' : v)}>
+        <Select value={expLevelFilter || 'ALL'} onValueChange={(v) => { setExpLevelFilter(v === 'ALL' ? '' : v); setPage(1) }}>
           <SelectTrigger className="w-full min-[400px]:w-40"><SelectValue placeholder="All levels" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All levels</SelectItem>
@@ -278,7 +284,7 @@ export default function JobsPage() {
             <SelectItem value="LEAD">Lead</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={ordering} onValueChange={setOrdering}>
+        <Select value={ordering} onValueChange={(v) => { setOrdering(v); setPage(1) }}>
           <SelectTrigger className="w-full min-[400px]:w-44"><SelectValue placeholder="Sort by" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="-created_at">Newest first</SelectItem>
@@ -292,9 +298,9 @@ export default function JobsPage() {
         <DateRangeFilter
           fromDate={dateFrom}
           toDate={dateTo}
-          onFromChange={setDateFrom}
-          onToChange={setDateTo}
-          onClear={() => { setDateFrom(''); setDateTo('') }}
+          onFromChange={(v) => { setDateFrom(v); setPage(1) }}
+          onToChange={(v) => { setDateTo(v); setPage(1) }}
+          onClear={() => { setDateFrom(''); setDateTo(''); setPage(1) }}
         />
       </div>
 
@@ -315,6 +321,34 @@ export default function JobsPage() {
           {data?.results.map((job) => (
             <JobCard key={job.id} job={job} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} />
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1.5 pt-2">
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page === 1} onClick={() => setPage(page - 1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+            .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+              if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis')
+              acc.push(p)
+              return acc
+            }, [])
+            .map((p, idx) =>
+              p === 'ellipsis' ? (
+                <span key={`ellipsis-${idx}`} className="px-1 text-muted-foreground text-sm">...</span>
+              ) : (
+                <Button key={p} variant={p === page ? 'default' : 'outline'} size="sm" className="h-8 w-8 p-0 text-xs" onClick={() => setPage(p)}>
+                  {p}
+                </Button>
+              )
+            )}
+          <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       )}
 
