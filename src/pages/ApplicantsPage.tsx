@@ -48,17 +48,22 @@ function getAvatarGradient(name: string) {
 }
 
 function WhatsAppButton({ phone, size = 'sm' }: { phone: string; size?: 'sm' | 'md' }) {
-  if (!phone) return null
   const sizeClass = size === 'md' ? 'h-8 w-8' : 'h-7 w-7'
   const iconClass = size === 'md' ? 'h-4 w-4' : 'h-3.5 w-3.5'
   return (
     <a
-      href={`https://wa.me/${phone.replace(/[^0-9]/g, '')}`}
-      target="_blank"
+      href={phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}` : '#'}
+      target={phone ? '_blank' : undefined}
       rel="noopener noreferrer"
       title="Chat on WhatsApp"
       className={`inline-flex items-center justify-center rounded-md text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors ${sizeClass}`}
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation()
+        if (!phone) {
+          e.preventDefault()
+          toast.error('No phone number available for this applicant')
+        }
+      }}
     >
       <WhatsAppIcon className={iconClass} />
     </a>
