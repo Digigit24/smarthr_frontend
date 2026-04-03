@@ -50,12 +50,12 @@ export default function ApplicationEditPage() {
 
   const { data: jobsData } = useQuery({
     queryKey: ['jobs-list-for-select'],
-    queryFn: () => jobsService.list({ ordering: 'title' }),
+    queryFn: () => jobsService.list({ ordering: 'title', page_size: '999' }),
   })
 
   const { data: applicantsData } = useQuery({
     queryKey: ['applicants-list-for-select'],
-    queryFn: () => applicantsService.list({ ordering: 'first_name' }),
+    queryFn: () => applicantsService.list({ ordering: 'first_name', page_size: '999' }),
   })
 
   const {

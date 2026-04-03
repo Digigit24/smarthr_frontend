@@ -76,7 +76,7 @@ function ApplyForJob({ applicantId, existingApps }: { applicantId: string; exist
 
   const { data: jobsData } = useQuery({
     queryKey: ['jobs-list-for-apply'],
-    queryFn: () => jobsService.list({ status: 'OPEN', ordering: 'title' }),
+    queryFn: () => jobsService.list({ status: 'OPEN', ordering: 'title', page_size: '999' }),
   })
 
   // Check for duplicate within 30 days

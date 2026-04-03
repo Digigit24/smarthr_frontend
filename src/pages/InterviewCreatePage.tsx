@@ -48,7 +48,7 @@ export default function InterviewCreatePage() {
 
   const { data: applicationsData } = useQuery({
     queryKey: ['applications', 'for-interview'],
-    queryFn: () => applicationsService.list({}),
+    queryFn: () => applicationsService.list({ page_size: '999' }),
   })
 
   const createMutation = useMutation({

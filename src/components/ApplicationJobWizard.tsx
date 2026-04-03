@@ -128,7 +128,7 @@ export default function ApplicationJobWizard({
 
   const { data: jobsData } = useQuery({
     queryKey: ['jobs-wizard'],
-    queryFn: () => jobsService.list({ status: 'OPEN', ordering: 'title' }),
+    queryFn: () => jobsService.list({ status: 'OPEN', ordering: 'title', page_size: '999' }),
   })
 
   // Check existing applications for duplicate prevention (use embedded array from detail)

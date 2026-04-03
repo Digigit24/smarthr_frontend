@@ -74,7 +74,7 @@ export default function CallQueueCreatePage() {
 
   const { data: jobsData } = useQuery({
     queryKey: ['jobs', 'OPEN'],
-    queryFn: () => jobsService.list({ status: 'OPEN' }),
+    queryFn: () => jobsService.list({ status: 'OPEN', page_size: '999' }),
   })
 
   const { data: agentsData } = useQuery({

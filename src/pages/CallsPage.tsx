@@ -64,7 +64,7 @@ function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 
   const { data: applicationsData } = useQuery({
     queryKey: ['applications-search', appSearch],
-    queryFn: () => applicationsService.list(appSearch ? { search: appSearch, status: 'APPLIED' } : { status: 'APPLIED' }),
+    queryFn: () => applicationsService.list(appSearch ? { search: appSearch, status: 'APPLIED', page_size: '999' } : { status: 'APPLIED', page_size: '999' }),
     enabled: open,
   })
 
