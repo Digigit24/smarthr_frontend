@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+import { cn, normalizePhoneE164 } from '@/lib/utils'
 import {
   applicantsService,
   type ImportPreviewResponse,
@@ -169,6 +169,39 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
   const activeMappingCount = Object.values(columnMappings).filter(
     m => (m.type === 'field' || m.type === 'custom') && m.value
   ).length
+
+  // The Excel column currently mapped to the `phone` standard field, if any.
+  const phoneColumn: string | null =
+    Object.entries(columnMappings).find(
+      ([, m]) => m.type === 'field' && m.value === 'phone',
+    )?.[0] ?? null
+
+  // Best-effort preview warning: how many sample rows have a phone value that
+  // WON'T normalize cleanly to E.164 under our default country code?
+  //
+  // Mirrors the backend's permissive import behavior — bad rows still import,
+  // the backend's `_normalize_phone` just logs/leaves them raw. We surface a
+  // warning so the user can clean the sheet if they want, but we DO NOT
+  // block the import button. The backend is the authoritative source of
+  // truth for normalization — if it's configured with a different default
+  // country code, this preview will drift.
+  const phonePreview: { invalid: number; total: number; examples: string[] } = (() => {
+    if (!phoneColumn || !preview) return { invalid: 0, total: 0, examples: [] }
+    let invalid = 0
+    let total = 0
+    const examples: string[] = []
+    for (const row of preview.sample_data) {
+      const raw = row[phoneColumn]
+      if (raw == null || raw === '') continue
+      total++
+      const { valid } = normalizePhoneE164(raw as string | number)
+      if (!valid) {
+        invalid++
+        if (examples.length < 3) examples.push(String(raw))
+      }
+    }
+    return { invalid, total, examples }
+  })()
 
   const handleImport = async () => {
     if (!file) return
@@ -346,6 +379,33 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
                 {preview.columns.length} columns found. Map each to a standard field, custom field, or skip.
               </p>
 
+              {/* Non-blocking phone format warning */}
+              {phonePreview.invalid > 0 && (
+                <div className="rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-900/10 p-2.5 sm:p-3 flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-[11px] sm:text-xs text-amber-800 dark:text-amber-300 space-y-1 min-w-0">
+                    <p className="font-medium">
+                      {phonePreview.invalid} of {phonePreview.total} preview row
+                      {phonePreview.total === 1 ? '' : 's'} have phone values that
+                      don't look like E.164.
+                    </p>
+                    <p className="text-amber-700/90 dark:text-amber-300/90">
+                      These rows will still import — the backend normalizes phones
+                      at dispatch time — but AI calls may fail until the numbers
+                      are fixed.
+                      {phonePreview.examples.length > 0 && (
+                        <>
+                          {' '}Examples:{' '}
+                          <span className="font-mono">
+                            {phonePreview.examples.join(', ')}
+                          </span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Desktop: table layout */}
               <div className="hidden sm:block border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
@@ -362,12 +422,21 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
                         .map(row => row[col])
                         .filter(v => v != null && v !== '')
                         .slice(0, 2)
+                      const isPhoneCol = col === phoneColumn && phonePreview.invalid > 0
                       return (
                         <tr key={col} className="hover:bg-muted/30">
                           <td className="px-3 py-2 font-medium text-xs">{col}</td>
-                          <td className="px-3 py-2 text-xs text-muted-foreground max-w-[160px]">
+                          <td className="px-3 py-2 text-xs text-muted-foreground max-w-[180px]">
                             {sampleValues.length > 0 ? (
-                              <span className="truncate block">{sampleValues.map(String).join(', ')}</span>
+                              <span className="flex items-center gap-1.5 min-w-0">
+                                <span className="truncate">{sampleValues.map(String).join(', ')}</span>
+                                {isPhoneCol && (
+                                  <AlertTriangle
+                                    className="h-3.5 w-3.5 text-amber-500 shrink-0"
+                                    aria-label={`${phonePreview.invalid} of ${phonePreview.total} preview rows are not E.164`}
+                                  />
+                                )}
+                              </span>
                             ) : (
                               <span className="italic">empty</span>
                             )}
@@ -389,10 +458,19 @@ export function ApplicantImportDialog({ open, onOpenChange, onImportComplete }: 
                     .map(row => row[col])
                     .filter(v => v != null && v !== '')
                     .slice(0, 2)
+                  const isPhoneCol = col === phoneColumn && phonePreview.invalid > 0
                   return (
                     <div key={col} className="border rounded-lg p-2.5 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium text-xs truncate">{col}</p>
+                        <p className="font-medium text-xs truncate flex items-center gap-1">
+                          {col}
+                          {isPhoneCol && (
+                            <AlertTriangle
+                              className="h-3 w-3 text-amber-500 shrink-0"
+                              aria-label={`${phonePreview.invalid} of ${phonePreview.total} preview rows are not E.164`}
+                            />
+                          )}
+                        </p>
                         {sampleValues.length > 0 && (
                           <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{sampleValues.map(String).join(', ')}</p>
                         )}

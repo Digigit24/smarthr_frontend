@@ -86,6 +86,79 @@ export function phoneForWhatsApp(phone: string | null | undefined): string {
 }
 
 /**
+ * Default phone country code and local-length for the strict E.164 normalizer.
+ *
+ * NOTE: The authoritative source of truth is the backend's
+ * `smarthrin/common/phone.py`, which reads DEFAULT_PHONE_COUNTRY_CODE /
+ * DEFAULT_PHONE_LOCAL_LENGTH from env. This client-side helper is used only
+ * for preview-time warnings during the Excel import flow — if the backend
+ * is deployed with different defaults, the preview will drift and the
+ * backend's import-time normalization remains authoritative.
+ */
+const DEFAULT_PHONE_COUNTRY_CODE = '+91'
+const DEFAULT_PHONE_LOCAL_LENGTH = 10
+const E164_RE = /^\+[1-9]\d{1,14}$/
+
+/**
+ * Normalize a phone number to E.164 using the same algorithm as the backend
+ * (`smarthrin/common/phone.py`). Returns both the normalized string and a
+ * `valid` flag so callers can surface warnings on bad rows without blocking
+ * the operation.
+ *
+ * Rules (must match the backend exactly):
+ *   1. Strip whitespace / dashes / parentheses / dots.
+ *   2. `00<cc>...` → `+<cc>...`.
+ *   3. Already starts with `+` → keep, validate.
+ *   4. Strip a single leading `0` (trunk prefix).
+ *   5. If length ≥ (country_code_len + local_length) AND starts with the
+ *      country code → just prepend `+`.
+ *   6. Else prepend `DEFAULT_PHONE_COUNTRY_CODE`.
+ *   7. Validate against `/^\+[1-9]\d{1,14}$/`.
+ */
+export function normalizePhoneE164(
+  phone: string | number | null | undefined,
+): { normalized: string; valid: boolean } {
+  if (phone == null || phone === '') return { normalized: '', valid: false }
+
+  let p = String(phone).trim()
+  // Excel float artifact: "5454210258.0" → "5454210258"
+  p = p.replace(/\.0+$/, '')
+  // Strip whitespace, dashes, parens, dots
+  p = p.replace(/[\s\-().]/g, '')
+  if (!p) return { normalized: '', valid: false }
+
+  // Already E.164 form
+  if (p.startsWith('+')) {
+    const cleaned = '+' + p.slice(1).replace(/[^0-9]/g, '')
+    return { normalized: cleaned, valid: E164_RE.test(cleaned) }
+  }
+
+  const digits = p.replace(/[^0-9]/g, '')
+  if (!digits) return { normalized: '', valid: false }
+
+  // "00<cc>..." international prefix → "+<cc>..."
+  if (digits.startsWith('00')) {
+    const normalized = '+' + digits.slice(2)
+    return { normalized, valid: E164_RE.test(normalized) }
+  }
+
+  // Strip a single leading 0 (trunk prefix)
+  const local = digits.startsWith('0') ? digits.slice(1) : digits
+
+  const cc = DEFAULT_PHONE_COUNTRY_CODE.replace(/^\+/, '')
+  if (
+    local.length >= DEFAULT_PHONE_LOCAL_LENGTH + cc.length &&
+    local.startsWith(cc)
+  ) {
+    const normalized = '+' + local
+    return { normalized, valid: E164_RE.test(normalized) }
+  }
+
+  const normalized = DEFAULT_PHONE_COUNTRY_CODE + local
+  return { normalized, valid: E164_RE.test(normalized) }
+}
+
+/**
  * Call statuses for which the backend tracks a stale_at timestamp and will
  * reap the record after CALL_STALE_THRESHOLD_MINUTES. Terminal statuses
  * (COMPLETED/FAILED/NO_ANSWER/BUSY) are intentionally excluded.
