@@ -55,7 +55,15 @@ export function extractApiError(error: unknown, fallback = 'Something went wrong
 
   // { error: "...", code: "...", details: { ... } }
   if (typeof data.error === 'string') {
-    if (data.details && typeof data.details === 'object') {
+    // Structured codes like "active_call_exists" carry a metadata payload in
+    // `details`, not field errors — return the human-readable `error` string
+    // as-is and let callers handle the structured data via dedicated helpers.
+    const knownStructuredCodes = new Set(['active_call_exists'])
+    if (
+      data.details &&
+      typeof data.details === 'object' &&
+      !knownStructuredCodes.has(String((data as { code?: unknown }).code))
+    ) {
       const fieldErrors = parseFieldMap(data.details as Record<string, unknown>)
       const fieldMessages = Object.entries(fieldErrors).map(
         ([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`,
@@ -83,6 +91,46 @@ export function extractApiError(error: unknown, fallback = 'Something went wrong
   if (messages.length > 0) return messages.join('. ')
 
   return fallback
+}
+
+/**
+ * Details payload returned by the backend when a trigger-ai-call request is
+ * blocked by an in-flight call (HTTP 400, code === "active_call_exists").
+ */
+export interface ActiveCallExistsDetails {
+  active_call_id: string
+  active_call_status: string
+  active_call_created_at: string
+  stale_at: string | null
+  seconds_until_stale: number | null
+  stale_threshold_minutes: number
+}
+
+/**
+ * If the given error is a 400 "active_call_exists" response from
+ * POST /applications/{id}/trigger-ai-call/, return its details payload.
+ * Otherwise return null.
+ */
+export function getActiveCallExistsDetails(error: unknown): ActiveCallExistsDetails | null {
+  if (!axios.isAxiosError(error)) return null
+  if (error.response?.status !== 400) return null
+  const data = error.response.data
+  if (!data || typeof data !== 'object') return null
+  if ((data as { code?: string }).code !== 'active_call_exists') return null
+  const details = (data as { details?: unknown }).details
+  if (!details || typeof details !== 'object') return null
+  const d = details as Record<string, unknown>
+  if (typeof d.active_call_id !== 'string') return null
+  return {
+    active_call_id: d.active_call_id,
+    active_call_status: String(d.active_call_status ?? ''),
+    active_call_created_at: String(d.active_call_created_at ?? ''),
+    stale_at: typeof d.stale_at === 'string' ? d.stale_at : null,
+    seconds_until_stale:
+      typeof d.seconds_until_stale === 'number' ? d.seconds_until_stale : null,
+    stale_threshold_minutes:
+      typeof d.stale_threshold_minutes === 'number' ? d.stale_threshold_minutes : 5,
+  }
 }
 
 /**

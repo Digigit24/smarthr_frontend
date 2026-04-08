@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
+import { StaleCallCountdown } from '@/components/StaleCallCountdown'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { callsService } from '@/services/calls'
-import { formatDateTime, formatDuration, cn } from '@/lib/utils'
+import { formatDateTime, formatDuration, isActiveCallStatus, cn } from '@/lib/utils'
 
 const CALL_STATUS_CONFIG: Record<string, { bg: string; dot: string; gradient: string; icon: typeof Phone }> = {
   QUEUED: { bg: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', dot: 'bg-gray-400', gradient: 'from-gray-400 to-gray-500', icon: Clock },
@@ -216,7 +217,7 @@ export default function CallDetailPage() {
   const qc = useQueryClient()
   const [showTranscript, setShowTranscript] = useState(false)
 
-  const { data: call, isLoading } = useQuery({
+  const { data: call, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ['call-detail', id],
     queryFn: () => callsService.get(id!),
     enabled: !!id,
@@ -326,6 +327,18 @@ export default function CallDetailPage() {
                   Retry
                 </Button>
               )}
+              {isActiveCallStatus(call.status) && (call.seconds_until_stale ?? 0) > 0 && (
+                <Button
+                  size="sm"
+                  className="w-full sm:w-auto bg-white/20 hover:bg-white/30 text-white border-white/20"
+                  variant="outline"
+                  onClick={() => updateStatusMutation.mutate('FAILED')}
+                  disabled={updateStatusMutation.isPending}
+                >
+                  <PhoneOff className="h-3.5 w-3.5 mr-1.5" />
+                  Mark as Failed
+                </Button>
+              )}
               <Button size="sm" className="w-full sm:w-auto bg-white/20 hover:bg-white/30 text-white border-white/20" variant="outline" onClick={() => navigate(`/calls/${call.id}/edit`)}>
                 <Pencil className="h-3.5 w-3.5 mr-1.5" />
                 Edit
@@ -343,6 +356,32 @@ export default function CallDetailPage() {
           <StatusTimeline status={call.status} />
         </div>
       </Card>
+
+      {/* Auto-fail countdown banner */}
+      {isActiveCallStatus(call.status) && (call.seconds_until_stale ?? 0) > 0 && (
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+              Auto-fail timer
+            </p>
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              Backend will automatically mark this call as failed if it stays in{' '}
+              <span className="font-semibold">{call.status.replace(/_/g, ' ')}</span> for more than{' '}
+              {call.stale_threshold_minutes} minute
+              {call.stale_threshold_minutes === 1 ? '' : 's'}.
+            </p>
+            <div className="pt-1">
+              <StaleCallCountdown
+                staleAt={call.stale_at}
+                initialSecondsUntilStale={call.seconds_until_stale}
+                fetchedAt={dataUpdatedAt}
+                onExpire={() => qc.invalidateQueries({ queryKey: ['call-detail', id] })}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error Banner */}
       {call.status === 'FAILED' && call.error_message && (

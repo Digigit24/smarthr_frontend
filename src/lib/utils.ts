@@ -85,6 +85,18 @@ export function phoneForWhatsApp(phone: string | null | undefined): string {
   return normalized.replace(/^\+/, '')
 }
 
+/**
+ * Call statuses for which the backend tracks a stale_at timestamp and will
+ * reap the record after CALL_STALE_THRESHOLD_MINUTES. Terminal statuses
+ * (COMPLETED/FAILED/NO_ANSWER/BUSY) are intentionally excluded.
+ */
+export const ACTIVE_CALL_STATUSES = ['QUEUED', 'INITIATED', 'RINGING', 'IN_PROGRESS'] as const
+export type ActiveCallStatus = (typeof ACTIVE_CALL_STATUSES)[number]
+
+export function isActiveCallStatus(status: string): status is ActiveCallStatus {
+  return (ACTIVE_CALL_STATUSES as readonly string[]).includes(status)
+}
+
 export function extractCursor(url: string | null): string | null {
   if (!url) return null
   try {

@@ -279,6 +279,9 @@ export interface CallRecordSummary {
   started_at: string | null
   ended_at: string | null
   created_at: string
+  stale_at: string | null
+  seconds_until_stale: number | null
+  stale_threshold_minutes: number
 }
 
 export interface ScorecardSummary {
@@ -377,6 +380,9 @@ export interface CallRecordListItem {
   created_at: string
   provider_call_id: string
   voice_agent_id: string
+  stale_at: string | null
+  seconds_until_stale: number | null
+  stale_threshold_minutes: number
 }
 
 export interface ScorecardDetail {
@@ -417,6 +423,9 @@ export interface CallRecordDetail {
   created_at: string
   updated_at: string
   scorecard: ScorecardDetail | null
+  stale_at: string | null
+  seconds_until_stale: number | null
+  stale_threshold_minutes: number
 }
 
 export interface VoiceAgent {

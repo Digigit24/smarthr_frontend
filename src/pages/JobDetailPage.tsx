@@ -7,7 +7,7 @@ import {
   DollarSign, Calendar, Award, FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { extractApiError } from '@/lib/apiErrors'
+import { extractApiError, getActiveCallExistsDetails } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -236,8 +236,20 @@ export default function JobDetailPage() {
 
   const triggerCallMutation = useMutation({
     mutationFn: (appId: string) => applicationsService.triggerAiCall(appId),
-    onSuccess: () => toast.success('AI call triggered'),
-    onError: (err) => toast.error(extractApiError(err, 'Failed to trigger AI call')),
+    onSuccess: () => {
+      toast.success('AI call triggered')
+      qc.invalidateQueries({ queryKey: ['job-applications', id] })
+    },
+    onError: (err) => {
+      const active = getActiveCallExistsDetails(err)
+      if (active) {
+        toast.error('An active call is already in flight for this application.', {
+          description: `It will auto-fail after ${active.stale_threshold_minutes} minutes.`,
+        })
+        return
+      }
+      toast.error(extractApiError(err, 'Failed to trigger AI call'))
+    },
   })
 
   const changeStatusMutation = useMutation({

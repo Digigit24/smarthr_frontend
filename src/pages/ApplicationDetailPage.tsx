@@ -5,11 +5,12 @@ import {
   ArrowLeft, Loader2, Phone, Star, User, Briefcase, MapPin, Mail,
   Clock, FileText, Tag, Award, MessageSquare, Calendar, ExternalLink,
   ChevronDown, ChevronUp, Mic, Activity, TrendingUp, Shield, Zap,
-  CheckCircle2, XCircle, AlertCircle, Pencil, Check, X,
+  CheckCircle2, XCircle, AlertCircle, Pencil, Check, X, PhoneOff,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { WhatsAppIcon } from '@/components/WhatsAppIcon'
-import { extractApiError } from '@/lib/apiErrors'
+import { StaleCallCountdown } from '@/components/StaleCallCountdown'
+import { extractApiError, getActiveCallExistsDetails } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -22,8 +23,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { applicationsService } from '@/services/applications'
-import type { ApplicationStatus } from '@/types'
-import { formatDate, formatDateTime, formatDuration, getInitials, cn } from '@/lib/utils'
+import { callsService } from '@/services/calls'
+import type { ApplicationStatus, CallRecordSummary } from '@/types'
+import {
+  formatDate,
+  formatDateTime,
+  formatDuration,
+  getInitials,
+  isActiveCallStatus,
+  cn,
+} from '@/lib/utils'
 
 const STATUS_CONFIG: Record<string, { bg: string; dot: string; gradient: string }> = {
   APPLIED: { bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500', gradient: 'from-blue-500 to-blue-600' },
@@ -143,11 +152,18 @@ export default function ApplicationDetailPage() {
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState('')
 
-  const { data: app, isLoading } = useQuery({
+  const { data: app, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ['application-detail', appId],
     queryFn: () => applicationsService.get(appId!),
     enabled: !!appId,
   })
+
+  // Any call still within its auto-fail window blocks a new trigger.
+  const blockingCall: CallRecordSummary | undefined = app?.call_records?.find(
+    (cr) =>
+      isActiveCallStatus(cr.status) &&
+      (cr.seconds_until_stale ?? 0) > 0,
+  )
 
   const triggerCallMutation = useMutation({
     mutationFn: (id: string) => applicationsService.triggerAiCall(id),
@@ -155,7 +171,27 @@ export default function ApplicationDetailPage() {
       toast.success('AI call triggered')
       qc.invalidateQueries({ queryKey: ['application-detail', appId] })
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to trigger AI call')),
+    onError: (err) => {
+      const active = getActiveCallExistsDetails(err)
+      if (active) {
+        toast.error('An active call is already in flight for this application.', {
+          description: `It will auto-fail after ${active.stale_threshold_minutes} minutes, or you can mark it failed manually.`,
+        })
+        qc.invalidateQueries({ queryKey: ['application-detail', appId] })
+        return
+      }
+      toast.error(extractApiError(err, 'Failed to trigger AI call'))
+    },
+  })
+
+  const markCallFailedMutation = useMutation({
+    mutationFn: (callId: string) => callsService.updateStatus(callId, 'FAILED'),
+    onSuccess: () => {
+      toast.success('Call marked as failed')
+      qc.invalidateQueries({ queryKey: ['application-detail', appId] })
+      qc.invalidateQueries({ queryKey: ['calls'] })
+    },
+    onError: (err) => toast.error(extractApiError(err, 'Failed to update call status')),
   })
 
   const changeStatusMutation = useMutation({
@@ -538,14 +574,27 @@ export default function ApplicationDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {app.call_records.map((cr) => (
+                {app.call_records.map((cr) => {
+                  const callIsActive =
+                    isActiveCallStatus(cr.status) && (cr.seconds_until_stale ?? 0) > 0
+                  return (
                   <div key={cr.id} className="rounded-lg border p-4 space-y-3 hover:shadow-sm transition-shadow">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', CALL_STATUS_COLORS[cr.status])}>
                           {cr.status.replace(/_/g, ' ')}
                         </span>
                         <Badge variant="outline" className="text-[10px]">{cr.provider}</Badge>
+                        {callIsActive && (
+                          <StaleCallCountdown
+                            staleAt={cr.stale_at}
+                            initialSecondsUntilStale={cr.seconds_until_stale}
+                            fetchedAt={dataUpdatedAt}
+                            onExpire={() =>
+                              qc.invalidateQueries({ queryKey: ['application-detail', appId] })
+                            }
+                          />
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
@@ -616,8 +665,26 @@ export default function ApplicationDetailPage() {
                         Provider Call ID: {cr.provider_call_id}
                       </div>
                     )}
+                    {callIsActive && (
+                      <div className="pt-3 border-t flex items-center justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-900/40"
+                          onClick={() => markCallFailedMutation.mutate(cr.id)}
+                          disabled={
+                            markCallFailedMutation.isPending &&
+                            markCallFailedMutation.variables === cr.id
+                          }
+                        >
+                          <PhoneOff className="h-3 w-3 mr-1.5" />
+                          Mark as Failed
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                ))}
+                  )
+                })}
               </CardContent>
             </Card>
           )}
@@ -744,11 +811,41 @@ export default function ApplicationDetailPage() {
                 variant="outline"
                 className="w-full"
                 onClick={() => triggerCallMutation.mutate(app.id)}
-                disabled={triggerCallMutation.isPending}
+                disabled={triggerCallMutation.isPending || !!blockingCall}
               >
                 <Phone className="h-4 w-4 mr-2" />
-                Trigger AI Call
+                {blockingCall ? 'Call in progress…' : 'Trigger AI Call'}
               </Button>
+              {blockingCall && (
+                <div className="rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-900/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-300 space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <span className="font-medium">
+                      {blockingCall.status.replace(/_/g, ' ')} call blocks new triggers
+                    </span>
+                  </div>
+                  <div>
+                    <StaleCallCountdown
+                      staleAt={blockingCall.stale_at}
+                      initialSecondsUntilStale={blockingCall.seconds_until_stale}
+                      fetchedAt={dataUpdatedAt}
+                      onExpire={() =>
+                        qc.invalidateQueries({ queryKey: ['application-detail', appId] })
+                      }
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-full text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    onClick={() => markCallFailedMutation.mutate(blockingCall.id)}
+                    disabled={markCallFailedMutation.isPending}
+                  >
+                    <PhoneOff className="h-3 w-3 mr-1.5" />
+                    Mark as Failed
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 

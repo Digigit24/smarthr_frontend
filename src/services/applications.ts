@@ -1,5 +1,11 @@
 import { get, post, put, patch, del, download } from './api'
-import type { ApplicationListItem, ApplicationDetail, ApplicationFormData, PaginatedResponse } from '@/types'
+import type {
+  ApplicationListItem,
+  ApplicationDetail,
+  ApplicationFormData,
+  CallRecordDetail,
+  PaginatedResponse,
+} from '@/types'
 
 export interface BulkActionPayload {
   application_ids: string[]
@@ -36,7 +42,7 @@ export const applicationsService = {
     post<ApplicationDetail>(`/applications/${id}/change-status/`, { status, reason }),
 
   triggerAiCall: (id: string) =>
-    post<{ id: string; status: string }>(`/applications/${id}/trigger-ai-call/`),
+    post<CallRecordDetail>(`/applications/${id}/trigger-ai-call/`),
 
   bulkAction: (payload: BulkActionPayload) =>
     post<BulkActionResponse>('/applications/bulk-action/', payload),

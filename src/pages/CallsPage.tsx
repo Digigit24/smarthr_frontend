@@ -6,7 +6,7 @@ import {
   Activity, PhoneOff, PhoneIncoming, PhoneCall,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { extractApiError } from '@/lib/apiErrors'
+import { extractApiError, getActiveCallExistsDetails } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -74,15 +74,26 @@ function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange
     enabled: open,
   })
 
+  const qc = useQueryClient()
   const triggerMutation = useMutation({
     mutationFn: () => applicationsService.triggerAiCall(selectedAppId),
     onSuccess: () => {
       toast.success('AI call triggered successfully')
+      qc.invalidateQueries({ queryKey: ['calls'] })
       onOpenChange(false)
       setSelectedAppId('')
       setSelectedAgentId('')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to trigger call')),
+    onError: (err) => {
+      const active = getActiveCallExistsDetails(err)
+      if (active) {
+        toast.error('An active call is already in flight for this application.', {
+          description: `It will auto-fail after ${active.stale_threshold_minutes} minutes, or you can mark it failed from the call record.`,
+        })
+        return
+      }
+      toast.error(extractApiError(err, 'Failed to trigger call'))
+    },
   })
 
   return (
