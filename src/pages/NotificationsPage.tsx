@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { notificationsService } from '@/services/notifications'
-import type { Notification, NotificationCategory } from '@/types'
+import type { Notification, NotificationCategory, CursorPaginatedResponse } from '@/types'
 import { formatDateTime, cn, extractCursor } from '@/lib/utils'
 
 const CATEGORY_CONFIG: Record<NotificationCategory, { label: string; icon: typeof Bell; color: string; gradient: string; dot: string; bg: string }> = {
@@ -158,17 +158,55 @@ export default function NotificationsPage() {
     queryFn: () => notificationsService.list(params),
   })
 
+  const notificationsQueryKey = ['notifications', categoryFilter, readFilter, searchQuery, cursor]
+
   const markReadMutation = useMutation({
     mutationFn: (id: string) => notificationsService.markRead(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: notificationsQueryKey })
+      const previous = qc.getQueryData<CursorPaginatedResponse<Notification>>(notificationsQueryKey)
+      const now = new Date().toISOString()
+      qc.setQueryData<CursorPaginatedResponse<Notification>>(notificationsQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.map((n) =>
+            n.id === id ? { ...n, is_read: true, read_at: n.read_at ?? now } : n
+          ),
+        }
+      })
+      return { previous }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) qc.setQueryData(notificationsQueryKey, context.previous)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   })
 
   const markAllReadMutation = useMutation({
     mutationFn: () => notificationsService.markAllRead(),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: notificationsQueryKey })
+      const previous = qc.getQueryData<CursorPaginatedResponse<Notification>>(notificationsQueryKey)
+      const now = new Date().toISOString()
+      qc.setQueryData<CursorPaginatedResponse<Notification>>(notificationsQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.map((n) =>
+            n.is_read ? n : { ...n, is_read: true, read_at: now }
+          ),
+        }
+      })
+      return { previous }
+    },
     onSuccess: (res) => {
-      qc.invalidateQueries({ queryKey: ['notifications'] })
       toast.success(`${res.marked_read} notifications marked as read`)
     },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(notificationsQueryKey, context.previous)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   })
 
   const notifications = data?.results || []

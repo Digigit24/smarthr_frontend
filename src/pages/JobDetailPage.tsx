@@ -31,7 +31,7 @@ import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { jobsService } from '@/services/jobs'
 import { applicationsService } from '@/services/applications'
 import { callQueuesService } from '@/services/callQueues'
-import type { ApplicationListItem, ApplicationStatus, JobDetail } from '@/types'
+import type { ApplicationListItem, ApplicationStatus, JobDetail, PaginatedResponse } from '@/types'
 import { formatDate, formatDateTime, formatDuration, cn } from '@/lib/utils'
 
 const JOB_STATUS_COLORS: Record<string, string> = {
@@ -252,14 +252,35 @@ export default function JobDetailPage() {
     },
   })
 
+  const jobApplicationsQueryKey = ['job-applications', id, appStatusFilter, appSearch, appDateFrom, appDateTo]
+
   const changeStatusMutation = useMutation({
     mutationFn: ({ appId, status }: { appId: string; status: string }) =>
       applicationsService.changeStatus(appId, status),
+    onMutate: async ({ appId, status }) => {
+      await qc.cancelQueries({ queryKey: jobApplicationsQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<ApplicationListItem>>(jobApplicationsQueryKey)
+      qc.setQueryData<PaginatedResponse<ApplicationListItem>>(jobApplicationsQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.map((a) =>
+            a.id === appId ? { ...a, status: status as ApplicationStatus } : a
+          ),
+        }
+      })
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['job-applications', id] })
       toast.success('Status updated')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to update status')),
+    onError: (err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(jobApplicationsQueryKey, context.previous)
+      toast.error(extractApiError(err, 'Failed to update status'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['job-applications', id] })
+    },
   })
 
   const handleDelete = () => {

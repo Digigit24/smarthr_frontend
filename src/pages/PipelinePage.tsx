@@ -17,7 +17,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { SideDrawer } from '@/components/SideDrawer'
 import { pipelineService } from '@/services/pipeline'
-import type { PipelineStage } from '@/types'
+import type { PipelineStage, PaginatedResponse } from '@/types'
 import { cn } from '@/lib/utils'
 
 function StageCard({
@@ -118,15 +118,42 @@ export default function PipelinePage() {
     onError: (err) => toast.error(extractApiError(err, 'Failed to seed stages')),
   })
 
+  const pipelineQueryKey = ['pipeline']
+
   const createMutation = useMutation({
     mutationFn: (data: Partial<PipelineStage>) => pipelineService.create(data),
+    onMutate: async (data) => {
+      await qc.cancelQueries({ queryKey: pipelineQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<PipelineStage>>(pipelineQueryKey)
+      const tempId = `temp-${Date.now()}`
+      const now = new Date().toISOString()
+      const optimistic: PipelineStage = {
+        id: tempId,
+        tenant_id: '',
+        owner_user_id: '',
+        name: data.name ?? '',
+        slug: data.slug ?? '',
+        order: data.order ?? 0,
+        color: data.color ?? '#6b7280',
+        is_default: false,
+        is_terminal: data.is_terminal ?? false,
+        auto_action: {},
+        created_at: now,
+        updated_at: now,
+      }
+      qc.setQueryData<PaginatedResponse<PipelineStage>>(pipelineQueryKey, (old) => {
+        if (!old) return old
+        return { ...old, results: [...old.results, optimistic], count: (old.count ?? 0) + 1 }
+      })
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['pipeline'] })
       setCreateOpen(false)
       setForm({ name: '', slug: '', color: '#6b7280', is_terminal: false })
       toast.success('Stage created')
     },
-    onError: (err: unknown) => {
+    onError: (err: unknown, _data, context) => {
+      if (context?.previous) qc.setQueryData(pipelineQueryKey, context.previous)
       const status = (err as { response?: { status?: number } })?.response?.status
       if (status === 405) {
         toast.error('Create stage not allowed — check backend URL router configuration')
@@ -134,26 +161,62 @@ export default function PipelinePage() {
         toast.error('Failed to create stage')
       }
     },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: pipelineQueryKey })
+    },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => pipelineService.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['pipeline'] })
-      toast.success('Stage deleted')
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: pipelineQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<PipelineStage>>(pipelineQueryKey)
+      qc.setQueryData<PaginatedResponse<PipelineStage>>(pipelineQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.filter((s) => s.id !== id),
+          count: Math.max(0, (old.count ?? 0) - 1),
+        }
+      })
+      return { previous }
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete stage')),
+    onSuccess: () => toast.success('Stage deleted'),
+    onError: (err, _id, context) => {
+      if (context?.previous) qc.setQueryData(pipelineQueryKey, context.previous)
+      toast.error(extractApiError(err, 'Failed to delete stage'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: pipelineQueryKey })
+    },
   })
 
   const reorderMutation = useMutation({
     mutationFn: (ids: string[]) => pipelineService.reorder(ids),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['pipeline'] })
-      toast.success('Pipeline reordered')
+    onMutate: async (ids) => {
+      await qc.cancelQueries({ queryKey: pipelineQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<PipelineStage>>(pipelineQueryKey)
+      qc.setQueryData<PaginatedResponse<PipelineStage>>(pipelineQueryKey, (old) => {
+        if (!old) return old
+        const byId = new Map(old.results.map((s) => [s.id, s]))
+        const reordered = ids
+          .map((id, idx) => {
+            const s = byId.get(id)
+            return s ? { ...s, order: idx } : null
+          })
+          .filter((s): s is PipelineStage => s !== null)
+        return { ...old, results: reordered }
+      })
+      return { previous }
     },
-    onError: () => {
-      qc.invalidateQueries({ queryKey: ['pipeline'] })
+    onSuccess: () => toast.success('Pipeline reordered'),
+    onError: (_err, _ids, context) => {
+      if (context?.previous) qc.setQueryData(pipelineQueryKey, context.previous)
+      setOrderedIds(null)
       toast.error('Failed to reorder pipeline')
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: pipelineQueryKey })
     },
   })
 

@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { jobsService } from '@/services/jobs'
-import type { JobListItem } from '@/types'
+import type { JobListItem, PaginatedResponse } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
 
 const JOB_STATUS_COLORS: Record<string, string> = {
@@ -184,13 +184,33 @@ export default function JobsPage() {
 
   const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0
 
+  const jobsQueryKey = ['jobs', search, statusFilter, jobTypeFilter, expLevelFilter, ordering, dateFrom, dateTo, page]
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => jobsService.delete(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: jobsQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<JobListItem>>(jobsQueryKey)
+      qc.setQueryData<PaginatedResponse<JobListItem>>(jobsQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.filter((j) => j.id !== id),
+          count: Math.max(0, (old.count ?? 0) - 1),
+        }
+      })
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['jobs'] })
       toast.success('Job deleted')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete job')),
+    onError: (err, _id, context) => {
+      if (context?.previous) qc.setQueryData(jobsQueryKey, context.previous)
+      toast.error(extractApiError(err, 'Failed to delete job'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['jobs'] })
+    },
   })
 
   const handleView = (job: JobListItem) => navigate(`/jobs/${job.id}`)

@@ -26,7 +26,7 @@ import {
 import { applicantsService } from '@/services/applicants'
 import { applicationsService } from '@/services/applications'
 import { jobsService } from '@/services/jobs'
-import type { ApplicantFormData } from '@/types'
+import type { ApplicantFormData, ApplicantDetail } from '@/types'
 import { formatDate, getInitials, cn, normalizePhone, phoneForWhatsApp } from '@/lib/utils'
 import { extractApiError } from '@/lib/apiErrors'
 
@@ -189,13 +189,43 @@ export default function ApplicantDetailPage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: ApplicantFormData) => applicantsService.update(id!, data),
+    onMutate: async (data) => {
+      const detailKey = ['applicant-detail', id]
+      await qc.cancelQueries({ queryKey: detailKey })
+      const previous = qc.getQueryData<ApplicantDetail>(detailKey)
+      qc.setQueryData<ApplicantDetail>(detailKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          ...data,
+          skills: data.skills ?? old.skills,
+          tags: data.tags ?? old.tags,
+          experience_years: data.experience_years ?? old.experience_years,
+          current_company: data.current_company ?? old.current_company,
+          current_role: data.current_role ?? old.current_role,
+          resume_url: data.resume_url ?? old.resume_url,
+          linkedin_url: data.linkedin_url ?? old.linkedin_url,
+          portfolio_url: data.portfolio_url ?? old.portfolio_url,
+          notes: data.notes ?? old.notes,
+          phone: data.phone ?? old.phone,
+          custom_fields: data.custom_fields ?? old.custom_fields,
+          full_name: `${data.first_name} ${data.last_name}`.trim(),
+        }
+      })
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['applicant-detail', id] })
-      qc.invalidateQueries({ queryKey: ['applicants'] })
       setEditing(false)
       toast.success('Applicant updated')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to update applicant')),
+    onError: (err, _data, context) => {
+      if (context?.previous) qc.setQueryData(['applicant-detail', id], context.previous)
+      toast.error(extractApiError(err, 'Failed to update applicant'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['applicant-detail', id] })
+      qc.invalidateQueries({ queryKey: ['applicants'] })
+    },
   })
 
   const deleteMutation = useMutation({

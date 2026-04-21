@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select'
 import { applicationsService } from '@/services/applications'
 import { callsService } from '@/services/calls'
-import type { ApplicationStatus, CallRecordSummary } from '@/types'
+import type { ApplicationStatus, CallRecordSummary, ApplicationDetail } from '@/types'
 import {
   formatDate,
   formatDateTime,
@@ -197,23 +197,49 @@ export default function ApplicationDetailPage() {
   const changeStatusMutation = useMutation({
     mutationFn: ({ appId, status }: { appId: string; status: string }) =>
       applicationsService.changeStatus(appId, status),
+    onMutate: async ({ appId: mutatedAppId, status }) => {
+      const detailKey = ['application-detail', mutatedAppId]
+      await qc.cancelQueries({ queryKey: detailKey })
+      const previous = qc.getQueryData<ApplicationDetail>(detailKey)
+      qc.setQueryData<ApplicationDetail>(detailKey, (old) =>
+        old ? { ...old, status: status as ApplicationStatus } : old
+      )
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['application-detail', appId] })
-      qc.invalidateQueries({ queryKey: ['job-applications'] })
-      qc.invalidateQueries({ queryKey: ['applications'] })
       toast.success('Status updated')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to update status')),
+    onError: (err, vars, context) => {
+      if (context?.previous) qc.setQueryData(['application-detail', vars.appId], context.previous)
+      toast.error(extractApiError(err, 'Failed to update status'))
+    },
+    onSettled: (_data, _err, vars) => {
+      qc.invalidateQueries({ queryKey: ['application-detail', vars.appId] })
+      qc.invalidateQueries({ queryKey: ['job-applications'] })
+      qc.invalidateQueries({ queryKey: ['applications'] })
+    },
   })
 
   const notesMutation = useMutation({
     mutationFn: (notes: string) => applicationsService.patch(appId!, { notes }),
+    onMutate: async (notes) => {
+      const detailKey = ['application-detail', appId]
+      await qc.cancelQueries({ queryKey: detailKey })
+      const previous = qc.getQueryData<ApplicationDetail>(detailKey)
+      qc.setQueryData<ApplicationDetail>(detailKey, (old) => (old ? { ...old, notes } : old))
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['application-detail', appId] })
       setEditingNotes(false)
       toast.success('Notes saved')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to save notes')),
+    onError: (err, _notes, context) => {
+      if (context?.previous) qc.setQueryData(['application-detail', appId], context.previous)
+      toast.error(extractApiError(err, 'Failed to save notes'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['application-detail', appId] })
+    },
   })
 
   const startEditingNotes = () => {

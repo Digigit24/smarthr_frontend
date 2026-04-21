@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { notificationsService } from '@/services/notifications'
-import type { NotificationCategory } from '@/types'
+import type { NotificationCategory, Notification } from '@/types'
 import { formatDateTime, cn } from '@/lib/utils'
 
 const CATEGORY_CONFIG: Record<NotificationCategory, { label: string; icon: typeof Bell; color: string; gradient: string; dot: string; bg: string }> = {
@@ -43,7 +43,20 @@ export default function NotificationDetailPage() {
 
   const markReadMutation = useMutation({
     mutationFn: () => notificationsService.markRead(id!),
-    onSuccess: () => {
+    onMutate: async () => {
+      const detailKey = ['notification-detail', id]
+      await qc.cancelQueries({ queryKey: detailKey })
+      const previous = qc.getQueryData<Notification>(detailKey)
+      const now = new Date().toISOString()
+      qc.setQueryData<Notification>(detailKey, (old) =>
+        old ? { ...old, is_read: true, read_at: old.read_at ?? now } : old
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(['notification-detail', id], context.previous)
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['notifications'] })
       qc.invalidateQueries({ queryKey: ['notification-detail', id] })
     },

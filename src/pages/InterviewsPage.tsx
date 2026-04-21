@@ -23,7 +23,7 @@ import {
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { SideDrawer } from '@/components/SideDrawer'
 import { interviewsService } from '@/services/interviews'
-import type { InterviewListItem, InterviewStatus, InterviewType } from '@/types'
+import type { InterviewListItem, InterviewStatus, InterviewType, InterviewDetail, PaginatedResponse } from '@/types'
 import { formatDateTime, cn } from '@/lib/utils'
 
 const completeSchema = z.object({
@@ -441,14 +441,34 @@ export default function InterviewsPage() {
       }),
   })
 
+  const interviewsQueryKey = ['interviews', search, statusFilter, typeFilter, interviewerFilter, dateFrom, dateTo]
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => interviewsService.delete(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: interviewsQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<InterviewListItem>>(interviewsQueryKey)
+      qc.setQueryData<PaginatedResponse<InterviewListItem>>(interviewsQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.filter((i) => i.id !== id),
+          count: Math.max(0, (old.count ?? 0) - 1),
+        }
+      })
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['interviews'] })
       setDrawerInterviewId(null)
       toast.success('Interview deleted')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete interview')),
+    onError: (err, _id, context) => {
+      if (context?.previous) qc.setQueryData(interviewsQueryKey, context.previous)
+      toast.error(extractApiError(err, 'Failed to delete interview'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['interviews'] })
+    },
   })
 
   const { data: drawerInterview, isLoading: drawerLoading } = useQuery({
@@ -457,26 +477,58 @@ export default function InterviewsPage() {
     enabled: !!drawerInterviewId,
   })
 
+  const applyOptimisticStatus = async (status: InterviewStatus, extra?: Partial<InterviewDetail>) => {
+    const detailKey = ['interview-detail', drawerInterviewId]
+    await qc.cancelQueries({ queryKey: interviewsQueryKey })
+    await qc.cancelQueries({ queryKey: detailKey })
+    const previousList = qc.getQueryData<PaginatedResponse<InterviewListItem>>(interviewsQueryKey)
+    const previousDetail = qc.getQueryData<InterviewDetail>(detailKey)
+    qc.setQueryData<PaginatedResponse<InterviewListItem>>(interviewsQueryKey, (old) => {
+      if (!old) return old
+      return {
+        ...old,
+        results: old.results.map((i) => (i.id === drawerInterviewId ? { ...i, status } : i)),
+      }
+    })
+    qc.setQueryData<InterviewDetail>(detailKey, (old) => (old ? { ...old, status, ...extra } : old))
+    return { previousList, previousDetail }
+  }
+
+  const rollbackInterview = (context: { previousList?: PaginatedResponse<InterviewListItem>; previousDetail?: InterviewDetail } | undefined) => {
+    if (context?.previousList) qc.setQueryData(interviewsQueryKey, context.previousList)
+    if (context?.previousDetail) qc.setQueryData(['interview-detail', drawerInterviewId], context.previousDetail)
+  }
+
   const cancelMutation = useMutation({
     mutationFn: () => interviewsService.cancel(drawerInterviewId!),
-    onSuccess: () => {
+    onMutate: () => applyOptimisticStatus('CANCELLED'),
+    onSuccess: () => toast.success('Interview cancelled'),
+    onError: (err, _vars, context) => {
+      rollbackInterview(context)
+      toast.error(extractApiError(err, 'Failed to cancel interview'))
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['interviews'] })
       qc.invalidateQueries({ queryKey: ['interview-detail', drawerInterviewId] })
-      toast.success('Interview cancelled')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to cancel interview')),
   })
 
   const completeMutation = useMutation({
     mutationFn: ({ feedback, rating }: { feedback: string; rating?: number }) =>
       interviewsService.complete(drawerInterviewId!, feedback, rating),
+    onMutate: ({ feedback, rating }) => applyOptimisticStatus('COMPLETED', { feedback, rating: rating ?? null }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['interviews'] })
-      qc.invalidateQueries({ queryKey: ['interview-detail', drawerInterviewId] })
       setCompleteOpen(false)
       toast.success('Interview completed')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to complete interview')),
+    onError: (err, _vars, context) => {
+      rollbackInterview(context)
+      toast.error(extractApiError(err, 'Failed to complete interview'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['interviews'] })
+      qc.invalidateQueries({ queryKey: ['interview-detail', drawerInterviewId] })
+    },
   })
 
   const { register: completeRegister, handleSubmit: handleCompleteSubmit, reset: resetCompleteForm } = useForm<CompleteData>({

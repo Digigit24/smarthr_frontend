@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { callsService } from '@/services/calls'
+import type { CallRecordDetail, CallStatus } from '@/types'
 import { formatDateTime, formatDuration, isActiveCallStatus, cn } from '@/lib/utils'
 
 const CALL_STATUS_CONFIG: Record<string, { bg: string; dot: string; gradient: string; icon: typeof Phone }> = {
@@ -245,12 +246,26 @@ export default function CallDetailPage() {
 
   const updateStatusMutation = useMutation({
     mutationFn: (status: string) => callsService.updateStatus(id!, status),
+    onMutate: async (status) => {
+      const detailKey = ['call-detail', id]
+      await qc.cancelQueries({ queryKey: detailKey })
+      const previous = qc.getQueryData<CallRecordDetail>(detailKey)
+      qc.setQueryData<CallRecordDetail>(detailKey, (old) =>
+        old ? { ...old, status: status as CallStatus } : old
+      )
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['calls'] })
-      qc.invalidateQueries({ queryKey: ['call-detail', id] })
       toast.success('Status updated')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to update status')),
+    onError: (err, _status, context) => {
+      if (context?.previous) qc.setQueryData(['call-detail', id], context.previous)
+      toast.error(extractApiError(err, 'Failed to update status'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['calls'] })
+      qc.invalidateQueries({ queryKey: ['call-detail', id] })
+    },
   })
 
   const handleDelete = () => {

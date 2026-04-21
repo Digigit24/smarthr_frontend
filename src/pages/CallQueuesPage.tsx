@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { callQueuesService } from '@/services/callQueues'
-import type { CallQueue, CallQueueStatus } from '@/types'
+import type { CallQueue, CallQueueStatus, PaginatedResponse } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
 
 const STATUS_CONFIG: Record<CallQueueStatus, { label: string; color: string; gradient: string; dot: string; ring: string }> = {
@@ -177,30 +177,86 @@ export default function CallQueuesPage() {
 
   const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0
 
+  const queuesQueryKey = ['call-queues', search, statusFilter, ordering, page]
+
+  const optimisticStatusChange = async (id: string, newStatus: CallQueueStatus) => {
+    await qc.cancelQueries({ queryKey: queuesQueryKey })
+    const previous = qc.getQueryData<PaginatedResponse<CallQueue>>(queuesQueryKey)
+    qc.setQueryData<PaginatedResponse<CallQueue>>(queuesQueryKey, (old) => {
+      if (!old) return old
+      return {
+        ...old,
+        results: old.results.map((q) => (q.id === id ? { ...q, status: newStatus } : q)),
+      }
+    })
+    return { previous }
+  }
+
+  const rollback = (context: { previous?: PaginatedResponse<CallQueue> } | undefined) => {
+    if (context?.previous) qc.setQueryData(queuesQueryKey, context.previous)
+  }
+
   const startMutation = useMutation({
     mutationFn: (id: string) => callQueuesService.start(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue started') },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to start queue')),
+    onMutate: (id) => optimisticStatusChange(id, 'RUNNING'),
+    onSuccess: () => toast.success('Queue started'),
+    onError: (err, _id, context) => {
+      rollback(context)
+      toast.error(extractApiError(err, 'Failed to start queue'))
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['call-queues'] }),
   })
   const pauseMutation = useMutation({
     mutationFn: (id: string) => callQueuesService.pause(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue paused') },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to pause queue')),
+    onMutate: (id) => optimisticStatusChange(id, 'PAUSED'),
+    onSuccess: () => toast.success('Queue paused'),
+    onError: (err, _id, context) => {
+      rollback(context)
+      toast.error(extractApiError(err, 'Failed to pause queue'))
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['call-queues'] }),
   })
   const resumeMutation = useMutation({
     mutationFn: (id: string) => callQueuesService.resume(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue resumed') },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to resume queue')),
+    onMutate: (id) => optimisticStatusChange(id, 'RUNNING'),
+    onSuccess: () => toast.success('Queue resumed'),
+    onError: (err, _id, context) => {
+      rollback(context)
+      toast.error(extractApiError(err, 'Failed to resume queue'))
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['call-queues'] }),
   })
   const cancelMutation = useMutation({
     mutationFn: (id: string) => callQueuesService.cancel(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue cancelled') },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to cancel queue')),
+    onMutate: (id) => optimisticStatusChange(id, 'CANCELLED'),
+    onSuccess: () => toast.success('Queue cancelled'),
+    onError: (err, _id, context) => {
+      rollback(context)
+      toast.error(extractApiError(err, 'Failed to cancel queue'))
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['call-queues'] }),
   })
   const deleteMutation = useMutation({
     mutationFn: (id: string) => callQueuesService.delete(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue deleted') },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete queue')),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: queuesQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<CallQueue>>(queuesQueryKey)
+      qc.setQueryData<PaginatedResponse<CallQueue>>(queuesQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.filter((q) => q.id !== id),
+          count: Math.max(0, (old.count ?? 0) - 1),
+        }
+      })
+      return { previous }
+    },
+    onSuccess: () => toast.success('Queue deleted'),
+    onError: (err, _id, context) => {
+      rollback(context)
+      toast.error(extractApiError(err, 'Failed to delete queue'))
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['call-queues'] }),
   })
 
   // Status counts

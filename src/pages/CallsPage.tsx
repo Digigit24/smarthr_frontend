@@ -29,7 +29,7 @@ import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { callsService } from '@/services/calls'
 import { callQueuesService } from '@/services/callQueues'
 import { applicationsService } from '@/services/applications'
-import type { CallRecordListItem } from '@/types'
+import type { CallRecordListItem, PaginatedResponse } from '@/types'
 import { formatDateTime, formatDuration, cn } from '@/lib/utils'
 
 const CALL_STATUS_CONFIG: Record<string, { bg: string; dot: string }> = {
@@ -243,13 +243,33 @@ export default function CallsPage() {
       }),
   })
 
+  const callsQueryKey = ['calls', search, statusFilter, providerFilter, dateFilter, dateFrom, dateTo]
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => callsService.delete(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: callsQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<CallRecordListItem>>(callsQueryKey)
+      qc.setQueryData<PaginatedResponse<CallRecordListItem>>(callsQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.filter((c) => c.id !== id),
+          count: Math.max(0, (old.count ?? 0) - 1),
+        }
+      })
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['calls'] })
       toast.success('Call record deleted')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete call record')),
+    onError: (err, _id, context) => {
+      if (context?.previous) qc.setQueryData(callsQueryKey, context.previous)
+      toast.error(extractApiError(err, 'Failed to delete call record'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['calls'] })
+    },
   })
 
   const handleDelete = (id: string) => {

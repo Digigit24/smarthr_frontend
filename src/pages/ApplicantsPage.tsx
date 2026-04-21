@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select'
 import { ApplicantImportDialog } from '@/components/ApplicantImportDialog'
 import { applicantsService } from '@/services/applicants'
-import type { ApplicantListItem } from '@/types'
+import type { ApplicantListItem, PaginatedResponse } from '@/types'
 import { formatDate, getInitials, cn, normalizePhone, phoneForWhatsApp } from '@/lib/utils'
 
 const SOURCE_COLORS: Record<string, { bg: string; dot: string }> = {
@@ -231,13 +231,33 @@ export default function ApplicantsPage() {
   const handleSourceFilter = (v: string) => { setSourceFilter(v === 'ALL' ? '' : v); setPage(1) }
   const handleOrdering = (v: string) => { setOrdering(v); setPage(1) }
 
+  const applicantsQueryKey = ['applicants', search, sourceFilter, ordering, page]
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => applicantsService.delete(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: applicantsQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<ApplicantListItem>>(applicantsQueryKey)
+      qc.setQueryData<PaginatedResponse<ApplicantListItem>>(applicantsQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.filter((a) => a.id !== id),
+          count: Math.max(0, (old.count ?? 0) - 1),
+        }
+      })
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['applicants'] })
       toast.success('Applicant deleted')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete applicant')),
+    onError: (err, _id, context) => {
+      if (context?.previous) qc.setQueryData(applicantsQueryKey, context.previous)
+      toast.error(extractApiError(err, 'Failed to delete applicant'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['applicants'] })
+    },
   })
 
   const handleDelete = (id: string) => {

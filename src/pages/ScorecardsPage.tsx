@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select'
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { scorecardsService } from '@/services/scorecards'
-import type { ScorecardListItem, ScorecardRecommendation } from '@/types'
+import type { ScorecardListItem, ScorecardRecommendation, PaginatedResponse } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
 
 const REC_CONFIG: Record<string, { label: string; color: string; gradient: string; dot: string }> = {
@@ -150,13 +150,33 @@ export default function ScorecardsPage() {
 
   const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0
 
+  const scorecardsQueryKey = ['scorecards', search, recFilter, ordering, dateFrom, dateTo, page]
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => scorecardsService.delete(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: scorecardsQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<ScorecardListItem>>(scorecardsQueryKey)
+      qc.setQueryData<PaginatedResponse<ScorecardListItem>>(scorecardsQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.filter((s) => s.id !== id),
+          count: Math.max(0, (old.count ?? 0) - 1),
+        }
+      })
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['scorecards'] })
       toast.success('Scorecard deleted')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete scorecard')),
+    onError: (err, _id, context) => {
+      if (context?.previous) qc.setQueryData(scorecardsQueryKey, context.previous)
+      toast.error(extractApiError(err, 'Failed to delete scorecard'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['scorecards'] })
+    },
   })
 
   const handleDelete = (id: string) => {

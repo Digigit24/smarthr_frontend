@@ -688,17 +688,59 @@ export default function ApplicationsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => applicationsService.delete(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: applicationsQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<ApplicationListItem>>(applicationsQueryKey)
+      qc.setQueryData<PaginatedResponse<ApplicationListItem>>(applicationsQueryKey, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          results: old.results.filter((app) => app.id !== id),
+          count: Math.max(0, (old.count ?? 0) - 1),
+        }
+      })
+      return { previous }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['applications'] })
       toast.success('Application deleted')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete application')),
+    onError: (err, _id, context) => {
+      if (context?.previous) qc.setQueryData(applicationsQueryKey, context.previous)
+      toast.error(extractApiError(err, 'Failed to delete application'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['applications'] })
+    },
   })
 
   const bulkMutation = useMutation({
     mutationFn: (payload: BulkActionPayload) => applicationsService.bulkAction(payload),
+    onMutate: async (payload) => {
+      await qc.cancelQueries({ queryKey: applicationsQueryKey })
+      const previous = qc.getQueryData<PaginatedResponse<ApplicationListItem>>(applicationsQueryKey)
+      const ids = new Set(payload.application_ids)
+      qc.setQueryData<PaginatedResponse<ApplicationListItem>>(applicationsQueryKey, (old) => {
+        if (!old) return old
+        if (payload.action === 'delete') {
+          const removed = old.results.filter((a) => ids.has(a.id)).length
+          return {
+            ...old,
+            results: old.results.filter((a) => !ids.has(a.id)),
+            count: Math.max(0, (old.count ?? 0) - removed),
+          }
+        }
+        if (payload.action === 'change_status' && payload.status) {
+          const newStatus = payload.status as ApplicationStatus
+          return {
+            ...old,
+            results: old.results.map((a) => (ids.has(a.id) ? { ...a, status: newStatus } : a)),
+          }
+        }
+        return old
+      })
+      return { previous }
+    },
     onSuccess: (res: BulkActionResponse) => {
-      qc.invalidateQueries({ queryKey: ['applications'] })
       setSelectedIds(new Set())
       if (res.errors && res.errors.length > 0) {
         toast.success(`${res.affected} succeeded, ${res.errors.length} failed`, {
@@ -710,7 +752,13 @@ export default function ApplicationsPage() {
         toast.success(`${res.affected} applications processed`)
       }
     },
-    onError: (err) => toast.error(extractApiError(err, 'Bulk action failed')),
+    onError: (err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(applicationsQueryKey, context.previous)
+      toast.error(extractApiError(err, 'Bulk action failed'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['applications'] })
+    },
   })
 
   const [showQueuePicker, setShowQueuePicker] = useState(false)

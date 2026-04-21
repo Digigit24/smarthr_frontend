@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { interviewsService } from '@/services/interviews'
-import type { InterviewStatus, InterviewType } from '@/types'
+import type { InterviewStatus, InterviewType, InterviewDetail } from '@/types'
 import { formatDateTime, cn } from '@/lib/utils'
 
 const STATUS_CONFIG: Record<InterviewStatus, { label: string; color: string; gradient: string; dot: string }> = {
@@ -68,22 +68,48 @@ export default function InterviewDetailPage() {
     enabled: !!id,
   })
 
+  const applyInterviewStatus = async (status: InterviewStatus, extra?: Partial<InterviewDetail>) => {
+    const detailKey = ['interview-detail', id]
+    await qc.cancelQueries({ queryKey: detailKey })
+    const previous = qc.getQueryData<InterviewDetail>(detailKey)
+    qc.setQueryData<InterviewDetail>(detailKey, (old) => (old ? { ...old, status, ...extra } : old))
+    return { previous }
+  }
+
+  const rollbackInterview = (context: { previous?: InterviewDetail } | undefined) => {
+    if (context?.previous) qc.setQueryData(['interview-detail', id], context.previous)
+  }
+
   const cancelMutation = useMutation({
     mutationFn: () => interviewsService.cancel(id!),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['interviews'] }); qc.invalidateQueries({ queryKey: ['interview-detail', id] }); toast.success('Interview cancelled') },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to cancel interview')),
+    onMutate: () => applyInterviewStatus('CANCELLED'),
+    onSuccess: () => toast.success('Interview cancelled'),
+    onError: (err, _vars, context) => {
+      rollbackInterview(context)
+      toast.error(extractApiError(err, 'Failed to cancel interview'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['interviews'] })
+      qc.invalidateQueries({ queryKey: ['interview-detail', id] })
+    },
   })
 
   const completeMutation = useMutation({
     mutationFn: ({ feedback, rating }: { feedback: string; rating?: number }) =>
       interviewsService.complete(id!, feedback, rating),
+    onMutate: ({ feedback, rating }) => applyInterviewStatus('COMPLETED', { feedback, rating: rating ?? null }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['interviews'] })
-      qc.invalidateQueries({ queryKey: ['interview-detail', id] })
       setCompleteOpen(false)
       toast.success('Interview completed')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to complete interview')),
+    onError: (err, _vars, context) => {
+      rollbackInterview(context)
+      toast.error(extractApiError(err, 'Failed to complete interview'))
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['interviews'] })
+      qc.invalidateQueries({ queryKey: ['interview-detail', id] })
+    },
   })
 
   const deleteMutation = useMutation({
