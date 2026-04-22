@@ -115,12 +115,18 @@ function VoiceConfigDialog({
           auto_reject_threshold: parseFloat(rejectThreshold),
         },
       }),
-    onSuccess: () => {
-      toast.success('Voice config saved')
-      onSuccess()
+    onMutate: () => {
+      const toastId = toast.loading('Saving voice config...')
       onOpenChange(false)
+      return { toastId }
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to save voice config')),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Voice config saved', { id: context?.toastId })
+      onSuccess()
+    },
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to save voice config'), { id: context?.toastId })
+    },
   })
 
   return (
@@ -236,19 +242,21 @@ export default function JobDetailPage() {
 
   const triggerCallMutation = useMutation({
     mutationFn: (appId: string) => applicationsService.triggerAiCall(appId),
-    onSuccess: () => {
-      toast.success('AI call triggered')
+    onMutate: () => ({ toastId: toast.loading('Triggering AI call...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('AI call triggered', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['job-applications', id] })
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const active = getActiveCallExistsDetails(err)
       if (active) {
         toast.error('An active call is already in flight for this application.', {
+          id: context?.toastId,
           description: `It will auto-fail after ${active.stale_threshold_minutes} minutes.`,
         })
         return
       }
-      toast.error(extractApiError(err, 'Failed to trigger AI call'))
+      toast.error(extractApiError(err, 'Failed to trigger AI call'), { id: context?.toastId })
     },
   })
 

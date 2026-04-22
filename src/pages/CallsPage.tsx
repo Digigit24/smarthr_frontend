@@ -77,22 +77,27 @@ function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange
   const qc = useQueryClient()
   const triggerMutation = useMutation({
     mutationFn: () => applicationsService.triggerAiCall(selectedAppId),
-    onSuccess: () => {
-      toast.success('AI call triggered successfully')
-      qc.invalidateQueries({ queryKey: ['calls'] })
+    onMutate: () => {
+      const toastId = toast.loading('Triggering AI call...')
       onOpenChange(false)
       setSelectedAppId('')
       setSelectedAgentId('')
+      return { toastId }
     },
-    onError: (err) => {
+    onSuccess: (_data, _vars, context) => {
+      toast.success('AI call triggered successfully', { id: context?.toastId })
+      qc.invalidateQueries({ queryKey: ['calls'] })
+    },
+    onError: (err, _vars, context) => {
       const active = getActiveCallExistsDetails(err)
       if (active) {
         toast.error('An active call is already in flight for this application.', {
+          id: context?.toastId,
           description: `It will auto-fail after ${active.stale_threshold_minutes} minutes, or you can mark it failed from the call record.`,
         })
         return
       }
-      toast.error(extractApiError(err, 'Failed to trigger call'))
+      toast.error(extractApiError(err, 'Failed to trigger call'), { id: context?.toastId })
     },
   })
 
@@ -134,9 +139,9 @@ function TriggerCallDialog({ open, onOpenChange }: { open: boolean; onOpenChange
           </div>
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button className="w-full sm:w-auto" disabled={!selectedAppId || !selectedAgentId || triggerMutation.isPending} onClick={() => triggerMutation.mutate()}>
+            <Button className="w-full sm:w-auto" disabled={!selectedAppId || !selectedAgentId} onClick={() => triggerMutation.mutate()}>
               <Phone className="h-4 w-4 mr-2" />
-              {triggerMutation.isPending ? 'Triggering...' : 'Trigger Call'}
+              Trigger Call
             </Button>
           </div>
         </div>

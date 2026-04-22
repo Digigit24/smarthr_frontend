@@ -167,31 +167,81 @@ export default function ApplicationDetailPage() {
 
   const triggerCallMutation = useMutation({
     mutationFn: (id: string) => applicationsService.triggerAiCall(id),
-    onSuccess: () => {
-      toast.success('AI call triggered')
+    onMutate: async () => {
+      const toastId = toast.loading('Triggering AI call...')
+      const detailKey = ['application-detail', appId]
+      await qc.cancelQueries({ queryKey: detailKey })
+      const previous = qc.getQueryData<ApplicationDetail>(detailKey)
+      const now = new Date().toISOString()
+      const pendingCall: CallRecordSummary = {
+        id: `pending-${Date.now()}`,
+        provider: 'OMNIDIM',
+        provider_call_id: '',
+        phone: previous?.applicant?.phone ?? '',
+        status: 'QUEUED',
+        duration: 0,
+        summary: '',
+        recording_url: '',
+        started_at: null,
+        ended_at: null,
+        created_at: now,
+        stale_at: null,
+        seconds_until_stale: null,
+        stale_threshold_minutes: 0,
+      }
+      qc.setQueryData<ApplicationDetail>(detailKey, (old) =>
+        old ? { ...old, call_records: [pendingCall, ...old.call_records] } : old
+      )
+      return { toastId, previous }
+    },
+    onSuccess: (_data, _vars, context) => {
+      toast.success('AI call triggered', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['application-detail', appId] })
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(['application-detail', appId], context.previous)
       const active = getActiveCallExistsDetails(err)
       if (active) {
         toast.error('An active call is already in flight for this application.', {
+          id: context?.toastId,
           description: `It will auto-fail after ${active.stale_threshold_minutes} minutes, or you can mark it failed manually.`,
         })
         qc.invalidateQueries({ queryKey: ['application-detail', appId] })
         return
       }
-      toast.error(extractApiError(err, 'Failed to trigger AI call'))
+      toast.error(extractApiError(err, 'Failed to trigger AI call'), { id: context?.toastId })
     },
   })
 
   const markCallFailedMutation = useMutation({
     mutationFn: (callId: string) => callsService.updateStatus(callId, 'FAILED'),
+    onMutate: async (callId) => {
+      const detailKey = ['application-detail', appId]
+      await qc.cancelQueries({ queryKey: detailKey })
+      const previous = qc.getQueryData<ApplicationDetail>(detailKey)
+      qc.setQueryData<ApplicationDetail>(detailKey, (old) =>
+        old
+          ? {
+              ...old,
+              call_records: old.call_records.map((cr) =>
+                cr.id === callId ? { ...cr, status: 'FAILED', seconds_until_stale: 0 } : cr
+              ),
+            }
+          : old
+      )
+      return { previous }
+    },
     onSuccess: () => {
       toast.success('Call marked as failed')
+    },
+    onError: (err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(['application-detail', appId], context.previous)
+      toast.error(extractApiError(err, 'Failed to update call status'))
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['application-detail', appId] })
       qc.invalidateQueries({ queryKey: ['calls'] })
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to update call status')),
   })
 
   const changeStatusMutation = useMutation({

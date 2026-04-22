@@ -670,19 +670,21 @@ export default function ApplicationsPage() {
 
   const triggerCallMutation = useMutation({
     mutationFn: (id: string) => applicationsService.triggerAiCall(id),
-    onSuccess: () => {
-      toast.success('AI call triggered')
+    onMutate: () => ({ toastId: toast.loading('Triggering AI call...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('AI call triggered', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['applications'] })
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const active = getActiveCallExistsDetails(err)
       if (active) {
         toast.error('An active call is already in flight for this application.', {
+          id: context?.toastId,
           description: `It will auto-fail after ${active.stale_threshold_minutes} minutes.`,
         })
         return
       }
-      toast.error(extractApiError(err, 'Failed to trigger AI call'))
+      toast.error(extractApiError(err, 'Failed to trigger AI call'), { id: context?.toastId })
     },
   })
 
@@ -716,6 +718,17 @@ export default function ApplicationsPage() {
   const bulkMutation = useMutation({
     mutationFn: (payload: BulkActionPayload) => applicationsService.bulkAction(payload),
     onMutate: async (payload) => {
+      const actionLabel =
+        payload.action === 'delete'
+          ? `Deleting ${payload.application_ids.length} applications...`
+          : payload.action === 'change_status'
+          ? `Updating ${payload.application_ids.length} applications...`
+          : payload.action === 'trigger_ai_call'
+          ? `Triggering ${payload.application_ids.length} AI calls...`
+          : payload.action === 'add_to_queue'
+          ? `Adding ${payload.application_ids.length} to queue...`
+          : 'Processing...'
+      const toastId = toast.loading(actionLabel)
       await qc.cancelQueries({ queryKey: applicationsQueryKey })
       const previous = qc.getQueryData<PaginatedResponse<ApplicationListItem>>(applicationsQueryKey)
       const ids = new Set(payload.application_ids)
@@ -738,23 +751,24 @@ export default function ApplicationsPage() {
         }
         return old
       })
-      return { previous }
+      return { previous, toastId }
     },
-    onSuccess: (res: BulkActionResponse) => {
+    onSuccess: (res: BulkActionResponse, _vars, context) => {
       setSelectedIds(new Set())
       if (res.errors && res.errors.length > 0) {
         toast.success(`${res.affected} succeeded, ${res.errors.length} failed`, {
+          id: context?.toastId,
           description: res.errors.map((e) => e.error).join('; '),
         })
       } else if (res.skipped) {
-        toast.success(`${res.affected} added to queue, ${res.skipped} skipped`)
+        toast.success(`${res.affected} added to queue, ${res.skipped} skipped`, { id: context?.toastId })
       } else {
-        toast.success(`${res.affected} applications processed`)
+        toast.success(`${res.affected} applications processed`, { id: context?.toastId })
       }
     },
     onError: (err, _vars, context) => {
       if (context?.previous) qc.setQueryData(applicationsQueryKey, context.previous)
-      toast.error(extractApiError(err, 'Bulk action failed'))
+      toast.error(extractApiError(err, 'Bulk action failed'), { id: context?.toastId })
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['applications'] })

@@ -86,13 +86,16 @@ export default function CallQueueDetailPage() {
 
   const populateMutation = useMutation({
     mutationFn: () => callQueuesService.populate(id!),
-    onSuccess: (res) => {
+    onMutate: () => ({ toastId: toast.loading('Populating queue...') }),
+    onSuccess: (res, _vars, context) => {
+      toast.success(`${res.created} items added to queue`, { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['queue-items', id] })
       qc.invalidateQueries({ queryKey: ['queue', id] })
       qc.invalidateQueries({ queryKey: ['call-queues'] })
-      toast.success(`${res.created} items added to queue`)
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to populate queue')),
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to populate queue'), { id: context?.toastId })
+    },
   })
 
   const optimisticQueueStatus = async (newStatus: CallQueueStatus) => {

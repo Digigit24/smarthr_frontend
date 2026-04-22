@@ -226,12 +226,15 @@ export default function CallDetailPage() {
 
   const retryMutation = useMutation({
     mutationFn: () => callsService.retry(id!),
-    onSuccess: (newCall) => {
+    onMutate: () => ({ toastId: toast.loading('Retrying call...') }),
+    onSuccess: (newCall, _vars, context) => {
+      toast.success('Call retried', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['calls'] })
-      toast.success('Call retried')
       navigate(`/calls/${newCall.id}`)
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to retry call')),
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to retry call'), { id: context?.toastId })
+    },
   })
 
   const deleteMutation = useMutation({
