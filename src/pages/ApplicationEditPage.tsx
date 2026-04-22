@@ -79,15 +79,17 @@ export default function ApplicationEditPage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: ApplicationFormData) => applicationsService.update(appId!, data),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Saving application...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Application updated', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['applications'] })
       qc.invalidateQueries({ queryKey: ['application-detail', appId] })
-      toast.success('Application updated')
       navigate(-1)
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const msg = applyFieldErrors(err, setError, 'Failed to update application')
-      if (msg) toast.error(msg)
+      if (msg) toast.error(msg, { id: context?.toastId })
+      else toast.dismiss(context?.toastId)
     },
   })
 

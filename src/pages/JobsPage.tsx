@@ -22,6 +22,7 @@ import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { jobsService } from '@/services/jobs'
 import type { JobListItem, PaginatedResponse } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
 
 const JOB_STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
@@ -158,6 +159,7 @@ export default function JobsPage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
   const [statusFilter, setStatusFilter] = useState('')
   const [jobTypeFilter, setJobTypeFilter] = useState('')
   const [expLevelFilter, setExpLevelFilter] = useState('')
@@ -168,10 +170,10 @@ export default function JobsPage() {
   const PAGE_SIZE = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['jobs', search, statusFilter, jobTypeFilter, expLevelFilter, ordering, dateFrom, dateTo, page],
+    queryKey: ['jobs', debouncedSearch, statusFilter, jobTypeFilter, expLevelFilter, ordering, dateFrom, dateTo, page],
     queryFn: () =>
       jobsService.list({
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(statusFilter && { status: statusFilter }),
         ...(jobTypeFilter && { job_type: jobTypeFilter }),
         ...(expLevelFilter && { experience_level: expLevelFilter }),
@@ -180,11 +182,12 @@ export default function JobsPage() {
         ordering,
         page: String(page),
       }),
+    placeholderData: (previous) => previous,
   })
 
   const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0
 
-  const jobsQueryKey = ['jobs', search, statusFilter, jobTypeFilter, expLevelFilter, ordering, dateFrom, dateTo, page]
+  const jobsQueryKey = ['jobs', debouncedSearch, statusFilter, jobTypeFilter, expLevelFilter, ordering, dateFrom, dateTo, page]
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => jobsService.delete(id),

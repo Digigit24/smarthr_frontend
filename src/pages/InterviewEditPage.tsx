@@ -44,19 +44,20 @@ export default function InterviewEditPage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<InterviewFormData>) => interviewsService.patch(id!, data),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Saving interview...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Interview updated', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['interviews'] })
       qc.invalidateQueries({ queryKey: ['interview-detail', id] })
-      toast.success('Interview updated')
       navigate(`/interviews/${id}`)
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const fe = extractFieldErrors(err)
       setFieldErrors(fe)
       if (Object.keys(fe).length > 0) {
-        toast.error('Please fix the highlighted errors')
+        toast.error('Please fix the highlighted errors', { id: context?.toastId })
       } else {
-        toast.error(extractApiError(err, 'Failed to update interview'))
+        toast.error(extractApiError(err, 'Failed to update interview'), { id: context?.toastId })
       }
     },
   })

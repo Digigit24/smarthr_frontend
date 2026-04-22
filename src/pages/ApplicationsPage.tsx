@@ -26,6 +26,7 @@ import type { BulkActionPayload, BulkActionResponse } from '@/services/applicati
 import { callQueuesService } from '@/services/callQueues'
 import type { ApplicationListItem, ApplicationStatus, CallQueue, PaginatedResponse } from '@/types'
 import { formatDate, getInitials, cn, phoneForWhatsApp } from '@/lib/utils'
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
 
 const STATUS_COLORS: Record<string, string> = {
   APPLIED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -588,6 +589,7 @@ export default function ApplicationsPage() {
   const qc = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '')
   const [ordering, setOrdering] = useState('-created_at')
   const [dateFilter, setDateFilter] = useState(searchParams.get('filter') || '')
@@ -615,19 +617,20 @@ export default function ApplicationsPage() {
   const todayStr = new Date().toISOString().split('T')[0]
 
   const { data, isLoading } = useQuery({
-    queryKey: ['applications', search, statusFilter, ordering, dateFilter, dateFrom, dateTo],
+    queryKey: ['applications', debouncedSearch, statusFilter, ordering, dateFilter, dateFrom, dateTo],
     queryFn: () =>
       applicationsService.list({
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(statusFilter && { status: statusFilter }),
         ...(dateFilter === 'today' && { created_at_gte: todayStr, created_at_lte: todayStr }),
         ...(dateFrom && !dateFilter && { created_at_gte: dateFrom }),
         ...(dateTo && !dateFilter && { created_at_lte: dateTo }),
         ordering,
       }),
+    placeholderData: (previous) => previous,
   })
 
-  const applicationsQueryKey = ['applications', search, statusFilter, ordering, dateFilter, dateFrom, dateTo]
+  const applicationsQueryKey = ['applications', debouncedSearch, statusFilter, ordering, dateFilter, dateFrom, dateTo]
 
   const changeStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>

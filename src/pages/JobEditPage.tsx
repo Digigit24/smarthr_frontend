@@ -62,20 +62,21 @@ export default function JobEditPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: JobFormData }) => jobsService.update(id, data),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Saving job...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Job updated successfully', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['jobs'] })
       qc.invalidateQueries({ queryKey: ['job-detail'] })
-      toast.success('Job updated successfully')
       navigate(-1)
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const fieldErrors = extractFieldErrors(err)
       setServerErrors(fieldErrors)
       const hasFieldErrors = Object.keys(fieldErrors).length > 0
       if (hasFieldErrors) {
-        toast.error('Please fix the highlighted errors')
+        toast.error('Please fix the highlighted errors', { id: context?.toastId })
       } else {
-        toast.error(extractApiError(err, 'Failed to update job'))
+        toast.error(extractApiError(err, 'Failed to update job'), { id: context?.toastId })
       }
     },
   })

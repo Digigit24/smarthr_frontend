@@ -61,12 +61,15 @@ export default function ScorecardDetailPage() {
 
   const deleteMutation = useMutation({
     mutationFn: () => scorecardsService.delete(id!),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Deleting scorecard...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Scorecard deleted', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['scorecards'] })
-      toast.success('Scorecard deleted')
       navigate(-1)
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete scorecard')),
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to delete scorecard'), { id: context?.toastId })
+    },
   })
 
   if (isLoading) {

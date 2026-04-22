@@ -100,14 +100,16 @@ export default function CallQueueCreatePage() {
           filter_statuses: formData.filter_statuses,
         },
       }),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Creating queue...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Queue created successfully', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['call-queues'] })
-      toast.success('Queue created successfully')
       navigate('/call-queues')
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const msg = applyFieldErrors(err, setError, 'Failed to create queue')
-      if (msg) toast.error(msg)
+      if (msg) toast.error(msg, { id: context?.toastId })
+      else toast.dismiss(context?.toastId)
     },
   })
 

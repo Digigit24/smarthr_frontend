@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { notificationsService } from '@/services/notifications'
 import type { Notification, NotificationCategory, CursorPaginatedResponse } from '@/types'
 import { formatDateTime, cn, extractCursor } from '@/lib/utils'
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
 
 const CATEGORY_CONFIG: Record<NotificationCategory, { label: string; icon: typeof Bell; color: string; gradient: string; dot: string; bg: string }> = {
   APPLICATION: { label: 'Application', icon: FileText, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', gradient: 'from-blue-500 to-indigo-500', dot: 'bg-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
@@ -142,6 +143,7 @@ export default function NotificationsPage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearch = useDebouncedValue(searchQuery, 300)
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
   const [readFilter, setReadFilter] = useState<string>('ALL')
   const [cursor, setCursor] = useState<string | null>(null)
@@ -151,14 +153,15 @@ export default function NotificationsPage() {
   if (categoryFilter !== 'ALL') params.category = categoryFilter
   if (readFilter === 'UNREAD') params.is_read = 'false'
   if (readFilter === 'READ') params.is_read = 'true'
-  if (searchQuery) params.search = searchQuery
+  if (debouncedSearch) params.search = debouncedSearch
 
   const { data, isLoading } = useQuery({
-    queryKey: ['notifications', categoryFilter, readFilter, searchQuery, cursor],
+    queryKey: ['notifications', categoryFilter, readFilter, debouncedSearch, cursor],
     queryFn: () => notificationsService.list(params),
+    placeholderData: (previous) => previous,
   })
 
-  const notificationsQueryKey = ['notifications', categoryFilter, readFilter, searchQuery, cursor]
+  const notificationsQueryKey = ['notifications', categoryFilter, readFilter, debouncedSearch, cursor]
 
   const markReadMutation = useMutation({
     mutationFn: (id: string) => notificationsService.markRead(id),

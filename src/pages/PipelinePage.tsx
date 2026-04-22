@@ -111,11 +111,14 @@ export default function PipelinePage() {
 
   const seedMutation = useMutation({
     mutationFn: () => pipelineService.seedDefaults(),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Seeding default stages...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Default stages seeded', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['pipeline'] })
-      toast.success('Default stages seeded')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to seed stages')),
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to seed stages'), { id: context?.toastId })
+    },
   })
 
   const pipelineQueryKey = ['pipeline']

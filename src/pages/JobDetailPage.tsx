@@ -233,11 +233,15 @@ export default function JobDetailPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (jobId: string) => jobsService.delete(jobId),
-    onSuccess: () => {
-      toast.success('Job deleted')
+    onMutate: () => ({ toastId: toast.loading('Deleting job...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Job deleted', { id: context?.toastId })
+      qc.invalidateQueries({ queryKey: ['jobs'] })
       navigate(-1)
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete job')),
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to delete job'), { id: context?.toastId })
+    },
   })
 
   const triggerCallMutation = useMutation({

@@ -43,19 +43,20 @@ export default function CallEditPage() {
 
   const updateMutation = useMutation({
     mutationFn: (status: string) => callsService.updateStatus(id!, status),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Saving call...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Call status updated', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['calls'] })
       qc.invalidateQueries({ queryKey: ['call-detail', id] })
-      toast.success('Call status updated')
       navigate(-1)
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const fe = extractFieldErrors(err)
       setFieldErrors(fe)
       if (Object.keys(fe).length > 0) {
-        toast.error('Please fix the highlighted errors')
+        toast.error('Please fix the highlighted errors', { id: context?.toastId })
       } else {
-        toast.error(extractApiError(err, 'Failed to update call status'))
+        toast.error(extractApiError(err, 'Failed to update call status'), { id: context?.toastId })
       }
     },
   })

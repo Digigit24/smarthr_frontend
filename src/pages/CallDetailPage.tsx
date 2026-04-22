@@ -239,12 +239,15 @@ export default function CallDetailPage() {
 
   const deleteMutation = useMutation({
     mutationFn: () => callsService.delete(id!),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Deleting call record...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Call record deleted', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['calls'] })
-      toast.success('Call record deleted')
       navigate(-1)
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete call record')),
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to delete call record'), { id: context?.toastId })
+    },
   })
 
   const updateStatusMutation = useMutation({

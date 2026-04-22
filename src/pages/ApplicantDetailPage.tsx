@@ -102,14 +102,17 @@ function ApplyForJob({ applicantId, existingApps }: { applicantId: string; exist
         status: 'APPLIED',
         notes: notes || undefined,
       }),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Submitting application...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Application submitted successfully', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['applicant-detail', applicantId] })
       qc.invalidateQueries({ queryKey: ['applications'] })
       setSelectedJobId('')
       setNotes('')
-      toast.success('Application submitted successfully')
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to submit application')),
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to submit application'), { id: context?.toastId })
+    },
   })
 
   return (
@@ -230,12 +233,15 @@ export default function ApplicantDetailPage() {
 
   const deleteMutation = useMutation({
     mutationFn: () => applicantsService.delete(id!),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Deleting applicant...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Applicant deleted', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['applicants'] })
-      toast.success('Applicant deleted')
       navigate(-1)
     },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete applicant')),
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to delete applicant'), { id: context?.toastId })
+    },
   })
 
   const {

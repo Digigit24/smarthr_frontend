@@ -164,8 +164,15 @@ export default function CallQueueDetailPage() {
   })
   const deleteMutation = useMutation({
     mutationFn: () => callQueuesService.delete(id!),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['call-queues'] }); toast.success('Queue deleted'); navigate('/call-queues') },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete queue')),
+    onMutate: () => ({ toastId: toast.loading('Deleting queue...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Queue deleted', { id: context?.toastId })
+      qc.invalidateQueries({ queryKey: ['call-queues'] })
+      navigate('/call-queues')
+    },
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to delete queue'), { id: context?.toastId })
+    },
   })
 
   if (isLoading) {

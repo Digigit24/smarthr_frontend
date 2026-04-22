@@ -25,6 +25,7 @@ import { SideDrawer } from '@/components/SideDrawer'
 import { interviewsService } from '@/services/interviews'
 import type { InterviewListItem, InterviewStatus, InterviewType, InterviewDetail, PaginatedResponse } from '@/types'
 import { formatDateTime, cn } from '@/lib/utils'
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
 
 const completeSchema = z.object({
   feedback: z.string().optional(),
@@ -419,6 +420,7 @@ export default function InterviewsPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [interviewerFilter, setInterviewerFilter] = useState('')
@@ -429,19 +431,20 @@ export default function InterviewsPage() {
   const [completeOpen, setCompleteOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['interviews', search, statusFilter, typeFilter, interviewerFilter, dateFrom, dateTo],
+    queryKey: ['interviews', debouncedSearch, statusFilter, typeFilter, interviewerFilter, dateFrom, dateTo],
     queryFn: () =>
       interviewsService.list({
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(statusFilter && { status: statusFilter }),
         ...(typeFilter && { interview_type: typeFilter }),
         ...(dateFrom && { scheduled_at_gte: dateFrom }),
         ...(dateTo && { scheduled_at_lte: dateTo }),
         ordering: 'scheduled_at',
       }),
+    placeholderData: (previous) => previous,
   })
 
-  const interviewsQueryKey = ['interviews', search, statusFilter, typeFilter, interviewerFilter, dateFrom, dateTo]
+  const interviewsQueryKey = ['interviews', debouncedSearch, statusFilter, typeFilter, interviewerFilter, dateFrom, dateTo]
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => interviewsService.delete(id),

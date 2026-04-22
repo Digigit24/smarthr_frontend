@@ -46,19 +46,20 @@ export default function ScorecardEditPage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => scorecardsService.update(id!, data),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Saving scorecard...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Scorecard updated', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['scorecards'] })
       qc.invalidateQueries({ queryKey: ['scorecard-detail', id] })
-      toast.success('Scorecard updated')
       navigate(`/scorecards/${id}`)
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const fe = extractFieldErrors(err)
       setFieldErrors(fe)
       if (Object.keys(fe).length > 0) {
-        toast.error('Please fix the highlighted errors')
+        toast.error('Please fix the highlighted errors', { id: context?.toastId })
       } else {
-        toast.error(extractApiError(err, 'Failed to update scorecard'))
+        toast.error(extractApiError(err, 'Failed to update scorecard'), { id: context?.toastId })
       }
     },
   })

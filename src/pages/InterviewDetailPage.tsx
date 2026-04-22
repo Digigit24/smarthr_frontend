@@ -114,8 +114,15 @@ export default function InterviewDetailPage() {
 
   const deleteMutation = useMutation({
     mutationFn: () => interviewsService.delete(id!),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['interviews'] }); toast.success('Interview deleted'); navigate('/interviews') },
-    onError: (err) => toast.error(extractApiError(err, 'Failed to delete interview')),
+    onMutate: () => ({ toastId: toast.loading('Deleting interview...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Interview deleted', { id: context?.toastId })
+      qc.invalidateQueries({ queryKey: ['interviews'] })
+      navigate('/interviews')
+    },
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to delete interview'), { id: context?.toastId })
+    },
   })
 
   const { register: completeRegister, handleSubmit: handleCompleteSubmit } = useForm<CompleteData>({

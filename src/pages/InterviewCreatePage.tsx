@@ -53,14 +53,16 @@ export default function InterviewCreatePage() {
 
   const createMutation = useMutation({
     mutationFn: (data: InterviewFormData) => interviewsService.create(data),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Scheduling interview...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Interview scheduled', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['interviews'] })
-      toast.success('Interview scheduled')
       navigate('/interviews')
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const msg = applyFieldErrors(err, setError, 'Failed to schedule interview')
-      if (msg) toast.error(msg)
+      if (msg) toast.error(msg, { id: context?.toastId })
+      else toast.dismiss(context?.toastId)
     },
   })
 

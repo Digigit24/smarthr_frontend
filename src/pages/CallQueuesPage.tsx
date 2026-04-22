@@ -20,6 +20,7 @@ import {
 import { callQueuesService } from '@/services/callQueues'
 import type { CallQueue, CallQueueStatus, PaginatedResponse } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
 
 const STATUS_CONFIG: Record<CallQueueStatus, { label: string; color: string; gradient: string; dot: string; ring: string }> = {
   DRAFT: { label: 'Draft', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', gradient: 'from-gray-400 to-gray-500', dot: 'bg-gray-400', ring: 'ring-gray-200 dark:ring-gray-700' },
@@ -159,25 +160,27 @@ export default function CallQueuesPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
   const [statusFilter, setStatusFilter] = useState('')
   const [ordering, setOrdering] = useState('-created_at')
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['call-queues', search, statusFilter, ordering, page],
+    queryKey: ['call-queues', debouncedSearch, statusFilter, ordering, page],
     queryFn: () =>
       callQueuesService.list({
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(statusFilter && { status: statusFilter }),
         ordering,
         page: String(page),
       }),
+    placeholderData: (previous) => previous,
   })
 
   const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0
 
-  const queuesQueryKey = ['call-queues', search, statusFilter, ordering, page]
+  const queuesQueryKey = ['call-queues', debouncedSearch, statusFilter, ordering, page]
 
   const optimisticStatusChange = async (id: string, newStatus: CallQueueStatus) => {
     await qc.cancelQueries({ queryKey: queuesQueryKey })

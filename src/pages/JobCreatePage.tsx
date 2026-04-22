@@ -61,15 +61,17 @@ export default function JobCreatePage() {
 
   const createMutation = useMutation({
     mutationFn: (data: JobFormData) => jobsService.create(data),
-    onSuccess: () => {
+    onMutate: () => ({ toastId: toast.loading('Creating job...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Job created successfully', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['jobs'] })
       qc.invalidateQueries({ queryKey: ['jobs-wizard'] })
-      toast.success('Job created successfully')
       navigate(returnTo ?? '/jobs')
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const msg = applyFieldErrors(err, setError, 'Failed to create job')
-      if (msg) toast.error(msg)
+      if (msg) toast.error(msg, { id: context?.toastId })
+      else toast.dismiss(context?.toastId)
     },
   })
 

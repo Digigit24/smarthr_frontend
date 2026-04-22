@@ -61,14 +61,16 @@ export default function ApplicantCreatePage() {
 
   const createMutation = useMutation({
     mutationFn: (data: ApplicantFormData) => applicantsService.create(data),
-    onSuccess: (result) => {
+    onMutate: () => ({ toastId: toast.loading('Creating applicant...') }),
+    onSuccess: (result, _vars, context) => {
+      toast.success('Applicant created', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['applicants'] })
-      toast.success('Applicant created')
       navigate(`/applicants/${result.id}`)
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const msg = applyFieldErrors(err, setError, 'Failed to create applicant')
-      if (msg) toast.error(msg)
+      if (msg) toast.error(msg, { id: context?.toastId })
+      else toast.dismiss(context?.toastId)
     },
   })
 

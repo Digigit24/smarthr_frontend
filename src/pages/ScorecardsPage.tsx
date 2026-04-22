@@ -16,6 +16,7 @@ import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { scorecardsService } from '@/services/scorecards'
 import type { ScorecardListItem, ScorecardRecommendation, PaginatedResponse } from '@/types'
 import { formatDate, cn } from '@/lib/utils'
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
 
 const REC_CONFIG: Record<string, { label: string; color: string; gradient: string; dot: string }> = {
   STRONG_YES: { label: 'Strong Yes', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', gradient: 'from-emerald-500 to-teal-500', dot: 'bg-emerald-500' },
@@ -128,6 +129,7 @@ function ScorecardCard({ sc, onDelete }: { sc: ScorecardListItem; onDelete: (id:
 export default function ScorecardsPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
   const [recFilter, setRecFilter] = useState('')
   const [ordering, setOrdering] = useState('-overall_score')
   const [dateFrom, setDateFrom] = useState('')
@@ -136,21 +138,22 @@ export default function ScorecardsPage() {
   const PAGE_SIZE = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['scorecards', search, recFilter, ordering, dateFrom, dateTo, page],
+    queryKey: ['scorecards', debouncedSearch, recFilter, ordering, dateFrom, dateTo, page],
     queryFn: () =>
       scorecardsService.list({
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(recFilter && { recommendation: recFilter }),
         ...(dateFrom && { created_at_gte: dateFrom }),
         ...(dateTo && { created_at_lte: dateTo }),
         ordering,
         page: String(page),
       }),
+    placeholderData: (previous) => previous,
   })
 
   const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0
 
-  const scorecardsQueryKey = ['scorecards', search, recFilter, ordering, dateFrom, dateTo, page]
+  const scorecardsQueryKey = ['scorecards', debouncedSearch, recFilter, ordering, dateFrom, dateTo, page]
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => scorecardsService.delete(id),

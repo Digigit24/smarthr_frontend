@@ -141,7 +141,9 @@ export default function ApplicationJobWizard({
   // ── Mutations ──
   const createApplicantMutation = useMutation({
     mutationFn: (data: ApplicantFormData) => applicantsService.create(data),
-    onSuccess: (result) => {
+    onMutate: () => ({ toastId: toast.loading('Creating applicant...') }),
+    onSuccess: (result, _vars, context) => {
+      toast.success('Applicant created', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['applicants'] })
       setSelectedApplicantId(result.id)
       // full_name may not be returned by the API — fall back to first+last
@@ -151,13 +153,13 @@ export default function ApplicationJobWizard({
       setCandidateMode('existing')
       setStep(1)
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const fe = extractFieldErrors(err)
       if (Object.keys(fe).length > 0) {
         setApplicantErrors(fe)
-        toast.error('Please fix the highlighted errors')
+        toast.error('Please fix the highlighted errors', { id: context?.toastId })
       } else {
-        toast.error(extractApiError(err))
+        toast.error(extractApiError(err), { id: context?.toastId })
       }
     },
   })
@@ -165,10 +167,11 @@ export default function ApplicationJobWizard({
   const createApplicationMutation = useMutation({
     mutationFn: (data: { job: string; applicant: string; status: string; notes?: string; resume_url?: string }) =>
       applicationsService.create(data as any),
-    onSuccess: async (result, variables) => {
+    onMutate: () => ({ toastId: toast.loading('Submitting application...') }),
+    onSuccess: async (result, variables, context) => {
+      toast.success('Application submitted successfully!', { id: context?.toastId })
       qc.invalidateQueries({ queryKey: ['applications'] })
       qc.invalidateQueries({ queryKey: ['applicants'] })
-      toast.success('Application submitted successfully!')
 
       // Try id directly from response first
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -191,13 +194,13 @@ export default function ApplicationJobWizard({
         navigate(appId ? `/applications/${appId}` : '/applications')
       }
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
       const fe = extractFieldErrors(err)
       if (Object.keys(fe).length > 0) {
         setSubmitErrors(fe)
-        toast.error('Please fix the highlighted errors')
+        toast.error('Please fix the highlighted errors', { id: context?.toastId })
       } else {
-        toast.error(extractApiError(err))
+        toast.error(extractApiError(err), { id: context?.toastId })
       }
     },
   })

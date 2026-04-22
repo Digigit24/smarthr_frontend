@@ -31,6 +31,7 @@ import { callQueuesService } from '@/services/callQueues'
 import { applicationsService } from '@/services/applications'
 import type { CallRecordListItem, PaginatedResponse } from '@/types'
 import { formatDateTime, formatDuration, cn } from '@/lib/utils'
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
 
 const CALL_STATUS_CONFIG: Record<string, { bg: string; dot: string }> = {
   QUEUED: { bg: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', dot: 'bg-gray-400' },
@@ -220,6 +221,7 @@ export default function CallsPage() {
   const qc = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '')
   const [providerFilter, setProviderFilter] = useState('')
   const [dateFilter, setDateFilter] = useState(searchParams.get('filter') || '')
@@ -236,19 +238,20 @@ export default function CallsPage() {
   const todayStr = new Date().toISOString().split('T')[0]
 
   const { data, isLoading } = useQuery({
-    queryKey: ['calls', search, statusFilter, providerFilter, dateFilter, dateFrom, dateTo],
+    queryKey: ['calls', debouncedSearch, statusFilter, providerFilter, dateFilter, dateFrom, dateTo],
     queryFn: () =>
       callsService.list({
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(statusFilter && { status: statusFilter }),
         ...(providerFilter && { provider: providerFilter }),
         ...(dateFilter === 'today' && { created_at_gte: todayStr, created_at_lte: todayStr }),
         ...(dateFrom && !dateFilter && { created_at_gte: dateFrom }),
         ...(dateTo && !dateFilter && { created_at_lte: dateTo }),
       }),
+    placeholderData: (previous) => previous,
   })
 
-  const callsQueryKey = ['calls', search, statusFilter, providerFilter, dateFilter, dateFrom, dateTo]
+  const callsQueryKey = ['calls', debouncedSearch, statusFilter, providerFilter, dateFilter, dateFrom, dateTo]
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => callsService.delete(id),

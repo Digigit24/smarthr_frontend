@@ -23,6 +23,7 @@ import { ApplicantImportDialog } from '@/components/ApplicantImportDialog'
 import { applicantsService } from '@/services/applicants'
 import type { ApplicantListItem, PaginatedResponse } from '@/types'
 import { formatDate, getInitials, cn, normalizePhone, phoneForWhatsApp } from '@/lib/utils'
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
 
 const SOURCE_COLORS: Record<string, { bg: string; dot: string }> = {
   MANUAL: { bg: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700', dot: 'bg-gray-400' },
@@ -207,6 +208,7 @@ export default function ApplicantsPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebouncedValue(search, 300)
   const [sourceFilter, setSourceFilter] = useState('')
   const [ordering, setOrdering] = useState('-created_at')
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
@@ -214,14 +216,15 @@ export default function ApplicantsPage() {
   const PAGE_SIZE = 20
 
   const { data, isLoading } = useQuery({
-    queryKey: ['applicants', search, sourceFilter, ordering, page],
+    queryKey: ['applicants', debouncedSearch, sourceFilter, ordering, page],
     queryFn: () =>
       applicantsService.list({
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(sourceFilter && { source: sourceFilter }),
         ordering,
         page: String(page),
       }),
+    placeholderData: (previous) => previous,
   })
 
   const totalPages = data ? Math.ceil(data.count / PAGE_SIZE) : 0
@@ -231,7 +234,7 @@ export default function ApplicantsPage() {
   const handleSourceFilter = (v: string) => { setSourceFilter(v === 'ALL' ? '' : v); setPage(1) }
   const handleOrdering = (v: string) => { setOrdering(v); setPage(1) }
 
-  const applicantsQueryKey = ['applicants', search, sourceFilter, ordering, page]
+  const applicantsQueryKey = ['applicants', debouncedSearch, sourceFilter, ordering, page]
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => applicantsService.delete(id),
