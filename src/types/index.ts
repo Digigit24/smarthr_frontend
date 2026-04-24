@@ -273,9 +273,11 @@ export interface CallRecordSummary {
   provider_call_id: string
   phone: string
   status: CallStatus
-  duration: number
+  duration: number | null
   summary: string
   recording_url: string
+  transcript: string
+  error_message: string
   started_at: string | null
   ended_at: string | null
   created_at: string

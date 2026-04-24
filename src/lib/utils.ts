@@ -170,6 +170,25 @@ export function isActiveCallStatus(status: string): status is ActiveCallStatus {
   return (ACTIVE_CALL_STATUSES as readonly string[]).includes(status)
 }
 
+export const TERMINAL_CALL_STATUSES = ['COMPLETED', 'FAILED', 'NO_ANSWER', 'BUSY'] as const
+export type TerminalCallStatus = (typeof TERMINAL_CALL_STATUSES)[number]
+
+export function isTerminalCallStatus(status: string): status is TerminalCallStatus {
+  return (TERMINAL_CALL_STATUSES as readonly string[]).includes(status)
+}
+
+export function formatTalkTime(seconds: number | null | undefined): string {
+  if (seconds == null || seconds <= 0) return '—'
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+export function formatTimeHM(iso: string | null | undefined): string {
+  if (!iso) return ''
+  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
 export function extractCursor(url: string | null): string | null {
   if (!url) return null
   try {

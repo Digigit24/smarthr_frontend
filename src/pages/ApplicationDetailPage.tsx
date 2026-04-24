@@ -28,9 +28,11 @@ import type { ApplicationStatus, CallRecordSummary, ApplicationDetail } from '@/
 import {
   formatDate,
   formatDateTime,
-  formatDuration,
+  formatTalkTime,
+  formatTimeHM,
   getInitials,
   isActiveCallStatus,
+  isTerminalCallStatus,
   cn,
 } from '@/lib/utils'
 
@@ -47,15 +49,15 @@ const STATUS_CONFIG: Record<string, { bg: string; dot: string; gradient: string 
   WITHDRAWN: { bg: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400', dot: 'bg-gray-400', gradient: 'from-gray-400 to-gray-500' },
 }
 
-const CALL_STATUS_COLORS: Record<string, string> = {
-  QUEUED: 'bg-gray-100 text-gray-700',
-  INITIATED: 'bg-blue-100 text-blue-700',
-  RINGING: 'bg-amber-100 text-amber-700',
-  IN_PROGRESS: 'bg-indigo-100 text-indigo-700',
-  COMPLETED: 'bg-emerald-100 text-emerald-700',
-  FAILED: 'bg-red-100 text-red-700',
-  NO_ANSWER: 'bg-orange-100 text-orange-700',
-  BUSY: 'bg-yellow-100 text-yellow-700',
+const CALL_STATUS_UI: Record<string, { label: string; className: string }> = {
+  QUEUED:      { label: 'Queued',    className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+  INITIATED:   { label: 'Initiated', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+  RINGING:     { label: 'Ringing',   className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  IN_PROGRESS: { label: 'In Call',   className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+  COMPLETED:   { label: 'Completed', className: 'bg-emerald-600 text-white dark:bg-emerald-500' },
+  FAILED:      { label: 'Failed',    className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  NO_ANSWER:   { label: 'No Answer', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
+  BUSY:        { label: 'Busy',      className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
 }
 
 const INTERVIEW_STATUS_COLORS: Record<string, string> = {
@@ -156,6 +158,14 @@ export default function ApplicationDetailPage() {
     queryKey: ['application-detail', appId],
     queryFn: () => applicationsService.get(appId!),
     enabled: !!appId,
+    // Poll every 5s while any call is still non-terminal (in-flight).
+    // Backend drives all state transitions; we just refetch to see them.
+    refetchInterval: (query) => {
+      const data = query.state.data as ApplicationDetail | undefined
+      if (!data?.call_records?.length) return false
+      const hasNonTerminal = data.call_records.some((cr) => !isTerminalCallStatus(cr.status))
+      return hasNonTerminal ? 5000 : false
+    },
   })
 
   // Any call still within its auto-fail window blocks a new trigger.
@@ -179,9 +189,11 @@ export default function ApplicationDetailPage() {
         provider_call_id: '',
         phone: previous?.applicant?.phone ?? '',
         status: 'QUEUED',
-        duration: 0,
+        duration: null,
         summary: '',
         recording_url: '',
+        transcript: '',
+        error_message: '',
         started_at: null,
         ended_at: null,
         created_at: now,
@@ -651,17 +663,23 @@ export default function ApplicationDetailPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {app.call_records.map((cr) => {
-                  const callIsActive =
-                    isActiveCallStatus(cr.status) && (cr.seconds_until_stale ?? 0) > 0
+                  const ui = CALL_STATUS_UI[cr.status] ?? { label: cr.status, className: 'bg-gray-100 text-gray-700' }
+                  const inFlight = cr.status === 'INITIATED' || cr.status === 'RINGING' || cr.status === 'IN_PROGRESS'
+                  const showCountdown = inFlight && cr.seconds_until_stale != null
+                  const showError =
+                    (cr.status === 'FAILED' || cr.status === 'NO_ANSWER' || cr.status === 'BUSY') &&
+                    !!cr.error_message
+                  const talkTime = formatTalkTime(cr.duration)
+                  const isExpanded = expandedCallId === cr.id
                   return (
                   <div key={cr.id} className="rounded-lg border p-4 space-y-3 hover:shadow-sm transition-shadow">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', CALL_STATUS_COLORS[cr.status])}>
-                          {cr.status.replace(/_/g, ' ')}
+                        <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium', ui.className)}>
+                          {ui.label}
                         </span>
                         <Badge variant="outline" className="text-[10px]">{cr.provider}</Badge>
-                        {callIsActive && (
+                        {showCountdown && (
                           <StaleCallCountdown
                             staleAt={cr.stale_at}
                             initialSecondsUntilStale={cr.seconds_until_stale}
@@ -674,7 +692,7 @@ export default function ApplicationDetailPage() {
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {formatDuration(cr.duration)}
+                        <span title="Talk time">{talkTime}</span>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
@@ -698,13 +716,13 @@ export default function ApplicationDetailPage() {
                       {cr.started_at && (
                         <div>
                           <p className="text-muted-foreground mb-0.5">Started</p>
-                          <p className="font-medium">{formatDateTime(cr.started_at)}</p>
+                          <p className="font-medium">{formatTimeHM(cr.started_at)}</p>
                         </div>
                       )}
                       {cr.ended_at && (
                         <div>
                           <p className="text-muted-foreground mb-0.5">Ended</p>
-                          <p className="font-medium">{formatDateTime(cr.ended_at)}</p>
+                          <p className="font-medium">{formatTimeHM(cr.ended_at)}</p>
                         </div>
                       )}
                       <div>
@@ -712,13 +730,19 @@ export default function ApplicationDetailPage() {
                         <p className="font-medium">{formatDateTime(cr.created_at)}</p>
                       </div>
                     </div>
-                    {cr.summary && (
+                    {showError && (
+                      <div className="pt-3 border-t">
+                        <p className="text-xs text-muted-foreground mb-1 font-medium">Failure reason</p>
+                        <p className="text-sm leading-relaxed text-red-700 dark:text-red-400">{cr.error_message}</p>
+                      </div>
+                    )}
+                    {cr.status === 'COMPLETED' && cr.summary && (
                       <div className="pt-3 border-t">
                         <p className="text-xs text-muted-foreground mb-1 font-medium">Summary</p>
                         <p className="text-sm leading-relaxed">{cr.summary}</p>
                       </div>
                     )}
-                    {cr.recording_url && (
+                    {cr.status === 'COMPLETED' && cr.recording_url && (
                       <div className="pt-3 border-t">
                         <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
                           <Mic className="h-3 w-3" />
@@ -727,21 +751,23 @@ export default function ApplicationDetailPage() {
                         <audio controls src={cr.recording_url} className="w-full h-8" />
                       </div>
                     )}
-                    {!cr.recording_url && (
-                      <button
-                        className="flex items-center gap-1 text-xs text-blue-500 hover:underline pt-1"
-                        onClick={() => setExpandedCallId(expandedCallId === cr.id ? null : cr.id)}
-                      >
-                        {expandedCallId === cr.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                        {expandedCallId === cr.id ? 'Hide details' : 'Show details'}
-                      </button>
-                    )}
-                    {expandedCallId === cr.id && (
-                      <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2.5 font-mono">
-                        Provider Call ID: {cr.provider_call_id}
+                    {cr.status === 'COMPLETED' && cr.transcript && (
+                      <div className="pt-3 border-t">
+                        <button
+                          className="flex items-center gap-1 text-xs text-blue-500 hover:underline"
+                          onClick={() => setExpandedCallId(isExpanded ? null : cr.id)}
+                        >
+                          {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                          {isExpanded ? 'Hide transcript' : 'Show transcript'}
+                        </button>
+                        {isExpanded && (
+                          <pre className="mt-2 text-xs bg-muted/50 rounded-md p-2.5 font-mono whitespace-pre-wrap break-words max-h-80 overflow-y-auto">
+                            {cr.transcript}
+                          </pre>
+                        )}
                       </div>
                     )}
-                    {callIsActive && (
+                    {inFlight && (cr.seconds_until_stale ?? 0) > 0 && (
                       <div className="pt-3 border-t flex items-center justify-end">
                         <Button
                           variant="outline"
