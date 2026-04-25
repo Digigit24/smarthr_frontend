@@ -179,9 +179,31 @@ export function isTerminalCallStatus(status: string): status is TerminalCallStat
 
 export function formatTalkTime(seconds: number | null | undefined): string {
   if (seconds == null || seconds <= 0) return '—'
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
+  const s = Math.floor(seconds)
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`
+}
+
+/**
+ * Defensive talk-time computer for a call record.
+ * Prefers `duration` from the server; falls back to ended_at - started_at
+ * when both timestamps are present but duration is missing/zero.
+ * Returns 0 when no usable signal is available — `formatTalkTime(0)` is "—".
+ */
+export function getTalkSeconds(record: {
+  duration?: number | null
+  started_at?: string | null
+  ended_at?: string | null
+}): number {
+  if (record.duration && record.duration > 0) return record.duration
+  if (record.started_at && record.ended_at) {
+    const ms = new Date(record.ended_at).getTime() - new Date(record.started_at).getTime()
+    return ms > 0 ? Math.floor(ms / 1000) : 0
+  }
+  return 0
 }
 
 export function formatTimeHM(iso: string | null | undefined): string {

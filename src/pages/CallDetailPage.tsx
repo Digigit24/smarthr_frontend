@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select'
 import { callsService } from '@/services/calls'
 import type { CallRecordDetail, CallStatus } from '@/types'
-import { formatDateTime, formatDuration, isActiveCallStatus, cn } from '@/lib/utils'
+import { formatDateTime, formatTalkTime, getTalkSeconds, isActiveCallStatus, cn } from '@/lib/utils'
 
 const CALL_STATUS_CONFIG: Record<string, { bg: string; dot: string; gradient: string; icon: typeof Phone }> = {
   QUEUED: { bg: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', dot: 'bg-gray-400', gradient: 'from-gray-400 to-gray-500', icon: Clock },
@@ -332,10 +332,10 @@ export default function CallDetailPage() {
                     {formatDateTime(call.created_at)}
                   </span>
                   <Badge className="bg-white/20 text-white border-white/20 hover:bg-white/30 text-[10px]">{call.provider}</Badge>
-                  {call.duration > 0 && (
+                  {(call.status === 'COMPLETED' || call.status === 'IN_PROGRESS') && getTalkSeconds(call) > 0 && (
                     <span className="flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5" />
-                      {formatDuration(call.duration)}
+                      {formatTalkTime(getTalkSeconds(call))}
                     </span>
                   )}
                 </div>
@@ -434,7 +434,11 @@ export default function CallDetailPage() {
               </div>
               <div>
                 <p className="text-[11px] text-muted-foreground font-medium">Duration</p>
-                <p className="text-base sm:text-lg font-bold">{call.duration > 0 ? formatDuration(call.duration) : '—'}</p>
+                <p className="text-base sm:text-lg font-bold">
+                  {call.status === 'COMPLETED' || call.status === 'IN_PROGRESS'
+                    ? formatTalkTime(getTalkSeconds(call))
+                    : '—'}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -503,7 +507,15 @@ export default function CallDetailPage() {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:gap-x-6">
                 <InfoRow icon={Phone} label="Phone Number" value={call.phone} />
-                <InfoRow icon={Clock} label="Duration" value={call.duration > 0 ? formatDuration(call.duration) : 'Not started'} />
+                <InfoRow
+                  icon={Clock}
+                  label="Duration"
+                  value={
+                    call.status === 'COMPLETED' || call.status === 'IN_PROGRESS'
+                      ? formatTalkTime(getTalkSeconds(call))
+                      : 'Not started'
+                  }
+                />
                 {call.started_at && <InfoRow icon={Activity} label="Started At" value={formatDateTime(call.started_at)} />}
                 {call.ended_at && <InfoRow icon={CheckCircle2} label="Ended At" value={formatDateTime(call.ended_at)} />}
                 <InfoRow icon={Calendar} label="Created" value={formatDateTime(call.created_at)} />

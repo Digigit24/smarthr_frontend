@@ -30,7 +30,7 @@ import { callsService } from '@/services/calls'
 import { callQueuesService } from '@/services/callQueues'
 import { applicationsService } from '@/services/applications'
 import type { CallRecordListItem, PaginatedResponse } from '@/types'
-import { formatDateTime, formatDuration, cn } from '@/lib/utils'
+import { formatDateTime, formatTalkTime, getTalkSeconds, cn } from '@/lib/utils'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 
 const CALL_STATUS_CONFIG: Record<string, { bg: string; dot: string }> = {
@@ -194,7 +194,7 @@ function CallCard({ call, onView, onEdit, onDelete }: {
         <div className="mt-3 flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap">
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            {formatDuration(call.duration)}
+            {formatTalkTime(getTalkSeconds(call))}
           </span>
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
@@ -427,7 +427,7 @@ export default function CallsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-[13px] text-muted-foreground whitespace-nowrap">
-                          {formatDuration(call.duration)}
+                          {formatTalkTime(getTalkSeconds(call))}
                         </td>
                         <td className="px-4 py-3 text-[12px] text-muted-foreground max-w-[180px]">
                           <span className="truncate block">{call.summary || '—'}</span>

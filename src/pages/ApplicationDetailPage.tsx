@@ -31,6 +31,7 @@ import {
   formatTalkTime,
   formatTimeHM,
   getInitials,
+  getTalkSeconds,
   isActiveCallStatus,
   isTerminalCallStatus,
   cn,
@@ -669,7 +670,13 @@ export default function ApplicationDetailPage() {
                   const showError =
                     (cr.status === 'FAILED' || cr.status === 'NO_ANSWER' || cr.status === 'BUSY') &&
                     !!cr.error_message
-                  const talkTime = formatTalkTime(cr.duration)
+                  // Spec: only meaningful on COMPLETED (talk happened) and IN_PROGRESS
+                  // (live counter — refreshes on each 5s poll). Other statuses → "—".
+                  const talkSecondsBase =
+                    cr.status === 'COMPLETED' || cr.status === 'IN_PROGRESS'
+                      ? getTalkSeconds(cr)
+                      : 0
+                  const talkTime = formatTalkTime(talkSecondsBase)
                   const isExpanded = expandedCallId === cr.id
                   return (
                   <div key={cr.id} className="rounded-lg border p-4 space-y-3 hover:shadow-sm transition-shadow">
