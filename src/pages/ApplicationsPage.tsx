@@ -23,6 +23,7 @@ import {
 import { DateRangeFilter } from '@/components/DateRangeFilter'
 import { applicationsService } from '@/services/applications'
 import type { BulkActionPayload, BulkActionResponse } from '@/services/applications'
+import { applicantsService } from '@/services/applicants'
 import { callQueuesService } from '@/services/callQueues'
 import type { ApplicationListItem, ApplicationStatus, CallQueue, PaginatedResponse } from '@/types'
 import { formatDate, getInitials, cn, phoneForWhatsApp } from '@/lib/utils'
@@ -842,6 +843,42 @@ export default function ApplicationsPage() {
     }
   }
 
+  // The list endpoint may return an empty `applicant_phone` for some rows.
+  // Open a placeholder window synchronously (so popup blockers don't fire),
+  // resolve the phone — using the row first, then the applicant detail as
+  // a fallback — and redirect that window once we have a number.
+  const handleWhatsAppClick = async (app: ApplicationListItem, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const directNumber = phoneForWhatsApp(app.applicant_phone)
+    if (directNumber) {
+      window.open(`https://wa.me/${directNumber}`, '_blank', 'noopener,noreferrer')
+      return
+    }
+
+    // No phone on the list row — open a placeholder window now while we still
+    // have the user-gesture, then fetch the applicant and redirect or close.
+    const placeholder = window.open('', '_blank')
+    try {
+      const applicant = await qc.fetchQuery({
+        queryKey: ['applicant-detail', app.applicant_id],
+        queryFn: () => applicantsService.get(app.applicant_id),
+      })
+      const fetchedNumber = phoneForWhatsApp(applicant.phone)
+      if (fetchedNumber) {
+        if (placeholder) placeholder.location.href = `https://wa.me/${fetchedNumber}`
+        else window.open(`https://wa.me/${fetchedNumber}`, '_blank', 'noopener,noreferrer')
+        return
+      }
+      placeholder?.close()
+      toast.error('No phone number available for this applicant')
+    } catch {
+      placeholder?.close()
+      toast.error('Could not look up phone number for this applicant')
+    }
+  }
+
   const toggleSelect = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     setSelectedIds((prev) => {
@@ -1090,21 +1127,14 @@ export default function ApplicationsPage() {
                 <span className="text-[10px] text-muted-foreground">{formatDate(app.created_at)}</span>
               </div>
               <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                <a
-                  href={app.applicant_phone ? `https://wa.me/${phoneForWhatsApp(app.applicant_phone)}` : '#'}
-                  target={app.applicant_phone ? '_blank' : undefined}
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
                   title="Chat on WhatsApp"
                   className="inline-flex items-center justify-center h-7 w-7 rounded-md text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-                  onClick={(e) => {
-                    if (!app.applicant_phone) {
-                      e.preventDefault()
-                      toast.error('No phone number available for this applicant')
-                    }
-                  }}
+                  onClick={(e) => handleWhatsAppClick(app, e)}
                 >
                   <WhatsAppIcon className="h-3.5 w-3.5" />
-                </a>
+                </button>
                 <Button variant="ghost" size="icon" className="h-7 w-7" title="View" onClick={() => handleView(app)}>
                   <Eye className="h-3.5 w-3.5" />
                 </Button>
@@ -1208,21 +1238,14 @@ export default function ApplicationsPage() {
                     </td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-0.5">
-                        <a
-                          href={app.applicant_phone ? `https://wa.me/${phoneForWhatsApp(app.applicant_phone)}` : '#'}
-                          target={app.applicant_phone ? '_blank' : undefined}
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
                           title="Chat on WhatsApp"
                           className="inline-flex items-center justify-center h-8 w-8 rounded-md text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-                          onClick={(e) => {
-                            if (!app.applicant_phone) {
-                              e.preventDefault()
-                              toast.error('No phone number available for this applicant')
-                            }
-                          }}
+                          onClick={(e) => handleWhatsAppClick(app, e)}
                         >
                           <WhatsAppIcon className="h-4 w-4" />
-                        </a>
+                        </button>
                         <Button
                           variant="ghost"
                           size="icon"
