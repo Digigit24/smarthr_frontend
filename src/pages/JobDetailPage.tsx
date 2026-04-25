@@ -612,7 +612,14 @@ export default function JobDetailPage() {
                     <Button variant="ghost" size="icon" className="h-7 w-7" title="View" onClick={() => handleViewApplication(app)}>
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" title="AI Call" onClick={() => triggerCallMutation.mutate(app.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      title={triggerCallMutation.isPending ? 'Triggering…' : 'AI Call'}
+                      onClick={() => triggerCallMutation.mutate(app.id)}
+                      disabled={triggerCallMutation.isPending}
+                    >
                       <Phone className="h-3.5 w-3.5" />
                     </Button>
                     <Select value={app.status} onValueChange={(status) => changeStatusMutation.mutate({ appId: app.id, status })}>
@@ -680,8 +687,9 @@ export default function JobDetailPage() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              title="Trigger AI Call"
+                              title={triggerCallMutation.isPending ? 'Triggering…' : 'Trigger AI Call'}
                               onClick={() => triggerCallMutation.mutate(app.id)}
+                              disabled={triggerCallMutation.isPending}
                             >
                               <Phone className="h-3.5 w-3.5" />
                             </Button>

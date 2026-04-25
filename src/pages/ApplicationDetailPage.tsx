@@ -398,7 +398,8 @@ export default function ApplicationDetailPage() {
                 size="sm"
                 className="w-full sm:w-auto"
                 onClick={() => triggerCallMutation.mutate(app.id)}
-                disabled={triggerCallMutation.isPending}
+                disabled={triggerCallMutation.isPending || !!blockingCall}
+                title={blockingCall ? 'Call already in progress' : undefined}
               >
                 <Phone className="h-3.5 w-3.5 mr-1.5" />
                 AI Call

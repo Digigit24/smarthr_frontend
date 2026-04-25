@@ -125,12 +125,14 @@ function KanbanBoard({
   onChangeStatus,
   onTriggerCall,
   onDelete,
+  triggerCallPending,
 }: {
   applications: ApplicationListItem[]
   onView: (app: ApplicationListItem) => void
   onChangeStatus: (id: string, status: string) => void
   onTriggerCall: (id: string) => void
   onDelete: (id: string) => void
+  triggerCallPending: boolean
 }) {
   const columns = ALL_STATUSES.map((status) => ({
     status,
@@ -327,8 +329,9 @@ function KanbanBoard({
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6 text-muted-foreground hover:text-violet-500"
-                      title="Trigger AI Call"
+                      title={triggerCallPending ? 'Triggering…' : 'Trigger AI Call'}
                       onClick={(e) => { e.stopPropagation(); onTriggerCall(app.id) }}
+                      disabled={triggerCallPending}
                     >
                       <Phone className="h-3 w-3" />
                     </Button>
@@ -374,12 +377,14 @@ function SwipeableCard({
   onChangeStatus,
   onTriggerCall,
   onDelete,
+  triggerCallPending,
 }: {
   app: ApplicationListItem
   onView: (app: ApplicationListItem) => void
   onChangeStatus: (id: string, status: string) => void
   onTriggerCall: (id: string) => void
   onDelete: (id: string) => void
+  triggerCallPending: boolean
 }) {
   const [showStatusPicker, setShowStatusPicker] = useState(false)
 
@@ -427,8 +432,9 @@ function SwipeableCard({
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-violet-500"
-            title="Trigger AI Call"
+            title={triggerCallPending ? 'Triggering…' : 'Trigger AI Call'}
             onClick={(e) => { e.stopPropagation(); onTriggerCall(app.id) }}
+            disabled={triggerCallPending}
           >
             <Phone className="h-3.5 w-3.5" />
           </Button>
@@ -499,12 +505,14 @@ function MobileKanbanView({
   onChangeStatus,
   onTriggerCall,
   onDelete,
+  triggerCallPending,
 }: {
   applications: ApplicationListItem[]
   onView: (app: ApplicationListItem) => void
   onChangeStatus: (id: string, status: string) => void
   onTriggerCall: (id: string) => void
   onDelete: (id: string) => void
+  triggerCallPending: boolean
 }) {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
@@ -565,6 +573,7 @@ function MobileKanbanView({
                     onChangeStatus={onChangeStatus}
                     onTriggerCall={onTriggerCall}
                     onDelete={onDelete}
+                    triggerCallPending={triggerCallPending}
                   />
                 ))}
               </div>
@@ -1032,6 +1041,7 @@ export default function ApplicationsPage() {
             onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
             onTriggerCall={(id) => triggerCallMutation.mutate(id)}
             onDelete={handleDelete}
+            triggerCallPending={triggerCallMutation.isPending}
           />
         ) : (
           <KanbanBoard
@@ -1040,6 +1050,7 @@ export default function ApplicationsPage() {
             onChangeStatus={(id, status) => changeStatusMutation.mutate({ id, status })}
             onTriggerCall={(id) => triggerCallMutation.mutate(id)}
             onDelete={handleDelete}
+            triggerCallPending={triggerCallMutation.isPending}
           />
         )
       ) : (
@@ -1100,7 +1111,14 @@ export default function ApplicationsPage() {
                 <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={() => navigate(`/applications/${app.id}/edit`)}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" title="AI Call" onClick={() => triggerCallMutation.mutate(app.id)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  title={triggerCallMutation.isPending ? 'Triggering…' : 'AI Call'}
+                  onClick={() => triggerCallMutation.mutate(app.id)}
+                  disabled={triggerCallMutation.isPending}
+                >
                   <Phone className="h-3.5 w-3.5" />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" title="Delete" onClick={() => handleDelete(app.id)}>
@@ -1236,8 +1254,9 @@ export default function ApplicationsPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-violet-500"
-                          title="Trigger AI Call"
+                          title={triggerCallMutation.isPending ? 'Triggering…' : 'Trigger AI Call'}
                           onClick={() => triggerCallMutation.mutate(app.id)}
+                          disabled={triggerCallMutation.isPending}
                         >
                           <Phone className="h-3.5 w-3.5" />
                         </Button>
