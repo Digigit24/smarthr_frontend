@@ -73,10 +73,11 @@ export function UniversalHeader({
           )}
         </button>
 
-        {/* Settings */}
+        {/* Settings (gear) → profile */}
         <button
           className="p-2 rounded-lg hover:bg-accent transition-colors"
-          onClick={() => navigate('/settings')}
+          onClick={() => navigate('/profile')}
+          title="Profile"
         >
           <Settings className="h-4 w-4 text-muted-foreground" />
         </button>
