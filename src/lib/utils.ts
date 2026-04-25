@@ -20,8 +20,9 @@ export function formatDateTime(dateString: string): string {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
+    hour12: true,
   })
 }
 
@@ -208,7 +209,11 @@ export function getTalkSeconds(record: {
 
 export function formatTimeHM(iso: string | null | undefined): string {
   if (!iso) return ''
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
 }
 
 export function extractCursor(url: string | null): string | null {

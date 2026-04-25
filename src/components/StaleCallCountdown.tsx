@@ -101,7 +101,18 @@ export function StaleCallCountdown({
           : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
         className,
       )}
-      title={staleAt ? `Auto-fails at ${new Date(staleAt).toLocaleString()}` : undefined}
+      title={
+        staleAt
+          ? `Auto-fails at ${new Date(staleAt).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            })}`
+          : undefined
+      }
     >
       <Icon className="h-3 w-3" />
       {expired ? 'Auto-failing…' : `Auto-failing in ${formatMMSS(remaining)}`}
