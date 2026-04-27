@@ -404,7 +404,8 @@ export default function CallDetailPage() {
         </div>
       )}
 
-      {/* Error Banner */}
+      {/* Outcome banner — status-distinct so the recruiter can scan
+          "candidate declined" vs "system error" at a glance. */}
       {call.status === 'FAILED' && call.error_message && (
         <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 flex items-start gap-3">
           <XCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
@@ -414,7 +415,28 @@ export default function CallDetailPage() {
           </div>
         </div>
       )}
-      {call.status !== 'FAILED' && call.error_message && (
+      {call.status === 'NO_ANSWER' && call.error_message && (
+        <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-4 flex items-start gap-3">
+          <PhoneOff className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-0.5 uppercase tracking-wide">No Answer</p>
+            <p className="text-sm text-orange-800 dark:text-orange-300">{call.error_message}</p>
+          </div>
+        </div>
+      )}
+      {call.status === 'BUSY' && call.error_message && (
+        <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-4 flex items-start gap-3">
+          <PhoneOff className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-0.5 uppercase tracking-wide">Busy</p>
+            <p className="text-sm text-orange-800 dark:text-orange-300">{call.error_message}</p>
+          </div>
+        </div>
+      )}
+      {call.status !== 'FAILED' &&
+        call.status !== 'NO_ANSWER' &&
+        call.status !== 'BUSY' &&
+        call.error_message && (
         <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
           <div>

@@ -189,18 +189,25 @@ export function formatTalkTime(seconds: number | null | undefined): string {
 }
 
 /**
- * Defensive talk-time computer for a call record.
- * Prefers `duration` from the server; falls back to ended_at - started_at
- * when both timestamps are present but duration is missing/zero.
- * Returns 0 when no usable signal is available — `formatTalkTime(0)` is "—".
+ * Talk-time for a call record. Trusts the explicit `duration` from the
+ * server first — including zero, which means "no conversation happened"
+ * (e.g. NO_ANSWER, BUSY, FAILED). Only falls back to ended_at − started_at
+ * when status is COMPLETED and duration is missing, because for non-COMPLETED
+ * the timestamp delta is the *ringing window*, not talk time, and must
+ * never be displayed as conversation length.
  */
 export function getTalkSeconds(record: {
+  status?: string
   duration?: number | null
   started_at?: string | null
   ended_at?: string | null
 }): number {
-  if (record.duration && record.duration > 0) return record.duration
-  if (record.started_at && record.ended_at) {
+  // Trust the explicit duration first (including 0).
+  if (record.duration !== null && record.duration !== undefined) {
+    return record.duration
+  }
+  // Backfill from timestamps ONLY for COMPLETED.
+  if (record.status === 'COMPLETED' && record.started_at && record.ended_at) {
     const ms = new Date(record.ended_at).getTime() - new Date(record.started_at).getTime()
     return ms > 0 ? Math.floor(ms / 1000) : 0
   }

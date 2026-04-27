@@ -33,7 +33,6 @@ import {
   getInitials,
   getTalkSeconds,
   isActiveCallStatus,
-  isTerminalCallStatus,
   cn,
 } from '@/lib/utils'
 
@@ -159,13 +158,19 @@ export default function ApplicationDetailPage() {
     queryKey: ['application-detail', appId],
     queryFn: () => applicationsService.get(appId!),
     enabled: !!appId,
-    // Poll every 5s while any call is still non-terminal (in-flight).
-    // Backend drives all state transitions; we just refetch to see them.
+    // Poll every 3s while ANY call is in-flight (INITIATED / RINGING /
+    // IN_PROGRESS) so backend webhook events surface near-real-time.
+    // Stops as soon as every call is in a terminal state.
     refetchInterval: (query) => {
       const data = query.state.data as ApplicationDetail | undefined
       if (!data?.call_records?.length) return false
-      const hasNonTerminal = data.call_records.some((cr) => !isTerminalCallStatus(cr.status))
-      return hasNonTerminal ? 5000 : false
+      const inFlight = data.call_records.some(
+        (cr) =>
+          cr.status === 'INITIATED' ||
+          cr.status === 'RINGING' ||
+          cr.status === 'IN_PROGRESS',
+      )
+      return inFlight ? 3000 : false
     },
   })
 
@@ -671,13 +676,10 @@ export default function ApplicationDetailPage() {
                   const showError =
                     (cr.status === 'FAILED' || cr.status === 'NO_ANSWER' || cr.status === 'BUSY') &&
                     !!cr.error_message
-                  // Spec: only meaningful on COMPLETED (talk happened) and IN_PROGRESS
-                  // (live counter — refreshes on each 5s poll). Other statuses → "—".
-                  const talkSecondsBase =
-                    cr.status === 'COMPLETED' || cr.status === 'IN_PROGRESS'
-                      ? getTalkSeconds(cr)
-                      : 0
-                  const talkTime = formatTalkTime(talkSecondsBase)
+                  // getTalkSeconds trusts the server's duration (including 0)
+                  // and only falls back to timestamps for COMPLETED, so
+                  // NO_ANSWER / BUSY / FAILED naturally render "—".
+                  const talkTime = formatTalkTime(getTalkSeconds(cr))
                   const isExpanded = expandedCallId === cr.id
                   return (
                   <div key={cr.id} className="rounded-lg border p-4 space-y-3 hover:shadow-sm transition-shadow">
@@ -740,8 +742,19 @@ export default function ApplicationDetailPage() {
                     </div>
                     {showError && (
                       <div className="pt-3 border-t">
-                        <p className="text-xs text-muted-foreground mb-1 font-medium">Failure reason</p>
-                        <p className="text-sm leading-relaxed text-red-700 dark:text-red-400">{cr.error_message}</p>
+                        <p className="text-xs text-muted-foreground mb-1 font-medium">
+                          {cr.status === 'FAILED' ? 'Failure reason' : 'Reason'}
+                        </p>
+                        <p
+                          className={cn(
+                            'text-sm leading-relaxed',
+                            cr.status === 'FAILED'
+                              ? 'text-red-700 dark:text-red-400'
+                              : 'text-orange-700 dark:text-orange-400',
+                          )}
+                        >
+                          {cr.error_message}
+                        </p>
                       </div>
                     )}
                     {cr.status === 'COMPLETED' && cr.summary && (
