@@ -38,9 +38,10 @@ function ScoreRingSmall({ score }: { score: number }) {
   const stroke = 4
   const radius = (size - stroke) / 2
   const circ = 2 * Math.PI * radius
-  const offset = circ - (score / 100) * circ
-  const color = score >= 70 ? 'stroke-emerald-500' : score >= 40 ? 'stroke-amber-500' : 'stroke-red-500'
-  const textColor = score >= 70 ? 'text-emerald-600' : score >= 40 ? 'text-amber-600' : 'text-red-600'
+  const pct = Math.max(0, Math.min(100, score * 10))
+  const offset = circ - (pct / 100) * circ
+  const color = score >= 7 ? 'stroke-emerald-500' : score >= 4 ? 'stroke-amber-500' : 'stroke-red-500'
+  const textColor = score >= 7 ? 'text-emerald-600' : score >= 4 ? 'text-amber-600' : 'text-red-600'
   return (
     <div className="relative inline-flex items-center justify-center shrink-0">
       <svg width={size} height={size} className="transform -rotate-90">
@@ -49,7 +50,7 @@ function ScoreRingSmall({ score }: { score: number }) {
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
           className={cn(color, 'transition-all duration-500')} />
       </svg>
-      <span className={cn('absolute text-sm font-bold', textColor)}>{score.toFixed(0)}</span>
+      <span className={cn('absolute text-xs font-bold', textColor)}>{score.toFixed(1)}</span>
     </div>
   )
 }
@@ -76,7 +77,7 @@ function ScorecardCard({ sc, onDelete }: { sc: ScorecardListItem; onDelete: (id:
               <span className={cn('h-1.5 w-1.5 rounded-full', recCfg.dot)} />
               {recCfg.label}
             </span>
-            <p className="text-xs text-muted-foreground mt-1">Overall: <span className="font-semibold text-foreground">{overall.toFixed(1)}</span> / 100</p>
+            <p className="text-xs text-muted-foreground mt-1">Overall: <span className="font-semibold text-foreground">{overall.toFixed(2)}</span> / 10</p>
           </div>
           <Button
             variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
@@ -91,6 +92,7 @@ function ScorecardCard({ sc, onDelete }: { sc: ScorecardListItem; onDelete: (id:
         <div className="space-y-2 mb-4">
           {DIMENSION_ICONS.map((dim) => {
             const val = parseFloat((sc as unknown as Record<string, string>)[dim.key] || '0')
+            const pct = Math.max(0, Math.min(100, val * 10))
             return (
               <div key={dim.key} className="flex items-center gap-2">
                 <dim.icon className={cn('h-3.5 w-3.5 shrink-0', dim.color)} />
@@ -98,12 +100,12 @@ function ScorecardCard({ sc, onDelete }: { sc: ScorecardListItem; onDelete: (id:
                 <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
                     className={cn('h-full rounded-full transition-all duration-500',
-                      val >= 70 ? 'bg-emerald-500' : val >= 40 ? 'bg-amber-500' : 'bg-red-500'
+                      val >= 7 ? 'bg-emerald-500' : val >= 4 ? 'bg-amber-500' : 'bg-red-500'
                     )}
-                    style={{ width: `${val}%` }}
+                    style={{ width: `${pct}%` }}
                   />
                 </div>
-                <span className="text-[11px] font-medium w-8 text-right">{val.toFixed(0)}</span>
+                <span className="text-[11px] font-medium w-8 text-right">{val.toFixed(1)}</span>
               </div>
             )
           })}

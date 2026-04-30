@@ -69,12 +69,12 @@ const INTERVIEW_STATUS_COLORS: Record<string, string> = {
   NO_SHOW: 'bg-orange-100 text-orange-700',
 }
 
-const RECOMMENDATION_CONFIG: Record<string, { color: string; icon: typeof CheckCircle2 }> = {
-  STRONG_YES: { color: 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400', icon: CheckCircle2 },
-  YES: { color: 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400', icon: CheckCircle2 },
-  MAYBE: { color: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400', icon: AlertCircle },
-  NO: { color: 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400', icon: XCircle },
-  STRONG_NO: { color: 'text-red-700 bg-red-100 border-red-300 dark:bg-red-900/30 dark:border-red-700 dark:text-red-400', icon: XCircle },
+const RECOMMENDATION_CONFIG: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
+  STRONG_YES: { label: 'Strong Yes', color: 'text-white bg-emerald-600 border-emerald-700 dark:bg-emerald-500 dark:border-emerald-400', icon: CheckCircle2 },
+  YES:        { label: 'Yes',        color: 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400', icon: CheckCircle2 },
+  MAYBE:      { label: 'Maybe',      color: 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-400', icon: AlertCircle },
+  NO:         { label: 'No',         color: 'text-orange-700 bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-400', icon: XCircle },
+  STRONG_NO:  { label: 'Strong No',  color: 'text-red-700 bg-red-100 border-red-300 dark:bg-red-900/30 dark:border-red-700 dark:text-red-400', icon: XCircle },
 }
 
 const ALL_STATUSES: ApplicationStatus[] = [
@@ -101,8 +101,9 @@ function getAvatarGradient(name: string) {
 function ScoreRing({ score }: { score: string }) {
   const val = parseFloat(score)
   const circumference = 2 * Math.PI * 40
-  const offset = circumference - (val / 100) * circumference
-  const color = val >= 70 ? '#10b981' : val >= 40 ? '#f59e0b' : '#ef4444'
+  const pct = Math.max(0, Math.min(100, val * 10))
+  const offset = circumference - (pct / 100) * circumference
+  const color = val >= 7 ? '#10b981' : val >= 4 ? '#f59e0b' : '#ef4444'
   return (
     <div className="relative w-28 h-28 mx-auto">
       <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -118,8 +119,8 @@ function ScoreRing({ score }: { score: string }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold">{val.toFixed(0)}</span>
-        <span className="text-[10px] text-muted-foreground -mt-0.5">/ 100</span>
+        <span className="text-2xl font-bold">{val.toFixed(1)}</span>
+        <span className="text-[10px] text-muted-foreground -mt-0.5">/ 10</span>
       </div>
     </div>
   )
@@ -128,8 +129,8 @@ function ScoreRing({ score }: { score: string }) {
 /* ── Score dimension bar ── */
 function ScoreDimensionBar({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Activity }) {
   const num = parseFloat(value)
-  const pct = Math.min(100, num)
-  const color = pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500'
+  const pct = Math.max(0, Math.min(100, num * 10))
+  const color = num >= 7 ? 'bg-emerald-500' : num >= 4 ? 'bg-amber-500' : 'bg-red-500'
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -595,15 +596,15 @@ export default function ApplicationDetailPage() {
                           <div>
                             <p className="text-xs text-muted-foreground">Overall Assessment</p>
                             <p className="text-base sm:text-lg font-bold mt-0.5">
-                              {parseFloat(sc.overall_score).toFixed(1)}
-                              <span className="text-sm font-normal text-muted-foreground ml-1">/ 100</span>
+                              {parseFloat(sc.overall_score).toFixed(2)}
+                              <span className="text-sm font-normal text-muted-foreground ml-1">/ 10</span>
                             </p>
                           </div>
                         </div>
                         {recConf && (
                           <div className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium', recConf.color)}>
                             <RecIcon className="h-4 w-4" />
-                            {sc.recommendation.replace(/_/g, ' ')}
+                            {recConf.label}
                           </div>
                         )}
                       </div>

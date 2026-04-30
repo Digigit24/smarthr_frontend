@@ -77,8 +77,9 @@ function ScoreRing({ score, size = 'lg' }: { score: string; size?: 'sm' | 'lg' }
   const val = parseFloat(score)
   const r = size === 'lg' ? 40 : 28
   const circumference = 2 * Math.PI * r
-  const offset = circumference - (val / 100) * circumference
-  const color = val >= 70 ? '#10b981' : val >= 40 ? '#f59e0b' : '#ef4444'
+  const pct = Math.max(0, Math.min(100, val * 10))
+  const offset = circumference - (pct / 100) * circumference
+  const color = val >= 7 ? '#10b981' : val >= 4 ? '#f59e0b' : '#ef4444'
   const svgSize = size === 'lg' ? 'w-24 h-24' : 'w-16 h-16'
   const textSize = size === 'lg' ? 'text-xl' : 'text-sm'
   const subSize = size === 'lg' ? 'text-[9px]' : 'text-[8px]'
@@ -90,8 +91,8 @@ function ScoreRing({ score, size = 'lg' }: { score: string; size?: 'sm' | 'lg' }
           strokeDasharray={circumference} strokeDashoffset={offset} className="transition-all duration-1000" />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={cn('font-bold', textSize)}>{val.toFixed(0)}</span>
-        <span className={cn('text-muted-foreground -mt-0.5', subSize)}>/ 100</span>
+        <span className={cn('font-bold', textSize)}>{val.toFixed(1)}</span>
+        <span className={cn('text-muted-foreground -mt-0.5', subSize)}>/ 10</span>
       </div>
     </div>
   )
@@ -99,8 +100,8 @@ function ScoreRing({ score, size = 'lg' }: { score: string; size?: 'sm' | 'lg' }
 
 function ScoreDimensionBar({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Activity }) {
   const num = parseFloat(value)
-  const pct = Math.min(100, num)
-  const color = pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500'
+  const pct = Math.max(0, Math.min(100, num * 10))
+  const color = num >= 7 ? 'bg-emerald-500' : num >= 4 ? 'bg-amber-500' : 'bg-red-500'
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -504,7 +505,7 @@ export default function CallDetailPage() {
               <div>
                 <p className="text-[11px] text-muted-foreground font-medium">Score</p>
                 <p className="text-base sm:text-lg font-bold">
-                  {call.scorecard ? `${parseFloat(call.scorecard.overall_score).toFixed(0)}/100` : '—'}
+                  {call.scorecard ? `${parseFloat(call.scorecard.overall_score).toFixed(1)}/10` : '—'}
                 </p>
               </div>
             </div>
@@ -618,8 +619,8 @@ export default function CallDetailPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">Overall Assessment</p>
                         <p className="text-base sm:text-lg font-bold mt-0.5">
-                          {parseFloat(sc.overall_score).toFixed(1)}
-                          <span className="text-sm font-normal text-muted-foreground ml-1">/ 100</span>
+                          {parseFloat(sc.overall_score).toFixed(2)}
+                          <span className="text-sm font-normal text-muted-foreground ml-1">/ 10</span>
                         </p>
                       </div>
                     </div>

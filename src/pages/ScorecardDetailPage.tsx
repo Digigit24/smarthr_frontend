@@ -29,9 +29,10 @@ const DIMENSION_CONFIG = [
 function ScoreRing({ score, size = 120, stroke = 8 }: { score: number; size?: number; stroke?: number }) {
   const radius = (size - stroke) / 2
   const circ = 2 * Math.PI * radius
-  const offset = circ - (score / 100) * circ
-  const color = score >= 70 ? 'stroke-emerald-500' : score >= 40 ? 'stroke-amber-500' : 'stroke-red-500'
-  const bgColor = score >= 70 ? 'text-emerald-500' : score >= 40 ? 'text-amber-500' : 'text-red-500'
+  const pct = Math.max(0, Math.min(100, score * 10))
+  const offset = circ - (pct / 100) * circ
+  const color = score >= 7 ? 'stroke-emerald-500' : score >= 4 ? 'stroke-amber-500' : 'stroke-red-500'
+  const bgColor = score >= 7 ? 'text-emerald-500' : score >= 4 ? 'text-amber-500' : 'text-red-500'
   return (
     <div className="relative inline-flex items-center justify-center">
       <svg width={size} height={size} className="transform -rotate-90">
@@ -41,8 +42,8 @@ function ScoreRing({ score, size = 120, stroke = 8 }: { score: number; size?: nu
           className={cn(color, 'transition-all duration-700')} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={cn('text-xl sm:text-2xl font-bold', bgColor)}>{score.toFixed(1)}</span>
-        <span className="text-[10px] text-muted-foreground">/ 100</span>
+        <span className={cn('text-xl sm:text-2xl font-bold', bgColor)}>{score.toFixed(2)}</span>
+        <span className="text-[10px] text-muted-foreground">/ 10</span>
       </div>
     </div>
   )
@@ -156,7 +157,10 @@ export default function ScorecardDetailPage() {
                 </div>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div className={cn('h-full rounded-full transition-all duration-500', dim.bar)} style={{ width: `${val}%` }} />
+                <div
+                  className={cn('h-full rounded-full transition-all duration-500', dim.bar)}
+                  style={{ width: `${Math.max(0, Math.min(100, val * 10))}%` }}
+                />
               </div>
             </div>
           )
@@ -269,8 +273,8 @@ export default function ScorecardDetailPage() {
 
           {/* Recommendation */}
           <div className={cn('rounded-xl border-2 p-3 sm:p-4 md:p-5',
-            overall >= 70 ? 'border-emerald-200 dark:border-emerald-800/50'
-            : overall >= 40 ? 'border-amber-200 dark:border-amber-800/50'
+            overall >= 7 ? 'border-emerald-200 dark:border-emerald-800/50'
+            : overall >= 4 ? 'border-amber-200 dark:border-amber-800/50'
             : 'border-red-200 dark:border-red-800/50'
           )}>
             <p className="text-xs text-muted-foreground mb-2">Recommendation</p>

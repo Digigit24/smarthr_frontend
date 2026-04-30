@@ -91,13 +91,14 @@ function getAvatarGradient(name: string) {
 function ScoreBar({ score }: { score: string | null }) {
   if (!score) return <span className="text-muted-foreground text-[13px]">—</span>
   const val = parseFloat(score)
-  const color = val >= 70 ? 'bg-emerald-500' : val >= 40 ? 'bg-amber-500' : 'bg-red-500'
+  const pct = Math.max(0, Math.min(100, val * 10))
+  const color = val >= 7 ? 'bg-emerald-500' : val >= 4 ? 'bg-amber-500' : 'bg-red-500'
   return (
     <div className="flex items-center gap-2">
       <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full`} style={{ width: `${val}%` }} />
+        <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-[13px] font-medium">{val.toFixed(0)}</span>
+      <span className="text-[13px] font-medium">{val.toFixed(1)}</span>
     </div>
   )
 }
@@ -105,15 +106,15 @@ function ScoreBar({ score }: { score: string | null }) {
 function ScoreBadge({ score }: { score: string | null }) {
   if (!score) return null
   const val = parseFloat(score)
-  const color = val >= 70
+  const color = val >= 7
     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-    : val >= 40
+    : val >= 4
       ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
       : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
   return (
     <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold', color)}>
       <Star className="h-2.5 w-2.5 fill-current" />
-      {val.toFixed(0)}
+      {val.toFixed(1)}
     </span>
   )
 }
