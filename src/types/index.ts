@@ -203,6 +203,8 @@ export interface ApplicantDetail {
   email: string
   phone: string
   resume_url: string
+  resume_file: string | null
+  resume_download_url: string | null
   linkedin_url: string
   portfolio_url: string
   skills: string[]
@@ -224,6 +226,10 @@ export interface ApplicantFormData {
   email: string
   phone: string
   resume_url?: string
+  /** New File chosen via the file picker; serializes as multipart. */
+  resume_file?: File | null
+  /** Send true to clear the existing resume_file on PATCH. */
+  clear_resume_file?: boolean
   linkedin_url?: string
   portfolio_url?: string
   skills?: string[]

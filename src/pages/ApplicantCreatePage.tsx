@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ArrowLeft, Loader2, UserPlus, Briefcase } from 'lucide-react'
+import { ArrowLeft, Loader2, UserPlus, Briefcase, FileText, X as XIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,6 +23,7 @@ import { applyFieldErrors } from '@/lib/apiErrors'
 import ApplicationJobWizard from '@/components/ApplicationJobWizard'
 import type { ApplicantFormData } from '@/types'
 import { cn, normalizePhone } from '@/lib/utils'
+import { RESUME_ACCEPT, formatBytes, validateResumeFile } from '@/lib/resume'
 
 const applicantSchema = z.object({
   first_name: z.string().min(1, 'First name required'),
@@ -46,6 +47,7 @@ export default function ApplicantCreatePage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const [mode, setMode] = useState<'applicant-only' | 'applicant-and-apply'>('applicant-and-apply')
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
 
   const {
     register,
@@ -58,6 +60,22 @@ export default function ApplicantCreatePage() {
     resolver: zodResolver(applicantSchema),
     defaultValues: { source: 'MANUAL' },
   })
+
+  const handleResumePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    if (!file) {
+      setResumeFile(null)
+      return
+    }
+    const err = validateResumeFile(file)
+    if (err) {
+      toast.error(err)
+      e.target.value = ''
+      setResumeFile(null)
+      return
+    }
+    setResumeFile(file)
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: ApplicantFormData) => applicantsService.create(data),
@@ -79,6 +97,7 @@ export default function ApplicantCreatePage() {
       ...data,
       phone: normalizePhone(data.phone),
       skills: data.skills ? data.skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
+      ...(resumeFile && { resume_file: resumeFile }),
     })
   }
 
@@ -216,6 +235,39 @@ export default function ApplicantCreatePage() {
                 <div className="space-y-1.5">
                   <Label>Resume URL</Label>
                   <Input placeholder="https://cdn.example.com/resume.pdf" {...register('resume_url')} />
+                  <p className="text-[11px] text-muted-foreground">External link if the resume lives elsewhere.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Resume File</Label>
+                  {resumeFile ? (
+                    <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate" title={resumeFile.name}>{resumeFile.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{formatBytes(resumeFile.size)}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => setResumeFile(null)}
+                        title="Remove"
+                      >
+                        <XIcon className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Input
+                      type="file"
+                      accept={RESUME_ACCEPT}
+                      onChange={handleResumePick}
+                      className="cursor-pointer file:cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-muted/80"
+                    />
+                  )}
+                  <p className="text-[11px] text-muted-foreground">
+                    Optional. PDF / DOC / DOCX / TXT up to 10 MB.
+                  </p>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Portfolio URL</Label>

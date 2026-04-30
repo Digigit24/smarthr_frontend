@@ -25,6 +25,8 @@ import { jobsService } from '@/services/jobs'
 import { extractApiError, extractFieldErrors } from '@/lib/apiErrors'
 import type { ApplicantFormData } from '@/types'
 import { cn, normalizePhone } from '@/lib/utils'
+import { RESUME_ACCEPT, formatBytes, validateResumeFile } from '@/lib/resume'
+import { X as XIcon } from 'lucide-react'
 
 const STEPS = [
   { label: 'Candidate', icon: User },
@@ -111,6 +113,25 @@ export default function ApplicationJobWizard({
   const [resumeUrl, setResumeUrl] = useState('')
   const [notes, setNotes] = useState('')
   const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({})
+
+  // Resume file for new-applicant flow
+  const [newApplicantResumeFile, setNewApplicantResumeFile] = useState<File | null>(null)
+
+  const handleNewApplicantResumePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    if (!file) {
+      setNewApplicantResumeFile(null)
+      return
+    }
+    const err = validateResumeFile(file)
+    if (err) {
+      toast.error(err)
+      e.target.value = ''
+      setNewApplicantResumeFile(null)
+      return
+    }
+    setNewApplicantResumeFile(file)
+  }
 
   // ── Queries ──
   const [applicantPage, setApplicantPage] = useState(1)
@@ -233,6 +254,7 @@ export default function ApplicationJobWizard({
         ...result.data,
         phone: normalizePhone(result.data.phone),
         skills: result.data.skills ? result.data.skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
+        ...(newApplicantResumeFile && { resume_file: newApplicantResumeFile }),
       })
       return
     }
@@ -535,6 +557,38 @@ export default function ApplicationJobWizard({
                         value={newApplicant.skills}
                         onChange={(e) => setNewApplicant({ ...newApplicant, skills: e.target.value })}
                       />
+                    </div>
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label>Resume File</Label>
+                      {newApplicantResumeFile ? (
+                        <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate" title={newApplicantResumeFile.name}>{newApplicantResumeFile.name}</p>
+                            <p className="text-[11px] text-muted-foreground">{formatBytes(newApplicantResumeFile.size)}</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0"
+                            onClick={() => setNewApplicantResumeFile(null)}
+                            title="Remove"
+                          >
+                            <XIcon className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Input
+                          type="file"
+                          accept={RESUME_ACCEPT}
+                          onChange={handleNewApplicantResumePick}
+                          className="cursor-pointer file:cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-muted/80"
+                        />
+                      )}
+                      <p className="text-[11px] text-muted-foreground">
+                        Optional. PDF / DOC / DOCX / TXT up to 10 MB.
+                      </p>
                     </div>
                   </div>
                 </div>

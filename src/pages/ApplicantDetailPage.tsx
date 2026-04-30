@@ -7,7 +7,7 @@ import { z } from 'zod'
 import {
   ArrowLeft, Mail, Phone, Briefcase, MapPin, Star, Loader2,
   Pencil, Trash2, SendHorizonal, ExternalLink, FileText,
-  Calendar, Clock, Award, Tag, Link2, User, Plus, X,
+  Calendar, Clock, Award, Tag, Link2, User, Plus, X, Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { WhatsAppIcon } from '@/components/WhatsAppIcon'
@@ -29,6 +29,7 @@ import { jobsService } from '@/services/jobs'
 import type { ApplicantFormData, ApplicantDetail } from '@/types'
 import { formatDate, getInitials, cn, normalizePhone, phoneForWhatsApp } from '@/lib/utils'
 import { extractApiError } from '@/lib/apiErrors'
+import { RESUME_ACCEPT, formatBytes, validateResumeFile } from '@/lib/resume'
 
 const APP_STATUS_COLORS: Record<string, string> = {
   APPLIED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -182,6 +183,25 @@ export default function ApplicantDetailPage() {
   const qc = useQueryClient()
   const [editing, setEditing] = useState(searchParams.get('edit') === 'true')
   const [customFields, setCustomFields] = useState<{ key: string; value: string }[]>([])
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [clearResume, setClearResume] = useState(false)
+
+  const handleResumePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    if (!file) {
+      setResumeFile(null)
+      return
+    }
+    const err = validateResumeFile(file)
+    if (err) {
+      toast.error(err)
+      e.target.value = ''
+      setResumeFile(null)
+      return
+    }
+    setResumeFile(file)
+    setClearResume(false)
+  }
 
   const { data: applicant, isLoading } = useQuery({
     queryKey: ['applicant-detail', id],
@@ -198,21 +218,27 @@ export default function ApplicantDetailPage() {
       const previous = qc.getQueryData<ApplicantDetail>(detailKey)
       qc.setQueryData<ApplicantDetail>(detailKey, (old) => {
         if (!old) return old
+        // resume_file (File) and clear_resume_file (flag) are transport-only;
+        // never write them into the cache. The real resume_file URL gets
+        // populated by the server response in onSettled's invalidate.
+        const { resume_file: _rf, clear_resume_file: _crf, ...textData } = data
         return {
           ...old,
-          ...data,
-          skills: data.skills ?? old.skills,
-          tags: data.tags ?? old.tags,
-          experience_years: data.experience_years ?? old.experience_years,
-          current_company: data.current_company ?? old.current_company,
-          current_role: data.current_role ?? old.current_role,
-          resume_url: data.resume_url ?? old.resume_url,
-          linkedin_url: data.linkedin_url ?? old.linkedin_url,
-          portfolio_url: data.portfolio_url ?? old.portfolio_url,
-          notes: data.notes ?? old.notes,
-          phone: data.phone ?? old.phone,
-          custom_fields: data.custom_fields ?? old.custom_fields,
-          full_name: `${data.first_name} ${data.last_name}`.trim(),
+          ...textData,
+          skills: textData.skills ?? old.skills,
+          tags: textData.tags ?? old.tags,
+          experience_years: textData.experience_years ?? old.experience_years,
+          current_company: textData.current_company ?? old.current_company,
+          current_role: textData.current_role ?? old.current_role,
+          resume_url: textData.resume_url ?? old.resume_url,
+          linkedin_url: textData.linkedin_url ?? old.linkedin_url,
+          portfolio_url: textData.portfolio_url ?? old.portfolio_url,
+          notes: textData.notes ?? old.notes,
+          phone: textData.phone ?? old.phone,
+          custom_fields: textData.custom_fields ?? old.custom_fields,
+          full_name: `${textData.first_name} ${textData.last_name}`.trim(),
+          // If the user is clearing the resume, optimistically drop it.
+          ...(data.clear_resume_file && { resume_file: null, resume_download_url: null }),
         }
       })
       return { previous }
@@ -287,7 +313,12 @@ export default function ApplicantDetailPage() {
       phone: normalizePhone(data.phone),
       skills: data.skills ? data.skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
       custom_fields: cfObj,
+      ...(resumeFile && { resume_file: resumeFile }),
+      ...(clearResume && !resumeFile && { clear_resume_file: true }),
     })
+    // Reset transient picker state once we've handed off to the mutation.
+    setResumeFile(null)
+    setClearResume(false)
   }
 
   if (isLoading) {
@@ -485,6 +516,83 @@ export default function ApplicantDetailPage() {
                 <div className="space-y-1.5">
                   <Label>Resume URL</Label>
                   <Input {...register('resume_url')} />
+                  <p className="text-[11px] text-muted-foreground">External link if the resume lives elsewhere.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Resume File</Label>
+                  {resumeFile ? (
+                    <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate" title={resumeFile.name}>{resumeFile.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{formatBytes(resumeFile.size)} · uploads on save</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => setResumeFile(null)}
+                        title="Cancel"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : applicant.resume_file && !clearResume ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="flex-1 text-muted-foreground">A resume is on file.</span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[11px]"
+                          onClick={() => document.getElementById('resume-file-input')?.click()}
+                        >
+                          Replace
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-[11px] text-destructive hover:text-destructive"
+                          onClick={() => { setClearResume(true); setResumeFile(null) }}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      <input
+                        id="resume-file-input"
+                        type="file"
+                        accept={RESUME_ACCEPT}
+                        className="hidden"
+                        onChange={handleResumePick}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <Input
+                        type="file"
+                        accept={RESUME_ACCEPT}
+                        onChange={handleResumePick}
+                        className="cursor-pointer file:cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-muted/80"
+                      />
+                      {clearResume && (
+                        <p className="text-[11px] text-orange-600 dark:text-orange-400">
+                          Existing resume will be removed on save.{' '}
+                          <button
+                            type="button"
+                            className="underline font-medium"
+                            onClick={() => setClearResume(false)}
+                          >
+                            Undo
+                          </button>
+                        </p>
+                      )}
+                    </>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">PDF / DOC / DOCX / TXT up to 10 MB.</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Portfolio URL</Label>
@@ -662,7 +770,10 @@ export default function ApplicantDetailPage() {
             )}
 
             {/* Links */}
-            {(applicant.linkedin_url || applicant.resume_url || applicant.portfolio_url) && (
+            {(applicant.linkedin_url ||
+              applicant.resume_url ||
+              applicant.portfolio_url ||
+              applicant.resume_file) && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
@@ -672,6 +783,24 @@ export default function ApplicantDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
+                    {/* Uploaded resume file gets the prominent Download button */}
+                    {applicant.resume_file && (
+                      <Button
+                        asChild
+                        size="sm"
+                        className="w-full justify-start h-9"
+                      >
+                        <a
+                          href={applicant.resume_download_url ?? applicant.resume_file}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Download className="h-3.5 w-3.5 mr-2" />
+                          Download Resume
+                        </a>
+                      </Button>
+                    )}
                     {applicant.linkedin_url && (
                       <a
                         href={applicant.linkedin_url}
@@ -691,7 +820,7 @@ export default function ApplicantDetailPage() {
                         className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
                       >
                         <FileText className="h-3.5 w-3.5" />
-                        Resume
+                        {applicant.resume_file ? 'External resume link' : 'Resume'}
                       </a>
                     )}
                     {applicant.portfolio_url && (
