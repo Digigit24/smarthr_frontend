@@ -100,6 +100,45 @@ export const applicantsService = {
 
   delete: (id: string) => del(`/applicants/${id}/`),
 
+  /**
+   * Download the uploaded resume via the authenticated axios instance —
+   * the bare URL on the model can't be used in an <a href> because the
+   * backend requires the Bearer token. Filename is taken from the
+   * server's Content-Disposition when present, otherwise from the
+   * supplied fallback.
+   */
+  downloadResume: async (id: string, fallbackFilename = 'resume') => {
+    const res = await api.get(`/applicants/${id}/download-resume/`, {
+      responseType: 'blob',
+    })
+    const blob = new Blob([res.data as BlobPart])
+    const blobUrl = URL.createObjectURL(blob)
+    let filename = fallbackFilename
+    const cd = (res.headers['content-disposition'] || res.headers['Content-Disposition']) as
+      | string
+      | undefined
+    if (cd) {
+      // Match RFC 5987 ("filename*=UTF-8''…") or plain ("filename=…").
+      const star = /filename\*\s*=\s*[^']*''([^;\n]+)/i.exec(cd)
+      const plain = /filename\s*=\s*"?([^";\n]+)"?/i.exec(cd)
+      const raw = star?.[1] || plain?.[1]
+      if (raw) {
+        try {
+          filename = decodeURIComponent(raw.trim())
+        } catch {
+          filename = raw.trim()
+        }
+      }
+    }
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(blobUrl)
+  },
+
   applications: (id: string, params?: Record<string, string>) =>
     get<PaginatedResponse<ApplicationListItem>>(`/applicants/${id}/applications/`, { params }),
 

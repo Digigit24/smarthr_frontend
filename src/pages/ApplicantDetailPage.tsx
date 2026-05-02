@@ -270,6 +270,21 @@ export default function ApplicantDetailPage() {
     },
   })
 
+  const downloadResumeMutation = useMutation({
+    mutationFn: () =>
+      applicantsService.downloadResume(
+        id!,
+        `${(applicant?.full_name || 'resume').replace(/\s+/g, '_')}_resume`,
+      ),
+    onMutate: () => ({ toastId: toast.loading('Downloading resume...') }),
+    onSuccess: (_data, _vars, context) => {
+      toast.success('Resume downloaded', { id: context?.toastId })
+    },
+    onError: (err, _vars, context) => {
+      toast.error(extractApiError(err, 'Failed to download resume'), { id: context?.toastId })
+    },
+  })
+
   const {
     register,
     handleSubmit,
@@ -783,22 +798,22 @@ export default function ApplicantDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {/* Uploaded resume file gets the prominent Download button */}
+                    {/* Uploaded resume file gets the prominent Download button.
+                        Routes through the auth'd axios instance so the Bearer
+                        token is attached — a plain <a href> would 401. */}
                     {applicant.resume_file && (
                       <Button
-                        asChild
                         size="sm"
                         className="w-full justify-start h-9"
+                        onClick={() => downloadResumeMutation.mutate()}
+                        disabled={downloadResumeMutation.isPending}
                       >
-                        <a
-                          href={applicant.resume_download_url ?? applicant.resume_file}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
+                        {downloadResumeMutation.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                        ) : (
                           <Download className="h-3.5 w-3.5 mr-2" />
-                          Download Resume
-                        </a>
+                        )}
+                        {downloadResumeMutation.isPending ? 'Downloading…' : 'Download Resume'}
                       </Button>
                     )}
                     {applicant.linkedin_url && (
