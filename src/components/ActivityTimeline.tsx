@@ -140,7 +140,7 @@ export function ActivityTimeline({
                     <Icon className={cn('h-3.5 w-3.5', cfg.color)} />
                   </div>
                   <div className="flex-1 min-w-0 -mt-0.5">
-                    <p className="text-sm leading-snug">
+                    <p className="text-sm leading-snug break-words">
                       <span className="font-medium">{describe(a)}</span>
                       {a.actor_email && (
                         <span className="text-muted-foreground"> · by {a.actor_email}</span>
