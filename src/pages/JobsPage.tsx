@@ -11,6 +11,7 @@ import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -329,9 +330,31 @@ export default function JobsPage() {
 
       {/* Job Grid */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground mt-3">Loading jobs...</p>
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden border-l-4 border-l-muted">
+              <CardContent className="p-0">
+                <div className="p-4 pb-3 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Skeleton className="h-5 w-14 rounded-full" />
+                    <Skeleton className="h-5 w-20 rounded-md" />
+                    <Skeleton className="h-5 w-12 rounded-md" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-t border-border/40">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : (data?.results?.length ?? 0) === 0 ? (
         <div className="text-center py-16 text-muted-foreground">

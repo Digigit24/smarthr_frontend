@@ -7,8 +7,10 @@ import { z } from 'zod'
 import {
   ArrowLeft, Mail, Phone, Briefcase, MapPin, Star, Loader2,
   Pencil, Trash2, SendHorizonal, ExternalLink, FileText,
-  Calendar, Clock, Award, Tag, Link2, User, Plus, X, Download,
+  Calendar, Clock, Award, Tag, Link2, User, Plus, X, Download, Eye,
 } from 'lucide-react'
+import { ResumePreviewDialog } from '@/components/ResumePreviewDialog'
+import { ActivityTimeline } from '@/components/ActivityTimeline'
 import { toast } from 'sonner'
 import { WhatsAppIcon } from '@/components/WhatsAppIcon'
 import { Button } from '@/components/ui/button'
@@ -185,6 +187,7 @@ export default function ApplicantDetailPage() {
   const [customFields, setCustomFields] = useState<{ key: string; value: string }[]>([])
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [clearResume, setClearResume] = useState(false)
+  const [resumePreviewOpen, setResumePreviewOpen] = useState(false)
 
   const handleResumePick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null
@@ -798,23 +801,33 @@ export default function ApplicantDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {/* Uploaded resume file gets the prominent Download button.
-                        Routes through the auth'd axios instance so the Bearer
-                        token is attached — a plain <a href> would 401. */}
+                    {/* Uploaded resume — Preview opens an inline modal,
+                        Download streams via the auth'd axios instance. */}
                     {applicant.resume_file && (
-                      <Button
-                        size="sm"
-                        className="w-full justify-start h-9"
-                        onClick={() => downloadResumeMutation.mutate()}
-                        disabled={downloadResumeMutation.isPending}
-                      >
-                        {downloadResumeMutation.isPending ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                        ) : (
-                          <Download className="h-3.5 w-3.5 mr-2" />
-                        )}
-                        {downloadResumeMutation.isPending ? 'Downloading…' : 'Download Resume'}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 justify-center h-9"
+                          onClick={() => setResumePreviewOpen(true)}
+                        >
+                          <Eye className="h-3.5 w-3.5 mr-1.5" />
+                          Preview
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 justify-center h-9"
+                          onClick={() => downloadResumeMutation.mutate()}
+                          disabled={downloadResumeMutation.isPending}
+                        >
+                          {downloadResumeMutation.isPending ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                          ) : (
+                            <Download className="h-3.5 w-3.5 mr-1.5" />
+                          )}
+                          {downloadResumeMutation.isPending ? 'Downloading…' : 'Download'}
+                        </Button>
+                      </div>
                     )}
                     {applicant.linkedin_url && (
                       <a
@@ -868,6 +881,9 @@ export default function ApplicantDetailPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Activity timeline */}
+            <ActivityTimeline resourceType="applicant" resourceId={applicant.id} />
 
             {/* Custom Fields */}
             {applicant.custom_fields && Object.keys(applicant.custom_fields).length > 0 && (
@@ -960,6 +976,13 @@ export default function ApplicantDetailPage() {
           </div>
         </div>
       )}
+
+      <ResumePreviewDialog
+        open={resumePreviewOpen}
+        onOpenChange={setResumePreviewOpen}
+        applicantId={applicant.id}
+        applicantName={applicant.full_name}
+      />
     </div>
   )
 }

@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import {
   Select,
   SelectContent,
@@ -820,9 +822,18 @@ export default function ApplicationsPage() {
     }
   }
 
-  const handleBulkDelete = () => {
-    if (!window.confirm(`Permanently delete ${selectedIds.size} application(s)? This cannot be undone.`)) return
-    bulkMutation.mutate({ application_ids: Array.from(selectedIds), action: 'delete' })
+  // Confirm dialogs replace window.confirm so destructive actions get a
+  // proper modal with a loading state.
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [singleDeleteId, setSingleDeleteId] = useState<string | null>(null)
+
+  const handleBulkDelete = () => setBulkDeleteOpen(true)
+
+  const confirmBulkDelete = () => {
+    bulkMutation.mutate(
+      { application_ids: Array.from(selectedIds), action: 'delete' },
+      { onSettled: () => setBulkDeleteOpen(false) },
+    )
   }
 
   const handleBulkTriggerCall = () => {
@@ -839,9 +850,14 @@ export default function ApplicationsPage() {
   }
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this application?')) {
-      deleteMutation.mutate(id)
-    }
+    setSingleDeleteId(id)
+  }
+
+  const confirmSingleDelete = () => {
+    if (!singleDeleteId) return
+    deleteMutation.mutate(singleDeleteId, {
+      onSettled: () => setSingleDeleteId(null),
+    })
   }
 
   // The list endpoint may return an empty `applicant_phone` for some rows.
@@ -1061,9 +1077,20 @@ export default function ApplicationsPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground mt-3">Loading applications...</p>
+        <div className="space-y-2 sm:space-y-3" aria-busy="true">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="flex items-center gap-3 p-3 sm:p-4">
+                <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-1/4" />
+                </div>
+                <Skeleton className="h-6 w-20 rounded-full" />
+                <Skeleton className="hidden sm:block h-6 w-16 rounded-md" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : (data?.results?.length ?? 0) === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
@@ -1307,6 +1334,27 @@ export default function ApplicationsPage() {
         </Card>
         </>
       )}
+
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title={`Delete ${selectedIds.size} application${selectedIds.size === 1 ? '' : 's'}?`}
+        description="This permanently removes the selected applications and any related call records and scorecards. This cannot be undone."
+        confirmLabel={`Delete ${selectedIds.size}`}
+        tone="destructive"
+        onConfirm={confirmBulkDelete}
+        loading={bulkMutation.isPending}
+      />
+      <ConfirmDialog
+        open={!!singleDeleteId}
+        onOpenChange={(open) => !open && setSingleDeleteId(null)}
+        title="Delete this application?"
+        description="The application and any related call records and scorecards will be permanently removed."
+        confirmLabel="Delete"
+        tone="destructive"
+        onConfirm={confirmSingleDelete}
+        loading={deleteMutation.isPending}
+      />
     </div>
   )
 }

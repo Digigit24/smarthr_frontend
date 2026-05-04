@@ -101,6 +101,43 @@ export const applicantsService = {
   delete: (id: string) => del(`/applicants/${id}/`),
 
   /**
+   * Fetch the resume as an authenticated blob — used by the inline
+   * preview modal so the browser can render the PDF without opening
+   * a new tab. Returns the blob plus the resolved filename.
+   */
+  fetchResumeBlob: async (id: string, fallbackFilename = 'resume'): Promise<{
+    blob: Blob
+    filename: string
+    contentType: string
+  }> => {
+    const res = await api.get(`/applicants/${id}/download-resume/`, {
+      responseType: 'blob',
+    })
+    const contentType =
+      ((res.headers['content-type'] || res.headers['Content-Type']) as string | undefined) ||
+      'application/octet-stream'
+    const blob = new Blob([res.data as BlobPart], { type: contentType })
+
+    let filename = fallbackFilename
+    const cd = (res.headers['content-disposition'] || res.headers['Content-Disposition']) as
+      | string
+      | undefined
+    if (cd) {
+      const star = /filename\*\s*=\s*[^']*''([^;\n]+)/i.exec(cd)
+      const plain = /filename\s*=\s*"?([^";\n]+)"?/i.exec(cd)
+      const raw = star?.[1] || plain?.[1]
+      if (raw) {
+        try {
+          filename = decodeURIComponent(raw.trim())
+        } catch {
+          filename = raw.trim()
+        }
+      }
+    }
+    return { blob, filename, contentType }
+  },
+
+  /**
    * Download the uploaded resume via the authenticated axios instance —
    * the bare URL on the model can't be used in an <a href> because the
    * backend requires the Bearer token. Filename is taken from the

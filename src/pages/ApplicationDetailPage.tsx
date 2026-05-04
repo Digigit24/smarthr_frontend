@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select'
 import { applicationsService } from '@/services/applications'
 import { callsService } from '@/services/calls'
+import { ActivityTimeline } from '@/components/ActivityTimeline'
 import type { ApplicationStatus, CallRecordSummary, ApplicationDetail } from '@/types'
 import {
   formatDate,
@@ -1088,6 +1089,9 @@ export default function ApplicationDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Activity timeline */}
+          <ActivityTimeline resourceType="application" resourceId={app.id} />
         </div>
       </div>
     </div>

@@ -15,6 +15,7 @@ import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -683,9 +684,37 @@ export default function InterviewsPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-16 sm:py-20">
-          <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" />
-          <p className="text-xs sm:text-sm text-muted-foreground mt-3">Loading interviews...</p>
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-xl border bg-card overflow-hidden">
+              <div className="h-1.5 bg-muted" />
+              <div className="p-3 sm:p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+                <Skeleton className="h-4 w-3/4" />
+                <div className="flex items-center gap-2.5 p-2 sm:p-2.5 rounded-lg bg-muted/30">
+                  <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-2.5 w-12" />
+                    <Skeleton className="h-3 w-2/3" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5 p-2 sm:p-2.5 rounded-lg bg-muted/30">
+                  <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-2.5 w-12" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+                <div className="pt-3 border-t flex gap-2">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : allInterviews.length === 0 ? (
         <div className="text-center py-16 sm:py-20">

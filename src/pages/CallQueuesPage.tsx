@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -349,9 +350,39 @@ export default function CallQueuesPage() {
 
       {/* Grid */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground mt-3">Loading call queues...</p>
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-xl border bg-card overflow-hidden">
+              <div className="h-1.5 bg-muted" />
+              <div className="p-4 sm:p-5 space-y-4">
+                <div className="flex items-start justify-between">
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                  <Skeleton className="h-7 w-7 rounded-md" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-3 w-12" />
+                    <Skeleton className="h-3 w-10" />
+                  </div>
+                  <Skeleton className="h-1.5 w-full rounded-full" />
+                  <div className="flex justify-between">
+                    <Skeleton className="h-3 w-14" />
+                    <Skeleton className="h-3 w-8" />
+                  </div>
+                  <Skeleton className="h-1.5 w-full rounded-full" />
+                </div>
+                <div className="pt-3 border-t flex gap-3">
+                  <Skeleton className="h-3 w-10" />
+                  <Skeleton className="h-3 w-10" />
+                  <Skeleton className="h-3 w-16 ml-auto" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (data?.results?.length ?? 0) === 0 ? (
         <div className="text-center py-20">

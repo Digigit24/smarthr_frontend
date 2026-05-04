@@ -1,44 +1,57 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, MutationCache, useQuery } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
+import { Loader2 } from 'lucide-react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { UniversalSidebar } from '@/components/UniversalSidebar'
 import { UniversalHeader } from '@/components/UniversalHeader'
 import { useAuthStore } from '@/stores/authStore'
 import { notificationsService } from '@/services/notifications'
 import LoginPage from '@/pages/LoginPage'
-import DashboardPage from '@/pages/DashboardPage'
-import JobsPage from '@/pages/JobsPage'
-import JobDetailPage from '@/pages/JobDetailPage'
-import JobCreatePage from '@/pages/JobCreatePage'
-import JobEditPage from '@/pages/JobEditPage'
-import ApplicationDetailPage from '@/pages/ApplicationDetailPage'
-import ApplicantsPage from '@/pages/ApplicantsPage'
-import ApplicantDetailPage from '@/pages/ApplicantDetailPage'
-import ApplicantCreatePage from '@/pages/ApplicantCreatePage'
-import ApplicationsPage from '@/pages/ApplicationsPage'
-import ApplicationCreatePage from '@/pages/ApplicationCreatePage'
-import ApplicationEditPage from '@/pages/ApplicationEditPage'
-import PipelinePage from '@/pages/PipelinePage'
-import CallsPage from '@/pages/CallsPage'
-import CallDetailPage from '@/pages/CallDetailPage'
-import CallEditPage from '@/pages/CallEditPage'
-import CallQueuesPage from '@/pages/CallQueuesPage'
-import CallQueueDetailPage from '@/pages/CallQueueDetailPage'
-import CallQueueCreatePage from '@/pages/CallQueueCreatePage'
-import ScorecardsPage from '@/pages/ScorecardsPage'
-import ScorecardDetailPage from '@/pages/ScorecardDetailPage'
-import ScorecardEditPage from '@/pages/ScorecardEditPage'
-import InterviewsPage from '@/pages/InterviewsPage'
-import InterviewDetailPage from '@/pages/InterviewDetailPage'
-import InterviewCreatePage from '@/pages/InterviewCreatePage'
-import InterviewEditPage from '@/pages/InterviewEditPage'
-import NotificationsPage from '@/pages/NotificationsPage'
-import NotificationDetailPage from '@/pages/NotificationDetailPage'
-import ActivitiesPage from '@/pages/ActivitiesPage'
-import ActivityDetailPage from '@/pages/ActivityDetailPage'
-import ProfilePage from '@/pages/ProfilePage'
+
+// All page components are lazily loaded so the initial bundle stays small.
+// React Router renders them inside a Suspense boundary that shows a tiny
+// spinner during the first navigation to each route.
+const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
+const JobsPage = lazy(() => import('@/pages/JobsPage'))
+const JobDetailPage = lazy(() => import('@/pages/JobDetailPage'))
+const JobCreatePage = lazy(() => import('@/pages/JobCreatePage'))
+const JobEditPage = lazy(() => import('@/pages/JobEditPage'))
+const ApplicationDetailPage = lazy(() => import('@/pages/ApplicationDetailPage'))
+const ApplicantsPage = lazy(() => import('@/pages/ApplicantsPage'))
+const ApplicantDetailPage = lazy(() => import('@/pages/ApplicantDetailPage'))
+const ApplicantCreatePage = lazy(() => import('@/pages/ApplicantCreatePage'))
+const ApplicationsPage = lazy(() => import('@/pages/ApplicationsPage'))
+const ApplicationCreatePage = lazy(() => import('@/pages/ApplicationCreatePage'))
+const ApplicationEditPage = lazy(() => import('@/pages/ApplicationEditPage'))
+const PipelinePage = lazy(() => import('@/pages/PipelinePage'))
+const CallsPage = lazy(() => import('@/pages/CallsPage'))
+const CallDetailPage = lazy(() => import('@/pages/CallDetailPage'))
+const CallEditPage = lazy(() => import('@/pages/CallEditPage'))
+const CallQueuesPage = lazy(() => import('@/pages/CallQueuesPage'))
+const CallQueueDetailPage = lazy(() => import('@/pages/CallQueueDetailPage'))
+const CallQueueCreatePage = lazy(() => import('@/pages/CallQueueCreatePage'))
+const ScorecardsPage = lazy(() => import('@/pages/ScorecardsPage'))
+const ScorecardDetailPage = lazy(() => import('@/pages/ScorecardDetailPage'))
+const ScorecardEditPage = lazy(() => import('@/pages/ScorecardEditPage'))
+const InterviewsPage = lazy(() => import('@/pages/InterviewsPage'))
+const InterviewDetailPage = lazy(() => import('@/pages/InterviewDetailPage'))
+const InterviewCreatePage = lazy(() => import('@/pages/InterviewCreatePage'))
+const InterviewEditPage = lazy(() => import('@/pages/InterviewEditPage'))
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'))
+const NotificationDetailPage = lazy(() => import('@/pages/NotificationDetailPage'))
+const ActivitiesPage = lazy(() => import('@/pages/ActivitiesPage'))
+const ActivityDetailPage = lazy(() => import('@/pages/ActivityDetailPage'))
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
+
+function RouteFallback() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  )
+}
 
 const ANALYTICS_QUERY_KEYS = ['analytics-dashboard', 'analytics-funnel', 'analytics-timeline', 'analytics-scores']
 
@@ -134,6 +147,7 @@ function AppLayout() {
           unreadCount={unreadCount}
         />
         <main className="flex-1 overflow-auto">
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/jobs" element={<JobsPage />} />
@@ -169,6 +183,7 @@ function AppLayout() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </main>
       </div>
     </div>

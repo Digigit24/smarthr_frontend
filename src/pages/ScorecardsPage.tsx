@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { extractApiError } from '@/lib/apiErrors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -310,9 +311,37 @@ export default function ScorecardsPage() {
 
       {/* Grid */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground mt-3">Loading scorecards...</p>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-xl border bg-card overflow-hidden">
+              <div className="h-1.5 bg-muted" />
+              <div className="p-4 sm:p-5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-14 w-14 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-20 rounded-full" />
+                    <Skeleton className="h-3 w-3/4" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {Array.from({ length: 4 }).map((_, j) => (
+                    <div key={j} className="flex items-center gap-2">
+                      <Skeleton className="h-3.5 w-3.5 rounded" />
+                      <Skeleton className="h-3 w-10" />
+                      <Skeleton className="h-1.5 flex-1 rounded-full" />
+                      <Skeleton className="h-3 w-6" />
+                    </div>
+                  ))}
+                </div>
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-2/3" />
+                <div className="pt-3 border-t flex justify-between">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (data?.results?.length ?? 0) === 0 ? (
         <div className="text-center py-20">
